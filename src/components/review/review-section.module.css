@@ -1,0 +1,20 @@
+.reviewTextarea {
+  background: rgba(35,32,70,0.92);
+  color: #fff !important;
+  border: 2px solid #a78bfa;
+  border-radius: 0.7em;
+  padding: 1em;
+  width: 100%;
+  font-size: 1.08em;
+  box-shadow: 0 4px 18px 0 rgba(40,24,80,0.13);
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.reviewTextarea:focus {
+  border: 2px solid #e879f9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(232,121,249,0.15);
+}
+.reviewTextarea::placeholder {
+  color: #a5b4fc;
+  opacity: 1;
+}

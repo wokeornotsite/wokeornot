@@ -22,5 +22,47 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
+
+:root {
+  --color-bg: #181824;
+  --color-bg-gradient: linear-gradient(to bottom, #1a1a2e, #232946 60%, #121212 100%);
+  --color-card: #232946;
+  --color-primary: #7f5af0;
+  --color-accent: #f15bb5;
+  --color-text: #eaeaea;
+  --color-subtle: #b8c1ec;
+  --color-border: #2e2e48;
+  --color-woke-green: #22c55e;
+  --color-woke-yellow: #eab308;
+  --color-woke-red: #ef4444;
+  --radius: 0.75rem;
+  --transition: 0.18s cubic-bezier(.4,0,.2,1);
+}
+
+.card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 16px 0 rgba(20,20,40,0.17);
+  border: 1px solid var(--color-border);
+  padding: 1.25rem;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.card:hover, .card:focus-within {
+  box-shadow: 0 4px 32px 0 rgba(127,90,240,0.13);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #20223a 25%, #232946 50%, #20223a 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.2s infinite linear;
+  border-radius: var(--radius);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+

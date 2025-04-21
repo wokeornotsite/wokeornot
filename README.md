@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WokeOrNot
+
+WokeOrNot is a modern web app for rating the "wokeness" of movies, TV shows, and kids content. Users can register, log in, leave reviews, participate in discussions, and join a community-driven forum.
+
+## Features
+- User authentication (NextAuth, Google OAuth, email/password)
+- Movies, TV Shows, Kids content sections (data from TMDb)
+- Wokeness score visualization
+- User reviews and comments
+- Community forum (threads and discussion)
+- User profile with review/comment history
+- Modern UI with Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
-
+### 1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up your environment variables
+Create a `.env` file in the project root with the following:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_URL="file:./dev.db" # or your preferred database connection string
+NEXTAUTH_SECRET=your_nextauth_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+TMDB_API_KEY=your_tmdb_api_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Get a TMDb API key at https://www.themoviedb.org/settings/api
+- Set up Google OAuth credentials at https://console.developers.google.com/
 
-## Learn More
+### 3. Set up the database
+```bash
+npx prisma migrate dev --name init
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Run the development server
+```bash
+npm run dev
+```
+Visit [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Build for production
+```bash
+npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Main Scripts
+- `npm run dev` — Start the dev server
+- `npm run build` — Build for production
+- `npm start` — Start production server
+- `npx prisma studio` — Visual DB browser
 
-## Deploy on Vercel
+## Tech Stack
+- Next.js (App Router)
+- Prisma ORM
+- NextAuth.js
+- Tailwind CSS
+- TMDb API
+- React Hook Form, Zod, Axios
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment Variables
+- `DATABASE_URL` — Prisma DB connection string
+- `NEXTAUTH_SECRET` — NextAuth session secret
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth
+- `TMDB_API_KEY` — TMDb API access
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+MIT
+
+---
+
+For questions or support, open an issue or contact the project maintainer.
