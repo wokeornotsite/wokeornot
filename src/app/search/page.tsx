@@ -4,24 +4,7 @@ import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
 
-// Mock genres for filter dropdown
-// Dynamically fetched genres
-const [genres, setGenres] = React.useState<{ id: number, name: string }[]>([]);
-React.useEffect(() => {
-  async function fetchGenres() {
-    try {
-      const movieRes = await fetch('/api/genres?type=movie');
-      const tvRes = await fetch('/api/genres?type=tv');
-      const movieGenres = await movieRes.json();
-      const tvGenres = await tvRes.json();
-      // Merge and dedupe
-      const all = [...movieGenres, ...tvGenres];
-      const deduped = Array.from(new Map(all.map(g => [g.id, g])).values());
-      setGenres([{ id: 0, name: 'All Genres' }, ...deduped]);
-    } catch {}
-  }
-  fetchGenres();
-}, []);
+
 
 // import { searchMovies, searchTVShows } from '@/lib/tmdb';
 // import type { TMDBMovie, TMDBTVShow, ContentItem } from '@/types';
@@ -49,6 +32,22 @@ async function searchContent(query: string, genre: string, year: string, wokenes
 
 
 export default function SearchPage() {
+  const [genres, setGenres] = React.useState<{ id: number, name: string }[]>([]);
+  React.useEffect(() => {
+    async function fetchGenres() {
+      try {
+        const movieRes = await fetch('/api/genres?type=movie');
+        const tvRes = await fetch('/api/genres?type=tv');
+        const movieGenres = await movieRes.json();
+        const tvGenres = await tvRes.json();
+        // Merge and dedupe
+        const all = [...movieGenres, ...tvGenres];
+        const deduped = Array.from(new Map(all.map(g => [g.id, g])).values());
+        setGenres([{ id: 0, name: 'All Genres' }, ...deduped]);
+      } catch {}
+    }
+    fetchGenres();
+  }, []);
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
