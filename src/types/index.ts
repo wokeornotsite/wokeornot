@@ -31,7 +31,7 @@ export interface ContentItem {
 }
 
 export interface Genre {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -43,18 +43,18 @@ export interface Category {
 
 export interface CategoryScore {
   id: string;
-  id: string;
   categoryId: string;
   score: number;
   count: number;
   percentage: number;
+  contentId: string;
   category?: Category;
 }
 
 export interface Review {
   id: string;
   userId: string;
-  id: string;
+  contentId: string;
   rating: number;
   text?: string | null;
   createdAt: Date;
@@ -73,7 +73,6 @@ export interface Comment {
   id: string;
   text: string;
   userId: string;
-  id?: string | null;
   parentId?: string | null;
   createdAt: Date;
   updatedAt: Date;

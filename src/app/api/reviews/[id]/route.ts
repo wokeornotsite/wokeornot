@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !session.user.email) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const user = session.user;
@@ -124,12 +124,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const review = await prisma.review.create({
       data: {
-        userId: dbUser.id,
+        userId: dbUser.id ?? '',
         contentId: id,
         rating,
         text,
         categories: {
-          create: categoryIds.map((categoryId: string) => ({ categoryId })),
+          create: categoryIds.map((categoryId: string | null | undefined) => ({ categoryId: categoryId ?? '' })),
         },
       },
       include: {
@@ -143,15 +143,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { contentId: id },
       include: { categories: true },
     });
+    console.log('[DEBUG] allReviews:', JSON.stringify(allReviews, null, 2));
     const reviewCount = allReviews.length;
     const wokeScore = reviewCount > 0 ? allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount : 0;
     await prisma.content.update({
       where: { id: id },
       data: { wokeScore, reviewCount },
     });
-    const allReviewCategories = await prisma.reviewCategory.findMany({
-      where: { review: { contentId: id } },
-    });
+    const reviewIds = allReviews.map(r => r.id);
+const allReviewCategories = await prisma.reviewCategory.findMany({
+  where: { reviewId: { in: reviewIds } },
+});
+    console.log('[DEBUG] allReviewCategories:', JSON.stringify(allReviewCategories, null, 2));
+    console.log('[DEBUG] reviewCount:', reviewCount);
     const categoryStats: Record<string, { count: number; scoreSum: number }> = {};
     for (const rc of allReviewCategories) {
       if (!categoryStats[rc.categoryId]) {
@@ -163,25 +167,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         categoryStats[rc.categoryId].scoreSum += reviewObj.rating;
       }
     }
-    const totalCategoryCount = Object.values(categoryStats).reduce((sum, stat) => sum + stat.count, 0);
-    for (const [categoryId, stat] of Object.entries(categoryStats)) {
-      const percentage = totalCategoryCount > 0 ? Math.round((stat.count / totalCategoryCount) * 100) : 0;
-      await prisma.categoryScore.upsert({
-        where: { contentId_categoryId: { contentId: id, categoryId } },
-        update: {
-          score: stat.count > 0 ? stat.scoreSum / stat.count : 0,
-          count: stat.count,
-          percentage,
-        },
-        create: {
-          contentId: id,
-          categoryId,
-          score: stat.count > 0 ? stat.scoreSum / stat.count : 0,
-          count: stat.count,
-          percentage,
-        },
-      });
-    }
+        // Calculate percentage based on number of reviews, not total category votes
+    console.log('[DEBUG] categoryStats:', JSON.stringify(categoryStats, null, 2));
+for (const [categoryId, stat] of Object.entries(categoryStats)) {
+  const percentage = reviewCount > 0 ? Math.round((stat.count / reviewCount) * 100) : 0;
+  console.log(`[DEBUG] Upserting categoryScore for categoryId=${categoryId}: count=${stat.count}, percentage=${percentage}`);
+  await prisma.categoryScore.upsert({
+    where: { contentId_categoryId: { contentId: id, categoryId } },
+    update: {
+      score: stat.count > 0 ? stat.scoreSum / stat.count : 0,
+      count: stat.count,
+      percentage,
+    },
+    create: {
+      contentId: id,
+      categoryId,
+      score: stat.count > 0 ? stat.scoreSum / stat.count : 0,
+      count: stat.count,
+      percentage,
+    },
+  });
+}
+console.log('[DEBUG] Deleting categoryScores with count=0 for contentId:', id);
+await prisma.categoryScore.deleteMany({ where: { contentId: id, count: 0 } });
 
     // Return review
     return NextResponse.json(review);

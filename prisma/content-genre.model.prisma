@@ -1,0 +1,11 @@
+model ContentGenre {
+  id        String   @id @default(auto()) @map("_id")
+  contentId String
+  genreId   String
+
+  // Relations
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  genre     Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@map("content_genres")
+}

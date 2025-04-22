@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface GenreBadgesProps {
-  genres: { id: number; name: string }[];
+  genres: { id: string; name: string }[];
 }
 
 export const GenreBadges: React.FC<GenreBadgesProps> = ({ genres }) => {

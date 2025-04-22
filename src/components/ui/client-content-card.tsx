@@ -55,6 +55,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
           <h3 className="font-semibold text-lg mb-1 line-clamp-2 text-white drop-shadow-sm">{content.title}</h3>
           {content.genres && content.genres.length > 0 && (
             <div className="mb-2">
+              {/* genres now use string IDs (MongoDB migration) */}
               <GenreBadges genres={content.genres.filter(g => g.name)} />
             </div>
           )}

@@ -23,12 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     function getCategoryScores(tmdbId: number) {
       const dbContent = dbContents.find((c: any) => c.tmdbId === tmdbId);
       if (!dbContent) return [];
-      return dbContent.categoryScores.map((cs: any) => ({
-        categoryId: cs.categoryId,
-        category: { name: cs.category?.name || '' },
-        percentage: cs.percentage,
-        count: cs.count,
-      }));
+      return dbContent.categoryScores
+        .filter((cs: any) => cs.count > 0)
+        .map((cs: any) => ({
+          categoryId: cs.categoryId,
+          category: { name: cs.category?.name || '' },
+          percentage: cs.percentage,
+          count: cs.count,
+        }));
     }
     function getWokeScore(tmdbId: number) {
       const dbContent = dbContents.find((c: any) => c.tmdbId === tmdbId);
@@ -39,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return dbContent?.reviewCount ?? 0;
     }
     const tvShows = tvShowsData?.results?.map((show: any) => ({
-      id: show.id.toString(),
+      id: show.id,
       tmdbId: show.id,
       title: show.name,
       overview: show.overview,
