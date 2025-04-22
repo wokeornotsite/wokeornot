@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Custom dark scrollbar for carousel */
+.trending-carousel-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  background: transparent;
+}
+.trending-carousel-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #232946 30%, #7f5af0 100%);
+  border-radius: 10px;
+}
+.trending-carousel-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #7f5af0 30%, #232946 100%);
+}
+.trending-carousel-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

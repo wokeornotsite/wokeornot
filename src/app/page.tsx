@@ -20,16 +20,10 @@ export default function Home() {
         <div className="container mx-auto px-6 py-28 md:py-40 relative z-20">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300">Is Your Favorite Show</span>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-pink-500">Woke</span>
-                <span className="text-white">or</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">Not?</span>
-              </div>
+              Your Guide to Woke & Non-woke Entertainment
             </h1>
-            
             <p className="text-xl text-gray-300 mb-10 leading-relaxed max-w-2xl">
-              Discover and rate the wokeness level of movies and TV shows. Join our community to share your opinions and see what others think.
+              Explore, rate, and discuss movies, TV shows, and kids’ content—make informed viewing choices with our community.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">

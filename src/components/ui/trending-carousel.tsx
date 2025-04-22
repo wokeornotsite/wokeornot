@@ -55,7 +55,7 @@ export default function TrendingCarousel({ items, type, wokeScores }: TrendingCa
       )}
       <div
         ref={scrollRef}
-        className="overflow-x-auto flex gap-4 pb-2 px-1 scrollbar-hide scroll-smooth"
+        className="overflow-x-auto flex gap-4 pb-2 px-1 scrollbar-hide scroll-smooth trending-carousel-scrollbar"
         tabIndex={0}
         style={{ scrollBehavior: 'smooth' }}
       >
