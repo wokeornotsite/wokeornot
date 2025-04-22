@@ -52,39 +52,6 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
         <div className="p-4 flex-grow flex flex-col">
           {/* Animated border overlay */}
           <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-gradient-to-tr group-hover:from-pink-400 group-hover:to-blue-400 group-focus-within:border-gradient-to-tr group-focus-within:from-pink-400 group-focus-within:to-blue-400 transition-all duration-300 z-20" aria-hidden="true" />
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-base font-bold ${getWokenessTextColor(content.wokeScore)}`}>{content.reviewCount === 0 ? 'Not yet rated' : getWokenessLabel(content.wokeScore)}</span>
-            {content.reviewCount === 0 ? null : <span className="text-lg font-extrabold text-gray-900">{content.wokeScore.toFixed(1)}/10</span>}
-          </div>
-          <div className="mb-3">
-            <h4 className="text-xs font-bold text-blue-400 mb-1 tracking-wide uppercase">Woke Reasons</h4>
-            {content.categoryScores && content.categoryScores.length > 0 ? (
-              <div className="w-full flex flex-col gap-1">
-                {content.categoryScores.filter(cs => cs.count > 0).sort((a, b) => b.percentage - a.percentage).map(cs => (
-                  <div key={cs.categoryId} className="flex items-center gap-2 w-full">
-                    <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
-                      <CategoryIcon name={cs.category?.name} />
-                      {cs.category?.name || ''}
-                    </span>
-                    <div className="flex-1 bg-blue-100 rounded-full h-5 relative overflow-hidden">
-                      <div
-                        className="h-5 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
-                        style={{ 
-                          width: `${cs.percentage}%`, 
-                          transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
-                          animationDuration: '0.6s' 
-                        }}
-                      />
-                      <span className="absolute left-2 top-0 text-xs text-white font-bold h-5 flex items-center drop-shadow-sm">{cs.percentage}%</span>
-                    </div>
-                    <span className="w-14 text-xs text-white font-medium text-right drop-shadow-sm">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-400 italic">No wokeness reasons yet. Be the first to rate!</div>
-            )}
-          </div>
           <h3 className="font-semibold text-lg mb-1 line-clamp-2 text-white drop-shadow-sm">{content.title}</h3>
           {content.genres && content.genres.length > 0 && (
             <div className="mb-2">
