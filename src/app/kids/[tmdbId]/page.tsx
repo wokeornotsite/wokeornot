@@ -1,4 +1,15 @@
-import React from 'react';
+import React from "react";
+import { FaRainbow, FaGenderless, FaLeaf, FaQuestionCircle } from 'react-icons/fa';
+import { MdWc } from 'react-icons/md';
+
+const categoryIcons: Record<string, React.ReactNode> = {
+  'LGBT Representation': <FaRainbow className="text-pink-400" />,
+  'Transgender Themes': <MdWc className="text-blue-400" />,
+  'Gender Nonconformity': <MdWc className="text-violet-400" />,
+  'Queer Representation': <FaGenderless className="text-purple-400" />,
+  'Environmental Agenda': <FaLeaf className="text-green-400" />,
+};
+
 import Image from 'next/image';
 import { getMovieDetails, getMovieCredits, getSimilarMovies, getMovieGenres } from '@/lib/tmdb';
 import { ClientContentCard } from '@/components/ui/client-content-card';
@@ -112,10 +123,13 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
               <h4 className="text-sm font-bold text-blue-300 mb-1 tracking-wide uppercase">Woke Reasons</h4>
               {categoryScores && categoryScores.length > 0 ? (
                 <div className="w-full flex flex-col gap-2">
-                  {categoryScores.filter(cs => cs.count > 0).sort((a, b) => b.percentage - a.percentage).map(cs => (
+                  {categoryScores
+  .filter(cs => cs.count > 0)
+  .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
+  .map(cs => (
                     <div key={cs.categoryId} className="flex items-center gap-2 w-full">
                       <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
-                        <CategoryIcon name={cs.category?.name} />
+                        {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
                         {cs.category?.name || ''}
                       </span>
                       <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
@@ -195,4 +209,3 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
     </div>
   );
 }
-
