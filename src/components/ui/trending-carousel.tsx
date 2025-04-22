@@ -1,3 +1,4 @@
+// Test redeploy: trigger Vercel with a tiny change
 import Image from 'next/image';
 import Link from 'next/link';
 
