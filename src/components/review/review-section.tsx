@@ -89,9 +89,12 @@ export default function ReviewSection({ id }: { id: string }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 bg-background rounded-xl shadow border border-border mt-6">
-
-      <h2 className="text-3xl font-extrabold mb-6 text-gray-900 tracking-tight">User Reviews</h2>
+    <div className="max-w-2xl mx-auto p-8 mt-8 rounded-3xl shadow-xl border border-blue-200 bg-white">
+      <h2 className="flex items-center justify-center gap-2 text-3xl font-extrabold mb-5 text-gray-900 tracking-tight text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="#facc15" viewBox="0 0 24 24" width="32" height="32" className="inline-block -mt-1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        Submit Your Review
+      </h2>
+      <div className="w-16 h-1 mx-auto mb-8 rounded-full bg-blue-200"></div>
       {success && (
         <div className="mb-4 p-3 rounded-lg bg-green-100 border border-green-400 text-green-800 font-semibold text-center">
           {success}
@@ -103,7 +106,7 @@ export default function ReviewSection({ id }: { id: string }) {
         </div>
       )}
       {session ? (
-        <form onSubmit={handleSubmit} className="mb-8 space-y-5 bg-white border-2 border-blue-300 shadow-xl rounded-2xl p-8 text-gray-900">
+        <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-white/90 border-2 border-blue-200 shadow-lg rounded-2xl p-8 text-gray-900 relative z-10">
           <div>
             <label className="block text-base font-bold mb-2 text-gray-900">Your Rating</label>
             <div className="flex items-center gap-1">
@@ -180,24 +183,6 @@ export default function ReviewSection({ id }: { id: string }) {
       ) : (
         <div className="mb-4 text-gray-600">Sign in to write a review.</div>
       )}
-      <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-6">
-        {reviews.length === 0 ? (
-          <div className="text-blue-300 italic text-center py-6">No reviews yet. Be the first to share your thoughts!</div>
-        ) : (
-          <ul className="space-y-4">
-            {reviews.map((review: Review) => (
-              <li key={review.id} className="p-4 rounded-xl bg-white border border-gray-200 shadow-inner hover:scale-[1.02] hover:bg-gray-50 transition-all">
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ color: '#232946', fontWeight: 700 }}>{review.user?.name || 'Anonymous'}</span>
-                  <span style={{ color: '#232946', fontSize: '0.92em', opacity: 0.8 }}>{new Date(review.createdAt).toLocaleString()}</span>
-                </div>
-                <div style={{ color: '#e75480', fontWeight: 600 }}>Rating: {review.rating}/10</div>
-                {review.text && <div style={{ color: '#232946', marginTop: 8 }}>{review.text}</div>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

@@ -26,6 +26,112 @@ import { prisma } from '@/lib/prisma';
 export default async function KidsContentDetailPage({ params }: { params: { tmdbId: string } }) {
   const resolvedParams = await params;
   const tmdbId = resolvedParams?.tmdbId;
+  if (!tmdbId) return notFound();
+  // Fetch movie details from TMDB (kids content is just a filtered set of movies)
+  const movie = await getMovieDetails(Number(tmdbId));
+  if (!movie) return notFound();
+
+  // --- Automatic content creation ---
+  let dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: "KIDS" } });
+  if (!dbContent) {
+    dbContent = await prisma.content.create({
+      data: {
+        tmdbId: Number(tmdbId),
+        contentType: "KIDS",
+        title: movie.title,
+        overview: movie.overview,
+        posterPath: movie.poster_path || '',
+        backdropPath: movie.backdrop_path || '',
+        releaseDate: movie.release_date ? new Date(movie.release_date).toISOString() : null,
+      },
+    });
+  }
+  // --- End automatic content creation ---
+
+  // Fetch categoryScores for this content (with category name)
+  const categoryScores = dbContent
+    ? await prisma.categoryScore.findMany({
+        where: { contentId: dbContent.id },
+        include: { category: true },
+      })
+    : [];
+  const wokeScore = dbContent?.wokeScore ?? 0;
+  const reviewCount = dbContent?.reviewCount ?? 0;
+
+  // Fallback for poster
+  const posterUrl = movie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+    : '/images/placeholder.png';
+
+  return (
+    <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
+      {/* Hero Section with Backdrop */}
+      <div className="relative h-64 md:h-96 w-full overflow-hidden flex items-end justify-center">
+        {movie.backdrop_path && (
+          <Image
+            src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
+            alt={movie.title}
+            fill
+            className="object-cover w-full h-full absolute top-0 left-0 z-0 blur-sm scale-105 opacity-70"
+            priority
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#181824] via-[#232946cc] to-transparent z-10" />
+        <div className="relative z-20 flex flex-col md:flex-row items-end md:items-center gap-6 px-4 pb-6 md:pb-0 md:pt-16">
+          <Image
+            src={posterUrl}
+            alt={movie.title}
+            className="w-36 h-52 md:w-52 md:h-80 rounded-xl shadow-2xl border-4 border-white/10 bg-white/5 object-cover"
+            width={208}
+            height={320}
+            priority
+          />
+          <div className="flex flex-col gap-2 md:gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
+                {movie.title}
+              </h1>
+              <span className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2">
+                WOKE
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-base md:text-lg text-gray-200">
+              <span>{movie.release_date?.slice(0,4)}</span>
+              <span>&bull;</span>
+              <span>{movie.runtime} min</span>
+              <span>&bull;</span>
+              <span className="flex gap-1 flex-wrap">
+                {movie.genres?.map((g: { id: number; name: string }) => (
+                  <span key={g.id} className="bg-blue-900/40 px-2 py-1 rounded text-xs font-semibold text-blue-200 border border-blue-400/30">
+                    {g.name}
+                  </span>
+                ))}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Wokeness Score and Review Tabs */}
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        <div className="flex flex-col md:flex-row gap-10 items-start">
+          <div className="w-full md:w-80">
+            <WokenessBar
+              wokeScore={wokeScore}
+              reviewCount={reviewCount}
+              categoryScores={categoryScores}
+              contentType="KIDS"
+            />
+          </div>
+          <div className="flex-1">
+            <ReviewSection id={dbContent.id} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+  const resolvedParams = await params;
+  const tmdbId = resolvedParams?.tmdbId;
   // Fetch movie details from TMDB (kids content is just a filtered set of movies)
   const movie = await getMovieDetails(Number(tmdbId));
   if (!movie) return notFound();
@@ -43,7 +149,6 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
   } catch (err) {
     similarError = 'Failed to load similar content.';
   }
-
   // --- Automatic content creation ---
   let dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: "KIDS" } });
   if (!dbContent) {
