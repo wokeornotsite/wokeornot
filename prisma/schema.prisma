@@ -87,7 +87,7 @@ enum ContentType {
 
 model Content {
   id              String      @id @default(auto()) @map("_id") @db.ObjectId
-  tmdbId          Int         @unique
+  tmdbId          Int
   title           String
   overview        String
   posterPath      String?
@@ -106,6 +106,7 @@ model Content {
   categoryScores  CategoryScore[]
   contentGenres   ContentGenre[]
 
+  @@unique([tmdbId, contentType])
   @@map("contents")
 }
 

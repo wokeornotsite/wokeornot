@@ -17,7 +17,7 @@ interface ContentCardProps {
 export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading }) => {
   const [imgError, setImgError] = useState(false);
   if (loading || !content) return <SkeletonCard />;
-  const contentType = content.contentType.toLowerCase();
+  const contentType = (content.contentType ?? 'kids').toLowerCase();
   const contentUrl = `/${contentType === 'tv_show' ? 'tv-shows' : contentType === 'movie' ? 'movies' : 'kids'}/${content.tmdbId}`;
 
   return (
@@ -45,7 +45,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             <div className={`px-3 py-1 rounded-full font-bold text-base shadow-xl flex items-center gap-2 ${getWokenessBadgeColor(content.wokeScore)}`}
                  style={{ border: '2px solid #fff', background: getWokenessBadgeBg(content.wokeScore) }}>
               {content.reviewCount === 0 ? 'Not yet rated' : getWokenessLabel(content.wokeScore)}
-              {content.reviewCount === 0 ? null : <span className="text-lg font-black">{content.wokeScore.toFixed(1)}/10</span>}
+              {content.reviewCount === 0 ? null : <span className="text-lg font-black">{typeof content.wokeScore === 'number' ? content.wokeScore.toFixed(1) : '0.0'}/10</span>}
             </div>
           </div>
         </div>
@@ -60,7 +60,19 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">
-            {content.releaseDate ? new Date(content.releaseDate).getFullYear() : 'Unknown'}
+            {(() => {
+              if (content.releaseDate) {
+                // Handle both Date and string
+                const date = typeof content.releaseDate === 'string' ? new Date(content.releaseDate) : content.releaseDate;
+                if (!isNaN(date.getTime())) return date.getFullYear();
+              }
+              // Fallback: try movie.release_date (from TMDB)
+              if ((content as any).release_date) {
+                const date = new Date((content as any).release_date);
+                if (!isNaN(date.getTime())) return date.getFullYear();
+              }
+              return '';
+            })()}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
           <div className="mt-2 flex justify-between items-center">
@@ -94,8 +106,10 @@ const getWokenessTextColor = (score: number) => {
   return 'text-red-600';
 };
 
-const getWokenessLabel = (score: number) => {
+const getWokenessLabel = (score: number | undefined | null) => {
+  if (typeof score !== 'number' || isNaN(score)) return 'Not Woke';
   if (score <= 3) return 'Not Woke';
-  if (score <= 6) return 'Moderately Woke';
-  return 'Very Woke';
+  if (score <= 6) return 'Woke';
+  if (score <= 10) return 'Very Woke';
+  return 'Not Woke';
 };

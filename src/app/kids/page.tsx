@@ -65,7 +65,7 @@ export default function KidsPage() {
 
       {/* Elegant Filter Bar */}
       <div className="mb-8 max-w-5xl mx-auto px-2">
-        <form className="flex flex-col md:flex-row items-center gap-2 md:gap-4 bg-[#232946] border border-blue-400 rounded-xl shadow-lg px-4 py-3">
+        <form className="flex flex-col md:flex-row items-center gap-2 md:gap-4 bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-4 py-3">
           <label htmlFor="genre" className="text-white font-bold text-base mr-1">Genre</label>
           <select
             id="genre"
@@ -131,59 +131,64 @@ export default function KidsPage() {
         </form>
       </div>
 
-      {/* Content Grid */}
-      <div className="px-4 max-w-7xl mx-auto mb-20">
-        {error ? (
-          <ErrorMessage message={error} />
-        ) : loading ? (
-          <div className="flex justify-center items-center min-h-[200px]">
-            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : filteredKids.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredKids.map(content => (
-              <ClientContentCard key={content.tmdbId} content={content} path="/kids" />
+      {/* Kids Grid with glassy overlay */}
+      <div className="relative max-w-7xl mx-auto px-4 pb-12">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="w-full h-full bg-gradient-to-br from-pink-900/20 via-blue-900/20 to-purple-900/20 opacity-80 blur-2xl animate-gradient-x" aria-hidden="true" />
+        </div>
+        {error && <ErrorMessage message={error} className="mb-4" />}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {[...Array(10)].map((_, i) => (
+              <ClientContentCard key={i} loading />
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <h3 className="text-2xl font-bold text-white">No content matches your filters</h3>
-            <p className="text-blue-200 mt-2">Try adjusting your filter settings to see more results.</p>
-          </div>
+          <>
+            {filteredKids.length === 0 ? (
+              <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {filteredKids.map(content => (
+                  <ClientContentCard key={content.tmdbId} content={content} path="/kids" />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Pagination with kid-friendly glassy styling */}
-      <div className="mt-8 flex justify-center mb-16">
-        <nav className="inline-flex rounded-2xl shadow-xl backdrop-blur-xl bg-white/10 border border-blue-200">
+      {/* Pagination */}
+      <div className="mt-8 flex justify-center">
+        <nav className="inline-flex rounded-2xl shadow-xl backdrop-blur-xl bg-white/10 border border-white/20">
           <a
             href="#"
-            className="px-5 py-3 rounded-l-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+            className="px-5 py-3 rounded-l-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
           >
             Previous
           </a>
           <a
             href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
           >
             1
           </a>
           <a
             href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
           >
             2
           </a>
           <a
             href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
           >
             3
           </a>
           <span className="px-5 py-3 text-base font-semibold text-blue-200">...</span>
           <a
             href="#"
-            className="px-5 py-3 rounded-r-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
+            className="px-5 py-3 rounded-r-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
           >
             Next
           </a>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -23,15 +24,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch from TMDb' }, { status: 502 });
   }
   const data = await response.json();
-  // Add contentType and tmdbId for frontend compatibility
-  const results = data.results.map((movie: any) => ({
-    ...movie,
-    contentType: 'MOVIE',
-    tmdbId: movie.id,
-    wokeScore: 0,
-    reviewCount: 0,
-    posterPath: movie.poster_path || null,
-    backdropPath: movie.backdrop_path || null
-  }));
+  // Merge real wokeScore and reviewCount from DB (contentType: 'KIDS')
+  const tmdbIds = data.results.map((movie: any) => movie.id);
+  const dbContents = await prisma.content.findMany({
+    where: { tmdbId: { in: tmdbIds }, contentType: 'KIDS' },
+    select: { tmdbId: true, wokeScore: true, reviewCount: true }
+  });
+  const dbMap = Object.fromEntries(dbContents.map((c: any) => [c.tmdbId, c]));
+
+  const results = data.results.map((movie: any) => {
+    const db = dbMap[movie.id];
+    return {
+      ...movie,
+      contentType: 'KIDS',
+      tmdbId: movie.id,
+      wokeScore: db?.wokeScore ?? 0,
+      reviewCount: db?.reviewCount ?? 0,
+      posterPath: movie.poster_path || null,
+      backdropPath: movie.backdrop_path || null
+    };
+  });
   return NextResponse.json(results);
 }
