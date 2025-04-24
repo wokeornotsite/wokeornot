@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import ProfileClient from './ProfileClient';
+import { AvatarProvider } from './AvatarContext';
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -14,18 +15,19 @@ export default async function ProfilePage() {
   }
 
   type UserWithReviewsAndComments = {
-  id: string;
-  name: string | null;
-  email: string;
-  emailVerified: Date | null;
-  image: string | null;
-  password: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  role: string;
-  reviews: any[];
-  comments: any[];
-};
+    id: string;
+    name: string | null;
+    email: string;
+    emailVerified: Date | null;
+    image: string | null;
+    avatar: string | null;
+    password: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    role: string;
+    reviews: any[];
+    comments: any[];
+  };
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -54,12 +56,16 @@ export default async function ProfilePage() {
   const reviews = user.reviews.map((r: any) => ({ ...r, createdAt: r.createdAt.toString() }));
   const comments = user.comments.map((c: any) => ({ ...c, createdAt: c.createdAt.toString() }));
 
-  return <ProfileClient user={{
-  name: user.name ?? '',
-  email: user.email ?? '',
-  image: user.image ?? '',
-  reviews: Array.isArray(user.reviews) ? reviews : [],
-  comments: Array.isArray(user.comments) ? comments : [],
-}} />;
+  return (
+    <AvatarProvider initialAvatar={user.avatar || ""}>
+      <ProfileClient user={{
+        name: user.name || '',
+        email: user.email || '',
+        avatar: user.avatar || '',
+        image: user.image || '',
+        reviews,
+        comments,
+      }} />
+    </AvatarProvider>
+  );
 }
-

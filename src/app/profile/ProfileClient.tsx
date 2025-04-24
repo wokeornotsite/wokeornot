@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
+import { useAvatar } from "./AvatarContext";
 import Link from "next/link";
 import EditDeleteReview from "./EditDeleteReview";
 import DateClient from "./DateClient";
@@ -16,6 +17,11 @@ export type Review = {
     contentType: string;
     tmdbId: number;
     title: string;
+  };
+  user?: {
+    name?: string;
+    avatar?: string;
+    image?: string;
   };
 };
 
@@ -33,21 +39,25 @@ export type Comment = {
 export type UserProfileData = {
   name: string;
   email: string;
+  avatar?: string;
   image?: string;
   reviews: Review[];
   comments: Comment[];
 };
 
-export default function ProfileClient({ user }: { user: UserProfileData }) {
-  const [avatar, setAvatar] = useState(user.image || "");
+const builtInAvatars = [
+  "/avatars/avatar1.svg",
+  "/avatars/avatar2.svg",
+  "/avatars/avatar3.svg",
+  "/avatars/avatar4.svg",
+];
+
+function ProfileClient({ user }: { user: UserProfileData }) {
+  const { avatar, setAvatar } = useAvatar();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [activityFilter, setActivityFilter] = useState("");
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
@@ -57,6 +67,65 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
   const [emailError, setEmailError] = useState("");
   const [nameSuccess, setNameSuccess] = useState("");
   const [emailSuccess, setEmailSuccess] = useState("");
+
+  // Review editing state
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editingReviewText, setEditingReviewText] = useState<string>("");
+  const [editingReviewRating, setEditingReviewRating] = useState<number>(0);
+  const [reviewActionError, setReviewActionError] = useState<string>("");
+
+  // Reviews state
+  const [reviews, setReviews] = useState(user.reviews);
+
+  // Review handlers
+  const handleEditReview = (review: Review) => {
+    setEditingReviewId(review.id);
+    setEditingReviewText(review.text || "");
+    setEditingReviewRating(review.rating);
+    setReviewActionError("");
+  };
+  const handleCancelEditReview = () => {
+    setEditingReviewId(null);
+    setEditingReviewText("");
+    setEditingReviewRating(0);
+    setReviewActionError("");
+  };
+  const handleSaveEditReview = async (review: Review) => {
+    setReviewActionError("");
+    try {
+      const res = await fetch(`/api/reviews/${review.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: editingReviewRating, text: editingReviewText }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update review");
+      }
+      const updated = await res.json();
+      setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, rating: editingReviewRating, text: editingReviewText } : r)));
+      setEditingReviewId(null);
+      setEditingReviewText("");
+      setEditingReviewRating(0);
+    } catch (err: any) {
+      setReviewActionError(err.message || "Failed to update review");
+    }
+  };
+  const handleDeleteReview = async (review: Review) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    setReviewActionError("");
+    try {
+      const res = await fetch(`/api/reviews/${review.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete review");
+      }
+      setReviews((prev) => prev.filter((r) => r.id !== review.id));
+    } catch (err: any) {
+      setReviewActionError(err.message || "Failed to delete review");
+    }
+  };
+
 
   // Avatar upload handler (calls backend)
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,34 +148,7 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
     }
   };
 
-  // Password change handler (calls backend)
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordLoading(true);
-    setPasswordError("");
-    setPasswordSuccess("");
-    if (password !== password2) {
-      setPasswordError("Passwords do not match");
-      setPasswordLoading(false);
-      return;
-    }
-    try {
-      const res = await fetch("/api/user/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldPassword: "", newPassword: password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to change password");
-      setPasswordSuccess("Password changed successfully!");
-      setPassword("");
-      setPassword2("");
-    } catch (err: any) {
-      setPasswordError(err.message || "Failed to change password");
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
+
 
   // Name change handler (calls backend)
   const handleNameChange = async (e: React.FormEvent) => {
@@ -153,8 +195,8 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
   };
 
   // Activity filter
-  const filteredReviews = user.reviews.filter((r) => !activityFilter || r.content?.title?.toLowerCase().includes(activityFilter.toLowerCase()));
-  const filteredComments = user.comments.filter((c) => !activityFilter || c.content?.title?.toLowerCase().includes(activityFilter.toLowerCase()));
+  const filteredReviews = user.reviews.filter((r: Review) => !activityFilter || r.content?.title?.toLowerCase().includes(activityFilter.toLowerCase()));
+  const filteredComments = user.comments.filter((c: Comment) => !activityFilter || c.content?.title?.toLowerCase().includes(activityFilter.toLowerCase()));
 
   return (<div className={styles.profileRoot}>
       {/* Sign Out Button */}
@@ -172,7 +214,7 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
         {/* Settings Panel */}
         <div className={styles.profilePanel}>
           {avatar ? (
-            <Image src={avatar} alt="Profile" width={100} height={100} className={styles.avatar} />
+            <Image src={avatar} alt="Profile" width={100} height={100} className={styles.avatar} unoptimized />
           ) : (
             <div className={styles.avatar}>?</div>
           )}
@@ -207,7 +249,7 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
             {emailSuccess && <div style={{ color: '#4ade80', fontSize: '0.98em' }}>{emailSuccess}</div>}
           </form>
           <hr className={styles.divider} />
-          {/* Avatar upload */}
+          {/* Avatar upload & picker */}
           <form style={{ width: '100%' }} onSubmit={(e) => e.preventDefault()}>
             <input
               type="file"
@@ -220,101 +262,122 @@ export default function ProfileClient({ user }: { user: UserProfileData }) {
             <button className={styles.profileButton} type="submit" disabled={avatarLoading}>
               Upload Avatar
             </button>
+            <button className={styles.profileButton} type="button" onClick={() => setShowAvatarPicker((v) => !v)}>
+              Choose Built-in Avatar
+            </button>
             {avatarError && <div style={{ color: '#f87171', fontSize: '0.98em' }}>{avatarError}</div>}
           </form>
-          <hr className={styles.divider} />
-          {/* Password change */}
-          <form style={{ width: '100%' }} onSubmit={handlePasswordChange}>
-            <input
-              type="password"
-              placeholder="New password"
-              className={styles.profileInput}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={passwordLoading}
-            />
-            <input
-              type="password"
-              placeholder="Confirm password"
-              className={styles.profileInput}
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              disabled={passwordLoading}
-            />
-            <button className={styles.profileButton} type="submit" disabled={passwordLoading}>
-              Change Password
-            </button>
-            {passwordError && <div style={{ color: '#f87171', fontSize: '0.98em' }}>{passwordError}</div>}
-            {passwordSuccess && <div style={{ color: '#4ade80', fontSize: '0.98em' }}>{passwordSuccess}</div>}
-          </form>
+          {showAvatarPicker && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+              {builtInAvatars.map((src) => (
+                <button
+                  key={src}
+                  style={{ border: avatar === src ? '2px solid #38bdf8' : '1px solid #ccc', borderRadius: '50%', padding: 2, background: 'none' }}
+                  onClick={async () => {
+                    setAvatarLoading(true);
+                    setAvatar(src);
+                    setAvatarError("");
+                    try {
+                      const res = await fetch('/api/user/builtin-avatar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ avatar: src }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Failed to set avatar');
+                    } catch (err: any) {
+                      setAvatarError(err.message || 'Failed to set avatar');
+                    } finally {
+                      setAvatarLoading(false);
+                      setShowAvatarPicker(false);
+                    }
+                  }}
+                >
+                  <Image src={src} alt="avatar" width={48} height={48} style={{ borderRadius: '50%' }} unoptimized />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {/* Reviews Panel */}
         <div className={styles.profilePanelWide}>
           <h3 className={styles.sectionTitle}>Your Reviews</h3>
           {filteredReviews.length ? (
             <ul className={styles.reviewList}>
-              {filteredReviews.map((review) => (
-                <li key={review.id} className={styles.reviewCard}>
-                  <Link href={`/${review.content?.contentType.toLowerCase()}/${review.content?.tmdbId}`} className={styles.reviewTitle}>
-                    {review.content?.title}
-                  </Link>
-                  <div className={styles.reviewRating}>Rating: <span style={{ color: '#f472b6', fontWeight: 700 }}>{review.rating}/10</span></div>
-                  {review.text && <div className={styles.reviewText}>{review.text}</div>}
-                  <DateClient iso={review.createdAt} className={styles.reviewDate} />
-                  <EditDeleteReview
-                    id={review.id}
-                    initialRating={review.rating}
-                    initialText={review.text || ''}
-                    onDeleted={() => window.location.reload()}
-                    onUpdated={() => window.location.reload()}
-                  />
-                </li>
-              ))}
+              {reviews
+                .filter((r) => !activityFilter || r.content?.title?.toLowerCase().includes(activityFilter.toLowerCase()))
+                .map((review: Review) => (
+                  <li key={review.id} className={styles.reviewCard}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Image src={avatar || '/avatars/default.png'} alt="avatar" width={32} height={32} style={{ borderRadius: '50%' }} unoptimized />
+                      <Link href={`/${review.content?.contentType.toLowerCase()}/${review.content?.tmdbId}`} className={styles.reviewTitle}>
+                        {review.content?.title}
+                      </Link>
+                    </div>
+                    {editingReviewId === review.id ? (
+  <>
+    <div className={styles.flexRowCenter} style={{ marginBottom: 8 }}>
+      <label className={styles.modernLabel}>
+        Rating:
+        <input
+          type="number"
+          min={1}
+          max={10}
+          value={editingReviewRating}
+          onChange={(e) => setEditingReviewRating(Number(e.target.value))}
+          className={styles.modernRatingInput}
+        />
+        /10
+      </label>
+    </div>
+    <textarea
+      className={styles.profileInput}
+      value={editingReviewText}
+      onChange={(e) => setEditingReviewText(e.target.value)}
+      style={{ width: '100%', minHeight: 40, marginTop: 8 }}
+    />
+    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+      <button className={styles.profileButton} style={{ background: '#38bdf8', color: 'white' }} onClick={() => handleSaveEditReview(review)}>
+        Save
+      </button>
+      <button className={styles.profileButton} style={{ background: '#a78bfa', color: 'white' }} onClick={handleCancelEditReview}>
+        Cancel
+      </button>
+    </div>
+    {reviewActionError && <div style={{ color: '#f87171', fontSize: '0.98em' }}>{reviewActionError}</div>}
+  </>
+) : (
+  <>
+    <div className={styles.reviewRating}><span style={{ color: '#f472b6', fontWeight: 700 }}>{review.rating}/10</span></div>
+    {review.text && <div className={styles.reviewText}>{review.text}</div>}
+    <DateClient iso={review.createdAt} className={styles.reviewDate} />
+    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+      <button
+        className={styles.profileButton}
+        type="button"
+        style={{ borderRadius: 6, background: '#f472b6', color: 'white', fontWeight: 500 }}
+        onClick={() => handleEditReview(review)}
+      >Edit</button>
+      <button
+        className={styles.profileButton}
+        type="button"
+        style={{ borderRadius: 6, background: '#f87171', color: 'white', fontWeight: 500 }}
+        onClick={() => handleDeleteReview(review)}
+      >Delete</button>
+    </div>
+    {reviewActionError && <div style={{ color: '#f87171', fontSize: '0.98em' }}>{reviewActionError}</div>}
+  </>
+)}
+                  </li>
+                ))}
             </ul>
           ) : (
             <div className="text-blue-300 italic text-center py-6">No reviews yet. Go rate your first movie or show!</div>
           )}
-            </div>
-            <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-6">
-              <h3 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400">Your Comments</h3>
-              {user.comments.length ? (
-                <ul className={styles.reviewList}>
-                  {user.comments.map((comment) => (
-                    <li key={comment.id} className={styles.reviewCard}>
-                      {comment.content && (
-                        <Link href={`/${comment.content.contentType.toLowerCase()}/${comment.content.tmdbId}`} className={styles.reviewTitle}>
-                          {comment.content.title}
-                        </Link>
-                      )}
-                      <div className={styles.reviewText}>{comment.text}</div>
-                      <DateClient iso={comment.createdAt} className={styles.reviewDate} />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className={styles.reviewDate} style={{fontStyle:'italic',textAlign:'center',padding:'1.2em 0'}}>No comments yet. Join the conversation!</div>
-              )}
-            </div>
-            {/* Activity History */}
-            <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-6">
-              <h3 className={styles.sectionTitle}>Activity History</h3>
-              <ul className={styles.reviewList} style={{gap:'0.3em'}}>
-                {user.reviews.slice(0, 3).map((r) => (
-                  <li key={r.id} className={styles.reviewDate} style={{fontSize:'1em'}}>
-                    Rated <span className="font-bold text-pink-300">{r.content?.title}</span> {r.rating}/10 on <DateClient iso={r.createdAt} className={styles.reviewDate} />
-                  </li>
-                ))}
-                {user.comments.slice(0, 3).map((c) => (
-                  <li key={c.id} className={styles.reviewDate} style={{fontSize:'1em'}}>
-                    Commented on <span className="font-bold text-pink-300">{c.content?.title}</span> on <DateClient iso={c.createdAt} className={styles.reviewDate} />
-                  </li>
-                ))}
-                {!user.reviews.length && !user.comments.length && (
-                  <li className={styles.reviewDate} style={{fontStyle:'italic'}}>No activity yet.</li>
-                )}
-              </ul>
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
   );
 }
+
+export default ProfileClient;

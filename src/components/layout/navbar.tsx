@@ -38,7 +38,7 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
       >
         <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
           <Image
-            src={session.user.image || '/images/avatar-placeholder.png'}
+            src={session.user.avatar || session.user.image || '/avatars/default.png'}
             alt={session.user.name || 'User'}
             className="w-full h-full object-cover"
             width={32}

@@ -95,35 +95,48 @@
 
 .profileInput, .profileInput:disabled {
   width: 100%;
-  border-radius: 0.5em;
-  border: 1.5px solid #a78bfa;
-  background: rgba(255,255,255,0.12);
-  color: #fff;
-  padding: 0.6em 0.9em;
-  margin-bottom: 0.8em;
-  font-size: 1.05em;
+  border-radius: 0.7em;
+  border: 1.5px solid #38bdf8;
+  background: rgba(255,255,255,0.19);
+  color: #232046;
+  padding: 0.85em 1.1em;
+  margin-bottom: 1em;
+  font-size: 1.09em;
   font-family: var(--font-main);
   outline: none;
-  transition: border 0.15s;
+  box-shadow: 0 1px 8px 0 rgba(56,189,248,0.07);
+  transition: border 0.15s, box-shadow 0.15s;
 }
+.profileInput:focus {
+  border: 1.5px solid #e879f9;
+  box-shadow: 0 2px 12px 0 rgba(232,121,249,0.11);
+}
+
 .profileInput:focus {
   border: 1.5px solid #e879f9;
 }
 
 .profileButton {
   width: 100%;
-  padding: 0.7em 0;
-  border-radius: 0.7em;
+  padding: 0.78em 0;
+  border-radius: 2em;
   background: var(--accent-gradient);
   color: #fff;
   font-weight: 700;
-  font-size: 1.1em;
+  font-size: 1.13em;
   border: none;
   margin-bottom: 1em;
   cursor: pointer;
-  box-shadow: 0 2px 8px 0 rgba(167,139,250,0.09);
-  transition: background 0.13s, transform 0.13s;
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.09);
+  transition: background 0.13s, transform 0.13s, box-shadow 0.13s;
+  letter-spacing: 0.01em;
 }
+.profileButton:hover {
+  background: linear-gradient(90deg, #a78bfa 0%, #e879f9 50%, #38bdf8 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 24px 0 rgba(232,121,249,0.13);
+}
+
 .profileButton:hover {
   background: linear-gradient(90deg, #a78bfa 0%, #e879f9 50%, #38bdf8 100%);
   transform: translateY(-1.5px) scale(1.03);
@@ -155,18 +168,60 @@
 }
 
 .reviewCard {
-  background: rgba(255,255,255,0.10);
-  border-radius: 1.1em;
-  border: 1.2px solid #a78bfa33;
-  box-shadow: 0 2px 8px 0 rgba(167,139,250,0.07);
-  padding: 1.3em 1.2em 1em 1.2em;
+  background: rgba(255,255,255,0.18);
+  border-radius: 1.3em;
+  border: 1.5px solid #38bdf855;
+  box-shadow: 0 8px 32px 0 rgba(56,189,248,0.13), 0 1.5px 8px 0 rgba(167,139,250,0.09);
+  backdrop-filter: blur(7px) saturate(120%);
+  padding: 1.7em 1.4em 1.2em 1.4em;
+  margin-bottom: 0.6em;
+  transition: box-shadow 0.18s, border 0.18s, transform 0.18s;
   display: flex;
   flex-direction: column;
   gap: 0.7em;
-  font-size: 1.02em;
-  color: #f3e8ff;
-  transition: box-shadow 0.13s, transform 0.13s;
 }
+.reviewCard:hover {
+  box-shadow: 0 12px 36px 0 rgba(56,189,248,0.18), 0 3px 12px 0 rgba(167,139,250,0.13);
+  border: 1.5px solid #e879f9cc;
+  transform: translateY(-2px) scale(1.012);
+}
+
+/* Modern rating input */
+.modernRatingInput {
+  width: 56px;
+  font-weight: 700;
+  font-size: 1.15em;
+  color: #232046;
+  background: rgba(255,255,255,0.93);
+  border: 1.5px solid #38bdf8;
+  border-radius: 0.5em;
+  padding: 4px 10px;
+  margin-left: 10px;
+  outline: none;
+  transition: border 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 6px 0 rgba(56,189,248,0.08);
+}
+.modernRatingInput:focus {
+  border: 1.5px solid #e879f9;
+  box-shadow: 0 2px 12px 0 rgba(232,121,249,0.11);
+}
+
+/* Utility: modern flex row */
+.flexRowCenter {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+
+/* Utility: modern label */
+.modernLabel {
+  font-weight: 700;
+  font-size: 1.12em;
+  color: #232046;
+  letter-spacing: 0.02em;
+}
+
+
 .reviewCard:hover {
   box-shadow: 0 4px 16px 0 rgba(167,139,250,0.13);
   transform: translateY(-2px) scale(1.02);

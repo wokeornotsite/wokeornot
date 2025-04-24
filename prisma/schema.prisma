@@ -17,6 +17,7 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
+  avatar        String?   // Path or URL to the user's avatar image
   password      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

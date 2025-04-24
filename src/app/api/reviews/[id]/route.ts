@@ -53,6 +53,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         categories: { include: { category: true } },
       },
     });
+    // Recalculate wokeScore and reviewCount
+    const contentId = review.contentId;
+    const allReviews = await prisma.review.findMany({ where: { contentId } });
+    const reviewCount = allReviews.length;
+    const wokeScore = reviewCount > 0 ? allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0;
+    await prisma.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
     return NextResponse.json(updated);
   } catch (err) {
     return NextResponse.json({ error: 'Failed to update review' }, { status: 500 });
@@ -72,7 +78,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!review || !user || review.userId !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const contentId = review.contentId;
     await prisma.review.delete({ where: { id } });
+    // Recalculate wokeScore and reviewCount
+    const allReviews = await prisma.review.findMany({ where: { contentId } });
+    const reviewCount = allReviews.length;
+    const wokeScore = reviewCount > 0 ? allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0;
+    await prisma.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     let message = 'Failed to delete review.';
