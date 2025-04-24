@@ -1,25 +1,17 @@
+"use client";
 import React from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { Typography, Box } from '@mui/material';
 
-// TODO: Replace with real API data
-const userData = [
-  { date: '2025-04-01', signups: 10, active: 5 },
-  { date: '2025-04-02', signups: 17, active: 12 },
-  { date: '2025-04-03', signups: 8, active: 7 },
-  { date: '2025-04-04', signups: 23, active: 18 },
-  { date: '2025-04-05', signups: 14, active: 10 },
-];
-
-const reviewData = [
-  { date: '2025-04-01', reviews: 5, avgRating: 7.2 },
-  { date: '2025-04-02', reviews: 9, avgRating: 6.8 },
-  { date: '2025-04-03', reviews: 4, avgRating: 8.1 },
-  { date: '2025-04-04', reviews: 12, avgRating: 7.7 },
-  { date: '2025-04-05', reviews: 6, avgRating: 8.0 },
-];
+import { useAnalytics } from './useAnalytics';
 
 export default function AnalyticsCharts() {
+  const { analytics, isLoading, error } = useAnalytics();
+  if (isLoading) return <div>Loading analytics...</div>;
+  if (error) return <div>Error loading analytics.</div>;
+  const userData = analytics?.userData || [];
+  const reviewData = analytics?.reviewData || [];
+
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1, color: '#38bdf8' }}>User Signups & Active Users</Typography>
