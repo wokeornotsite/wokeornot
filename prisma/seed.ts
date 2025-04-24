@@ -2,6 +2,23 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Seed admin user if not exists
+  const adminEmail = 'admin@wokeornot.com';
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {},
+    create: {
+      email: adminEmail,
+      name: 'Admin',
+      password: 'admin123', // Please change this after first login!
+      role: 'ADMIN',
+      avatar: '/avatars/default.png',
+    },
+  });
+  if (admin) {
+    console.log(`Seeded admin user: ${adminEmail} / password: admin123`);
+  }
+
   const categories = [
     { name: 'Diversity', description: 'Focus on diversity and inclusion' },
     { name: 'Gender', description: 'Gender representation or roles' },

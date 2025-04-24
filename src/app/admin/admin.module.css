@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+
+.adminRoot {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(120deg, #181924 0%, #232046 100%);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.adminSidebar {
+  width: 220px;
+  background: rgba(36, 37, 54, 0.97);
+  box-shadow: 2px 0 16px 0 rgba(56,189,248,0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 1.2rem 2rem 1.2rem;
+  border-right: 1.5px solid #38bdf833;
+}
+.adminLogo {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #38bdf8;
+  margin-bottom: 2.2rem;
+  text-align: center;
+  background: linear-gradient(90deg, #e879f9 0%, #a78bfa 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.adminNavList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.adminNavLink {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.8em 1.1em;
+  border-radius: 0.7em;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.08em;
+  text-decoration: none;
+  transition: background 0.13s, color 0.13s, transform 0.13s;
+}
+.adminNavLink:hover {
+  background: linear-gradient(90deg, #a78bfa 0%, #e879f9 50%, #38bdf8 100%);
+  color: #232046;
+  transform: translateX(4px) scale(1.03);
+}
+
+.adminMain {
+  flex: 1;
+  padding: 2.7rem 3.5vw 2.7rem 2vw;
+  min-width: 0;
+  background: none;
+  display: flex;
+  flex-direction: column;
+}
