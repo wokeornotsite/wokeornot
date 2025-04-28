@@ -19,6 +19,9 @@ export const LoginForm = () => {
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [emailForResend, setEmailForResend] = useState('');
 
   const {
     register,
@@ -30,8 +33,9 @@ export const LoginForm = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    
-
+    setError(null);
+    setShowResend(false);
+    setEmailForResend('');
     try {
       const result = await signIn('credentials', {
         redirect: false,
@@ -40,22 +44,62 @@ export const LoginForm = () => {
       });
 
       if (result?.error) {
-        
         setIsLoading(false);
+        // Custom error handling for known backend error messages
+        if (result.error.includes('not verified')) {
+          setError('Your email is not verified.');
+          setShowResend(true);
+          setEmailForResend(data.email);
+        } else if (result.error.includes('Invalid credentials')) {
+          setError('Invalid email or password.');
+        } else {
+          setError(result.error);
+        }
         return;
       }
 
       router.push('/');
       router.refresh();
-    } catch { 
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };
 
+  const handleResendVerification = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await fetch('/api/auth/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailForResend }),
+      });
+      setError('Verification email resent. Please check your inbox.');
+      setShowResend(false);
+    } catch {
+      setError('Failed to resend verification email.');
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="mt-8">
-      
-
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+          {showResend && (
+            <button
+              type="button"
+              className="ml-2 underline text-blue-500 hover:text-blue-700"
+              onClick={handleResendVerification}
+              disabled={isLoading}
+            >
+              Resend verification email
+            </button>
+          )}
+        </div>
+      )}
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <label htmlFor="email" className="block text-sm font-semibold text-blue-200">
@@ -84,33 +128,25 @@ export const LoginForm = () => {
               id="password"
               type="password"
               autoComplete="current-password"
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500"
+              className="appearance-none block w-full px-4 py-2 rounded-lg bg-white/20 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner backdrop-blur-sm"
               {...register('password')}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              <p className="mt-1 text-sm text-pink-400">{errors.password.message}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-              Remember me
-            </label>
-          </div>
-
-          <div className="text-sm">
-            <a href="#" className="font-medium text-red-600 hover:text-red-500">
-              Forgot your password?
-            </a>
-          </div>
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-blue-200">
+            Remember me
+          </label>
         </div>
 
         <div>

@@ -14,6 +14,11 @@ export default function LoginPage() {
               create a new account
             </Link>
           </p>
+          <p className="mt-1 text-sm text-gray-300">
+            <Link href="/forgot" className="font-semibold text-blue-400 hover:text-pink-400 transition-colors duration-200 underline underline-offset-4">
+              Forgot your password?
+            </Link>
+          </p>
         </div>
         <LoginForm />
       </div>
