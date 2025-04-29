@@ -1,3 +1,4 @@
+// Trigger Vercel redeploy
 import React from "react";
 import { FaRainbow, FaGenderless, FaLeaf, FaQuestionCircle } from 'react-icons/fa';
 import { MdWc } from 'react-icons/md';
