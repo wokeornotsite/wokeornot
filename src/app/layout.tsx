@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ClientLayout from '@/components/layout/client-layout';
+import MUIProvider from '@/components/theme/MUIProvider';
 import "./globals.css";
 import { AccessibilityAnnouncer } from '@/components/ui/accessibility-announcer';
 
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
   description: "Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think.",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,7 +32,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-text font-sans text-base leading-relaxed`}
       >
         <AccessibilityAnnouncer />
-        <ClientLayout>{children}</ClientLayout>
+        <MUIProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </MUIProvider>
       </body>
     </html>
   );
