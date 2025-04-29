@@ -1,9 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
@@ -39,12 +39,10 @@ export default function VerifyPage() {
     try {
       await axios.post('/api/auth/resend-verification', { email });
       setResendStatus('sent');
-      setResendMessage('Verification email resent. Please check your inbox.');
-    } catch (err: any) {
+      setResendMessage('Verification email resent!');
+    } catch {
       setResendStatus('error');
-      setResendMessage(
-        err?.response?.data?.error || 'Failed to resend verification email. Please try again.'
-      );
+      setResendMessage('Failed to resend verification email.');
     }
   };
 
@@ -52,24 +50,26 @@ export default function VerifyPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
       <div className="w-full max-w-md p-8 bg-white/10 rounded-lg shadow-lg backdrop-blur">
         <h1 className="text-2xl font-bold text-center text-blue-200 mb-6">Email Verification</h1>
-        <div className={`mb-4 p-3 rounded text-center ${status === 'success' ? 'bg-green-100 border-green-400 text-green-700' : status === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-yellow-100 border-yellow-400 text-yellow-700'}`}>{message}</div>
-        {status === 'success' && (
-          <a href="/login" className="block mt-4 text-center text-blue-500 hover:underline">Go to Login</a>
-        )}
-        {status === 'error' && email && (
-          <div className="flex flex-col items-center mt-4">
+        <p className="mb-4 text-center text-white/80">{message}</p>
+        {status === 'success' ? (
+          <button
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold mt-4"
+            onClick={() => router.push('/login')}
+          >
+            Go to Login
+          </button>
+        ) : status === 'error' ? (
+          <>
             <button
+              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold mt-4"
               onClick={handleResend}
               disabled={resendStatus === 'loading'}
-              className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {resendStatus === 'loading' ? 'Resending...' : 'Resend Verification Email'}
             </button>
-            {resendMessage && (
-              <div className={`mt-2 text-sm ${resendStatus === 'sent' ? 'text-green-700' : 'text-red-700'}`}>{resendMessage}</div>
-            )}
-          </div>
-        )}
+            {resendMessage && <p className="mt-2 text-center text-red-400">{resendMessage}</p>}
+          </>
+        ) : null}
       </div>
     </div>
   );
