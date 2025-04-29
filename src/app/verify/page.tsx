@@ -1,10 +1,10 @@
-"use client";
-
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
+
+"use client";
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 function VerifyPageContent() {
   const router = useRouter();
