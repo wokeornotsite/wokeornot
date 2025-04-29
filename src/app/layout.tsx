@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 };
 
 
+import Analytics from './analytics';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +30,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta property="og:title" content="WokeOrNot - Rate the Wokeness of Movies and TV Shows" />
+        <meta property="og:description" content="Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://wokeornot.com/" />
+        <meta property="og:image" content="https://wokeornot.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="WokeOrNot - Rate the Wokeness of Movies and TV Shows" />
+        <meta name="twitter:description" content="Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think." />
+        <meta name="twitter:image" content="https://wokeornot.com/og-image.png" />
+        <link rel="canonical" href="https://wokeornot.com/" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-text font-sans text-base leading-relaxed`}
       >
@@ -35,6 +49,7 @@ export default function RootLayout({
         <MUIProvider>
           <ClientLayout>{children}</ClientLayout>
         </MUIProvider>
+        <Analytics />
       </body>
     </html>
   );
