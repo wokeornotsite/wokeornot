@@ -1,8 +1,9 @@
+"use client";
+
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
-"use client";
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 
