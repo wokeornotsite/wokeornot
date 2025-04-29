@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 import { useSearchParams } from 'next/navigation';
 
-export default function ResetPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 
@@ -17,3 +17,13 @@ export default function ResetPage() {
     </div>
   );
 }
+
+export default function ResetPage() {
+  return (
+    <Suspense>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+export const dynamic = "force-dynamic";
