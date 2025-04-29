@@ -4,9 +4,6 @@ import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
-
 function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,3 +75,13 @@ function VerifyPageContent() {
     </div>
   );
 }
+
+export default function VerifyPage() {
+  return (
+    <Suspense>
+      <VerifyPageContent />
+    </Suspense>
+  );
+}
+
+export const dynamic = "force-dynamic";
