@@ -164,7 +164,7 @@ model CategoryScore {
 // User reviews
 model Review {
   id          String          @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String
+  userId      String?         // Now optional for guest reviews
   contentId   String
   rating      Int             @default(0) // 1-10 scale
   text        String?
@@ -172,7 +172,7 @@ model Review {
   updatedAt   DateTime        @updatedAt
 
   // Relations
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User?           @relation(fields: [userId], references: [id], onDelete: Cascade) // Now optional
   content     Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
   categories  ReviewCategory[]
 
