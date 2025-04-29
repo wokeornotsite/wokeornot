@@ -104,17 +104,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = session.user;
     const resolvedParams = await params;
     const { id } = resolvedParams;
-    const { rating, text, categoryIds } = await req.json();
-    const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const { rating, text, categoryIds, guestName } = await req.json();
+
+    // Check content exists
     const content = await prisma.content.findUnique({ where: { id: id } });
     if (!content) {
       return NextResponse.json({ error: 'Content not found' }, { status: 404 });
@@ -128,22 +122,59 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: 'One or more categories not found' }, { status: 400 });
       }
     }
-    const existingReview = await prisma.review.findFirst({
-      where: { userId: dbUser.id, contentId: id },
-    });
-    if (existingReview) {
+
+    let userId: string | undefined = undefined;
+    let reviewExists = false;
+    // Always explicitly build reviewData, never include a 'user' property
+    let reviewData: any = {
+      contentId: id,
+      rating,
+      text: guestName ? `[Guest: ${guestName}] ${text}` : text,
+      categories: {
+        create: (categoryIds || []).filter(Boolean).map((categoryId: string) => ({ categoryId })),
+      },
+    };
+    if (session && session.user && session.user.id) {
+      // Authenticated user
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      if (!dbUser) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      userId = dbUser.id;
+      reviewData.userId = userId;
+      reviewExists = !!(await prisma.review.findFirst({ where: { userId, contentId: id } }));
+    } else {
+      // Guest: do NOT include userId or user field at all
+      if (!guestName || guestName.trim().length === 0) {
+        // Optionally, use IP or anonymous, but allow multiple anonymous guest reviews
+        reviewExists = false;
+      } else {
+        reviewExists = !!(await prisma.review.findFirst({ where: { contentId: id, text: { contains: `[Guest: ${guestName}]` } } }));
+      }
+    }
+    if (reviewExists) {
       return NextResponse.json({ error: 'You have already reviewed this content.' }, { status: 400 });
     }
-    const review = await prisma.review.create({
-      data: {
-        userId: dbUser.id ?? '',
-        contentId: id,
-        rating,
-        text,
-        categories: {
-          create: categoryIds.map((categoryId: string | null | undefined) => ({ categoryId: categoryId ?? '' })),
-        },
+    // Debug log to verify reviewData shape
+    console.log('[DEBUG] reviewData to be created:', JSON.stringify(reviewData, null, 2));
+    
+    // Create the review with explicit handling for both authenticated and guest users
+    let createData: any = {
+      contentId: id,
+      rating,
+      text: guestName ? `[Guest: ${guestName}] ${text}` : text,
+      categories: {
+        create: (categoryIds || []).filter(Boolean).map((categoryId: string) => ({ categoryId })),
       },
+    };
+    
+    // Only add userId for authenticated users (MongoDB/Prisma)
+    if (userId) {
+      createData.userId = userId;
+    }
+    
+    const review = await prisma.review.create({
+      data: createData,
       include: {
         user: { select: { id: true, name: true, image: true } },
         categories: { include: { category: true } },

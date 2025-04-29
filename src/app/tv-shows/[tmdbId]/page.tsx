@@ -14,6 +14,7 @@ import { getTVShowDetails, getTVCredits, getSimilarTVShows } from '@/lib/tmdb';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
+import { SocialShareButtons } from '@/components/ui/social-share-buttons';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
 import ReviewSection from '@/components/review/review-section';
 import { CategoryIcon } from '@/components/ui/category-icon';
@@ -103,6 +104,8 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                 WOKE
               </span>
             </div>
+            {/* Social Share Buttons */}
+            <SocialShareButtons url={`https://www.wokeornot.net/tv-shows/${tmdbId}`} title={tvShow.name} />
             <div className="flex items-center gap-4 text-base md:text-lg text-gray-200">
               <span>{tvShow.first_air_date?.slice(0,4)}</span>
               <span>&bull;</span>

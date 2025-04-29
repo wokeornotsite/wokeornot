@@ -13,6 +13,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 import Image from 'next/image';
 import { getMovieDetails } from '@/lib/tmdb';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
+import { SocialShareButtons } from '@/components/ui/social-share-buttons';
 import { notFound } from 'next/navigation';
 import { CategoryIcon } from '@/components/ui/category-icon';
 
@@ -63,7 +64,8 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
     : '/images/placeholder.png';
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
+    <>
+      <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
       {/* Hero Section with Backdrop */}
       <div className="relative h-64 md:h-96 w-full overflow-hidden flex items-end justify-center">
         {movie.backdrop_path && (
@@ -94,6 +96,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
                 WOKE
               </span>
             </div>
+            <SocialShareButtons url={`https://www.wokeornot.net/movies/${tmdbId}`} title={movie.title} />
             <div className="flex items-center gap-4 text-base md:text-lg text-gray-200">
               <span>{movie.release_date?.slice(0,4)}</span>
               <span>&bull;</span>
@@ -173,6 +176,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
         </div>
       </div>
     </div>
+    </>
   );
 }
 
