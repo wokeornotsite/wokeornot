@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 import { useSearchParams } from 'next/navigation';
