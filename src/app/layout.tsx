@@ -34,13 +34,13 @@ export default function RootLayout({
         <meta property="og:title" content="WokeOrNot - Rate the Wokeness of Movies and TV Shows" />
         <meta property="og:description" content="Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://wokeornot.com/" />
-        <meta property="og:image" content="https://wokeornot.com/og-image.png" />
+        <meta property="og:url" content="https://wokeornot.net/" />
+        <meta property="og:image" content="https://wokeornot.net/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="WokeOrNot - Rate the Wokeness of Movies and TV Shows" />
         <meta name="twitter:description" content="Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think." />
-        <meta name="twitter:image" content="https://wokeornot.com/og-image.png" />
-        <link rel="canonical" href="https://wokeornot.com/" />
+        <meta name="twitter:image" content="https://wokeornot.net/og-image.png" />
+        <link rel="canonical" href="https://wokeornot.net/" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-text font-sans text-base leading-relaxed`}
