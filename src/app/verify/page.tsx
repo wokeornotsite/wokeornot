@@ -1,87 +1,74 @@
 "use client";
 
-import React, { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-function VerifyPageContent() {
+export default function VerifyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
-  const email = searchParams.get('email') || '';
-  const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
-  const [message, setMessage] = useState('Verifying your email...');
+  const [status, setStatus] = useState<"pending" | "success" | "error">("pending");
+  const [message, setMessage] = useState<string>("");
 
-  const [resendStatus, setResendStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
-  const [resendMessage, setResendMessage] = useState('');
-
-  React.useEffect(() => {
+  useEffect(() => {
+    const token = searchParams.get("token");
+    const email = searchParams.get("email");
     if (!token || !email) {
-      setStatus('error');
-      setMessage('Invalid or missing verification token or email.');
+      setStatus("error");
+      setMessage("Invalid or missing verification parameters.");
       return;
     }
-    axios.post('/api/auth/verify', { token, email })
-      .then(() => {
-        setStatus('success');
-        setMessage('Your email has been verified! You may now log in.');
-      })
-      .catch(err => {
-        setStatus('error');
-        setMessage(
-          err?.response?.data?.error || 'Verification failed. Your token may be invalid or expired.'
-        );
-      });
-  }, [token, email]);
-
-  const handleResend = async () => {
-    setResendStatus('loading');
-    setResendMessage('');
-    try {
-      await axios.post('/api/auth/resend-verification', { email });
-      setResendStatus('sent');
-      setResendMessage('Verification email resent!');
-    } catch {
-      setResendStatus('error');
-      setResendMessage('Failed to resend verification email.');
-    }
-  };
+    // Call API to verify
+    const verify = async () => {
+      try {
+        setStatus("pending");
+        const res = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setStatus("success");
+          setMessage("Your email has been verified! You can now log in.");
+          // Redirect to login after short delay
+          setTimeout(() => {
+            router.push("/login?verified=true");
+          }, 2000);
+        } else {
+          setStatus("error");
+          setMessage(data.error || "Verification failed.");
+        }
+      } catch (err) {
+        setStatus("error");
+        setMessage("Server error during verification.");
+      }
+    };
+    verify();
+  }, [searchParams, router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
-      <div className="w-full max-w-md p-8 bg-white/10 rounded-lg shadow-lg backdrop-blur">
-        <h1 className="text-2xl font-bold text-center text-blue-200 mb-6">Email Verification</h1>
-        <p className="mb-4 text-center text-white/80">{message}</p>
-        {status === 'success' ? (
-          <button
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold mt-4"
-            onClick={() => router.push('/login')}
-          >
-            Go to Login
-          </button>
-        ) : status === 'error' ? (
-          <>
-            <button
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold mt-4"
-              onClick={handleResend}
-              disabled={resendStatus === 'loading'}
-            >
-              {resendStatus === 'loading' ? 'Resending...' : 'Resend Verification Email'}
-            </button>
-            {resendMessage && <p className="mt-2 text-center text-red-400">{resendMessage}</p>}
-          </>
-        ) : null}
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#181824] via-[#232946] to-[#0f0f1a]">
+      <div className="max-w-md w-full space-y-8 bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 transition-all duration-300">
+        <div className="text-center">
+          <h2 className="mt-6 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 drop-shadow-lg">
+            Email Verification
+          </h2>
+          {status === "pending" && (
+            <div className="mt-4 text-blue-200">Verifying your email, please wait...</div>
+          )}
+          {status === "success" && (
+            <div className="mt-4 py-2 px-4 rounded-md bg-green-600/60 text-green-100">
+              <p className="text-sm">{message}</p>
+              <p className="text-xs mt-2">Redirecting to login...</p>
+            </div>
+          )}
+          {status === "error" && (
+            <div className="mt-4 py-2 px-4 rounded-md bg-red-600/60 text-red-100">
+              <p className="text-sm">{message}</p>
+              <p className="mt-2 text-xs">
+                <Link href="/login" className="text-blue-300 underline">Return to login</Link>
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-
-export default function VerifyPage() {
-  return (
-    <Suspense>
-      <VerifyPageContent />
-    </Suspense>
-  );
-}
-
-export const dynamic = "force-dynamic";
