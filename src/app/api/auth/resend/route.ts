@@ -13,11 +13,20 @@ export async function POST(req: NextRequest) {
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
   await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
   // Send email
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+  // Handle both EMAIL_SERVER format and individual EMAIL_HOST/PORT variables
+  let transportConfig: any;
+  if (process.env.EMAIL_SERVER) {
+    // Parse the EMAIL_SERVER string (format: smtp://user:pass@host:port)
+    transportConfig = process.env.EMAIL_SERVER;
+  } else {
+    transportConfig = {
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT || 587),
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    };
+  }
+  
+  const transporter = nodemailer.createTransport(transportConfig);
   await transporter.sendMail({
     to: email,
     subject: 'Verify your email',

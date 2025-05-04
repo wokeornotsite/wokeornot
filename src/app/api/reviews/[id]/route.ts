@@ -142,16 +142,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
       userId = dbUser.id;
       reviewData.userId = userId;
+      // Only enforce uniqueness for logged-in users
       reviewExists = !!(await prisma.review.findFirst({ where: { userId, contentId: id } }));
-    } else {
-      // Guest: do NOT include userId or user field at all
-      if (!guestName || guestName.trim().length === 0) {
-        // Optionally, use IP or anonymous, but allow multiple anonymous guest reviews
-        reviewExists = false;
-      } else {
-        reviewExists = !!(await prisma.review.findFirst({ where: { contentId: id, text: { contains: `[Guest: ${guestName}]` } } }));
-      }
     }
+    // For guests, allow multiple reviews per content (do not check for duplicates)
     if (reviewExists) {
       return NextResponse.json({ error: 'You have already reviewed this content.' }, { status: 400 });
     }

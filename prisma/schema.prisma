@@ -176,7 +176,7 @@ model Review {
   content     Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
   categories  ReviewCategory[]
 
-  @@unique([userId, contentId])
+
   @@map("reviews")
 }
 
