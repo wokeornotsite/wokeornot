@@ -1,6 +1,12 @@
+'use client';
+
+import { Suspense } from 'react';
 import { LoginContent } from '@/components/auth/login-content';
 
-// This is a Server Component - the default export of page.tsx
 export default function LoginPage() {
-  return <LoginContent />;
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#181824] via-[#232946] to-[#0f0f1a]"><span className="text-white text-lg">Loading...</span></div>}>
+      <LoginContent />
+    </Suspense>
+  );
 }
