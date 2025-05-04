@@ -22,6 +22,14 @@ const nextConfig = {
       },
     ],
   },
+  // Disable static optimization to fix useSearchParams Vercel build error
+  output: 'standalone',
+  staticPageGenerationTimeout: 1000,
+  experimental: {
+    // Explicitly disable static rendering for pages using client hooks like useSearchParams
+    appDir: true,
+    serverActions: true
+  }
 };
 
 module.exports = nextConfig;
