@@ -32,6 +32,7 @@
     "next": "15.3.0",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
+    "notistack": "^3.0.2",
     "prisma": "^6.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
