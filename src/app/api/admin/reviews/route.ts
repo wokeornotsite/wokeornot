@@ -4,7 +4,11 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const reviews = await prisma.review.findMany({
-      include: { user: { select: { email: true } } }
+      include: {
+        user: { select: { email: true, name: true } },
+        content: { select: { title: true, contentType: true } }
+      },
+      orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(reviews);
   } catch (error) {

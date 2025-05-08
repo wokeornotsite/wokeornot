@@ -13,6 +13,9 @@ export type Review = {
   rating: number;
   text?: string;
   createdAt: string;
+  likes?: number;
+  dislikes?: number;
+  userReaction?: 'like' | 'dislike' | null;
   content?: {
     contentType: string;
     tmdbId: number;
@@ -83,6 +86,34 @@ function ProfileClient({ user }: { user: UserProfileData }) {
     setEditingReviewText(review.text || "");
     setEditingReviewRating(review.rating);
     setReviewActionError("");
+  };
+  
+  // Like/Dislike handlers
+  const handleReviewReaction = async (reviewId: string, reaction: 'like' | 'dislike') => {
+    setReviewActionError("");
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/reaction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update reaction");
+      }
+      const { likes, dislikes, userReaction } = await res.json();
+      
+      // Update the review in state
+      setReviews((prev) => 
+        prev.map((r) => 
+          r.id === reviewId 
+            ? { ...r, likes, dislikes, userReaction } 
+            : r
+        )
+      );
+    } catch (err: any) {
+      setReviewActionError(err.message || "Failed to update reaction");
+    }
   };
   const handleCancelEditReview = () => {
     setEditingReviewId(null);
@@ -351,6 +382,29 @@ function ProfileClient({ user }: { user: UserProfileData }) {
     <div className={styles.reviewRating}><span style={{ color: '#f472b6', fontWeight: 700 }}>{review.rating}/10</span></div>
     {review.text && <div className={styles.reviewText}>{review.text}</div>}
     <DateClient iso={review.createdAt} className={styles.reviewDate} />
+    
+    {/* Like/Dislike Buttons */}
+    <div className="flex items-center space-x-4 mt-2">
+      <button 
+        onClick={() => handleReviewReaction(review.id, 'like')}
+        className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'like' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'} transition-colors`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+        </svg>
+        <span>{review.likes || 0}</span>
+      </button>
+      
+      <button 
+        onClick={() => handleReviewReaction(review.id, 'dislike')}
+        className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'dislike' ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'} transition-colors`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+        </svg>
+        <span>{review.dislikes || 0}</span>
+      </button>
+    </div>
     <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
       <button
         className={styles.profileButton}

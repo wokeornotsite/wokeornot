@@ -145,6 +145,29 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      {/* Contact Section */}
+      <section className="py-16 bg-gradient-to-b from-[#0f0f1a] to-[#1a1a2e]">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-6 text-white">Contact Us</h2>
+            <p className="text-xl text-gray-300 mb-8">
+              Have questions, feedback, or need assistance? Reach out to us at:
+            </p>
+            <div className="inline-block bg-indigo-900/50 px-6 py-4 rounded-lg border border-indigo-500/30 shadow-lg">
+              <a 
+                href="mailto:wokeornot.site@gmail.com" 
+                className="text-xl font-medium text-indigo-300 hover:text-indigo-200 transition-colors flex items-center justify-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                wokeornot.site@gmail.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

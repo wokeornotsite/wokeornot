@@ -38,7 +38,7 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
       >
         <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300">
           <Image
-            src={session.user.avatar || session.user.image || '/avatars/default.png'}
+            src={(session.user as any).avatar || session.user.image || '/avatars/default.png'}
             alt={session.user.name || 'User'}
             className="w-full h-full object-cover"
             width={32}
@@ -80,7 +80,7 @@ export const Navbar = () => {
     { href: '/movies', label: 'Movies' },
     { href: '/tv-shows', label: 'TV Shows' },
     { href: '/kids', label: 'Kids' },
-    { href: '/forum', label: 'Forum' },
+    // Forum link removed as feature is not yet implemented
   ];
 
   return (
