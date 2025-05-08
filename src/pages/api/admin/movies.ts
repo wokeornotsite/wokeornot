@@ -8,8 +8,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!session || session.user?.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
 
   if (req.method === 'GET') {
-    const movies = await prisma.content.findMany({});
-    return res.json(movies);
+    // Get pagination parameters from query or use defaults
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
+    
+    // Get total count for pagination info
+    const total = await prisma.content.count();
+    
+    // Get paginated content with only necessary fields
+    const movies = await prisma.content.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        releaseDate: true,
+        contentType: true,
+        wokeScore: true,
+        reviewCount: true,
+        createdAt: true,
+        posterPath: true,
+      }
+    });
+    
+    return res.json({
+      data: movies,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   }
   if (req.method === 'PATCH') {
     const { id, ...data } = req.body;
