@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       
       if (directCategories.length > 0) {
         // Merge duplicate categories
-        const mergedCategories: Record<string, any> = {};
+        const mergedCategories: Record<string, { name: string, count: number, percent: number }> = {};
         directCategories.forEach(cat => {
           if (!mergedCategories[cat.categoryId]) {
             mergedCategories[cat.categoryId] = cat;
@@ -156,7 +156,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         });
         
         // Calculate percentages
-        Object.values(mergedCategories).forEach((cat: any) => {
+        Object.values(mergedCategories).forEach((cat: { name: string, count: number, percent: number }) => {
           cat.percent = Math.round((cat.count / totalReviews) * 100);
         });
         
@@ -188,85 +188,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-// PATCH handler
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const { rating, text } = await req.json();
-  try {
-    const resolvedParams = await params;
-    const { id } = resolvedParams;
-    const review = await db.review.findUnique({ where: { id } });
-    const user = await db.user.findUnique({ where: { email: session.user.email as string } });
-    if (!review || !user || review.userId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const updated = await db.review.update({
-      where: { id },
-      data: { rating, text },
-      include: {
-        user: { select: { id: true, name: true, image: true } },
-        categories: { include: { category: true } },
-      },
-    });
-    const contentId = review.contentId;
-    // Recalculate wokeScore and reviewCount
-    const allReviews = await db.review.findMany({ where: { contentId } });
-    const reviewCount = allReviews.length;
-    const wokeScore = reviewCount > 0 ? allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount : 0;
-    await db.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
-    return NextResponse.json(updated);
-  } catch (error: unknown) {
-    let message = 'Failed to update review.';
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'message' in error &&
-      typeof (error as { message?: string }).message === 'string'
-    ) {
-      message = (error as { message: string }).message;
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
-
-// DELETE handler
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  try {
-    const { id } = await params;
-    const review = await db.review.findUnique({ where: { id } });
-    const user = await db.user.findUnique({ where: { email: session.user.email as string } });
-    if (!review || !user || review.userId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const contentId = review.contentId;
-    await db.review.delete({ where: { id } });
-    // Recalculate wokeScore and reviewCount
-    const allReviews = await db.review.findMany({ where: { contentId } });
-    const reviewCount = allReviews.length;
-    const wokeScore = reviewCount > 0 ? allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount : 0;
-    await db.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
-    return NextResponse.json({ success: true });
-  } catch (error: unknown) {
-    let message = 'Failed to delete review.';
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'message' in error &&
-      typeof (error as { message?: string }).message === 'string'
-    ) {
-      message = (error as { message: string }).message;
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
-
 // POST handler
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -281,6 +202,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
+    
+    // Get review count before adding new review
+    const reviewCountBefore = await db.review.findMany({ where: { contentId } }).then((reviews: { length: number }) => reviews.length);
+    
     // Get the user
     const user = await db.user.findUnique({
       where: { email: session.user.email as string },
@@ -316,14 +241,101 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         categories: { include: { category: true } },
       },
     });
+    // Update category scores for this content
+    const reviewCategories = await db.reviewCategory.findMany({
+      where: { reviewId: review.id },
+      include: { category: true }
+    });
+
+    // Update or create category scores
+    const categoryUpdates = reviewCategories.map(async (rc: { categoryId: string }) => {
+      const existingScore = await db.categoryScore.findUnique({
+        where: { contentId_categoryId: { contentId, categoryId: rc.categoryId } }
+      });
+
+      const newCount = (existingScore?.count || 0) + 1;
+      const newScore = (existingScore?.score || 0) + review.rating;
+      const percentage = (newCount / (reviewCountBefore + 1)) * 100;
+
+      return db.categoryScore.upsert({
+        where: { contentId_categoryId: { contentId, categoryId: rc.categoryId } },
+        update: {
+          count: newCount,
+          score: newScore,
+          percentage
+        },
+        create: {
+          contentId,
+          categoryId: rc.categoryId,
+          count: 1,
+          score: review.rating,
+          percentage: 100 / (reviewCountBefore + 1)
+        }
+      });
+    });
+
+    // Wait for all category updates to complete
+    await Promise.all(categoryUpdates);
+
     // Recalculate the content's wokeScore and reviewCount
     const allReviews = await db.review.findMany({ where: { contentId } });
     const reviewCount = allReviews.length;
-    const wokeScore = reviewCount > 0 ? allReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount : 0;
+    const wokeScore = allReviews.length > 0 ? allReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / allReviews.length : 0;
     await db.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
-    return NextResponse.json(review);
+
+    // Update category percentages
+    const allCategoryScores = await db.categoryScore.findMany({
+      where: { contentId },
+      include: { category: true }
+    });
+    const totalScore = allCategoryScores.reduce((sum: number, score: { score: number }) => sum + score.score, 0);
+    
+    const updatePercentages = allCategoryScores.map(async (score: { id: string; score: number }) => {
+      const newPercentage = totalScore > 0 ? (score.score / totalScore) * 100 : 0;
+      return db.categoryScore.update({
+        where: { id: score.id },
+        data: { percentage: newPercentage }
+      });
+    });
+
+    await Promise.all(updatePercentages);
+    return NextResponse.json({ message: 'Review created successfully' });
   } catch (error: unknown) {
     let message = 'Failed to create review.';
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message?: string }).message === 'string'
+    ) {
+      message = (error as { message: string }).message;
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// PATCH handler
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  try {
+    const { rating, text } = await req.json();
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+    const review = await db.review.findUnique({ where: { id } });
+    const user = await db.user.findUnique({ where: { email: session.user.email as string } });
+    if (!review || !user || review.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const updated = await db.review.update({
+      where: { id },
+      data: { rating, text },
+    });
+    return NextResponse.json({ message: 'Review updated successfully' });
+  } catch (error: unknown) {
+    let message = 'Failed to update review.';
     if (
       typeof error === 'object' &&
       error !== null &&

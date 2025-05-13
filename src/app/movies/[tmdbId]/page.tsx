@@ -48,16 +48,12 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   }
   // --- End automatic content creation ---
 
-  // Fetch categoryScores for this content (with category name)
-  const categoryScores = dbContent
-    ? await prisma.categoryScore.findMany({
-        where: { contentId: dbContent.id },
-        include: { category: true },
-      })
-    : [];
+  // Fetch weighted woke reasons summary and reviews
+  const reviewsApiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/reviews/${dbContent.id}`, { cache: 'no-store' });
+  const { wokeReasons = [], reviews = [], totalReviews = 0 } = reviewsApiRes.ok ? await reviewsApiRes.json() : {};
 
   const wokeScore = dbContent?.wokeScore ?? 0;
-  const reviewCount = dbContent?.reviewCount ?? 0;
+  const reviewCount = totalReviews; // Use real-time count from API
 
   // Fallback for poster
   const posterUrl = movie.poster_path
@@ -122,28 +118,28 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <WokenessBar score={wokeScore} />
             <div>
               <h4 className="text-xs font-bold text-blue-300 mb-1 tracking-wide uppercase">Woke Reasons</h4>
-              {categoryScores && categoryScores.length > 0 ? (
+              {wokeReasons && wokeReasons.length > 0 ? (
                 <div className="w-full flex flex-col gap-2">
-                  {categoryScores
-                    .filter(cs => cs.count > 0)
-                    .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
-                    .map(cs => (
+                  {wokeReasons
+                    .filter((cs: any) => cs.count > 0)
+                    .sort((a: any, b: any) => b.percent !== a.percent ? b.percent - a.percent : (a.name || '').localeCompare(b.name || ''))
+                    .map((cs: any) => (
                       <div key={cs.categoryId} className="flex items-center gap-2 w-full">
                         <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
-                          {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
-                          {cs.category?.name || ''}
+                          {categoryIcons[cs.name || ''] || <FaQuestionCircle className="text-gray-400" />}
+                          {cs.name || ''}
                         </span>
                         <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
                           <div
                             className="h-6 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
                             style={{ 
-                              width: `${cs.percentage}%`, 
+                              width: `${cs.percent}%`, 
                               transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
                               animationDuration: '0.6s',
-                              animationDelay: `${0.1 * (categoryScores.findIndex(c => c.categoryId === cs.categoryId))}s`
+                              animationDelay: `${0.1 * (wokeReasons.findIndex((c: any) => c.categoryId === cs.categoryId))}s`
                             }}
                           />
-                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percentage}%</span>
+                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percent}%</span>
                         </div>
                         <span className="w-14 text-xs text-blue-700 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
