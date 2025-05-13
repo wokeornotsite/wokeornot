@@ -52,7 +52,12 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 const reviewsApiRes = await fetch(`${baseUrl}/api/reviews/${dbContent.id}`, { cache: 'no-store' });
-  const { wokeReasons = [], reviews = [], totalReviews = 0 } = reviewsApiRes.ok ? await reviewsApiRes.json() : {};
+  const apiJson = reviewsApiRes.ok ? await reviewsApiRes.json() : {};
+if (typeof window !== 'undefined') {
+  // Only log in browser (client-side)
+  console.log('API /api/reviews/[id] response:', apiJson);
+}
+const { wokeReasons = [], reviews = [], totalReviews = 0 } = apiJson;
 
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = totalReviews; // Use real-time count from API
