@@ -49,7 +49,9 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   // --- End automatic content creation ---
 
   // Fetch weighted woke reasons summary and reviews
-  const reviewsApiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/reviews/${dbContent.id}`, { cache: 'no-store' });
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+const reviewsApiRes = await fetch(`${baseUrl}/api/reviews/${dbContent.id}`, { cache: 'no-store' });
   const { wokeReasons = [], reviews = [], totalReviews = 0 } = reviewsApiRes.ok ? await reviewsApiRes.json() : {};
 
   const wokeScore = dbContent?.wokeScore ?? 0;

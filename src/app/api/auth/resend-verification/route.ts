@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
     }
     
     const transporter = nodemailer.createTransport(transportConfig);
-    const verifyUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    const baseUrl = process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+const verifyUrl = `${baseUrl}/verify?token=${token}&email=${encodeURIComponent(email)}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
