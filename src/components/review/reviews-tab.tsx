@@ -8,6 +8,16 @@ interface Review {
   rating: number;
   text?: string;
   createdAt: string;
+  categories?: any[];
+  likes?: number;
+  dislikes?: number;
+  userReaction?: 'like' | 'dislike' | null;
+}
+
+interface ApiResponse {
+  reviews: Review[];
+  wokeReasons: any[];
+  totalReviews: number;
 }
 
 export default function ReviewsTab({ id }: { id: string }) {
@@ -18,7 +28,19 @@ export default function ReviewsTab({ id }: { id: string }) {
     setLoading(true);
     fetch(`/api/reviews/${id}`)
       .then((res) => res.json())
-      .then((data) => setReviews(data))
+      .then((data: ApiResponse) => {
+        console.log('Received reviews data:', data);
+        if (data.reviews && Array.isArray(data.reviews)) {
+          setReviews(data.reviews);
+        } else {
+          console.error('Invalid reviews data format:', data);
+          setReviews([]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching reviews:', err);
+        setReviews([]);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 

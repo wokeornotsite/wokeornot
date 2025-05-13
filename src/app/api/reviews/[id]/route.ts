@@ -55,15 +55,125 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         userReaction = reaction?.type || null;
       }
       
+      // Make sure we preserve the categories structure exactly
       return {
-        ...review,
+        id: review.id,
+        rating: review.rating,
+        text: review.text,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+        userId: review.userId,
+        contentId: review.contentId,
+        user: review.user,
+        categories: review.categories, // Ensure categories are preserved
         likes,
         dislikes,
         userReaction
       };
     }));
     
-    return NextResponse.json(reviewsWithReactions);
+    // Calculate weighted Woke Reasons summary for this contentId
+    // 1. Get all categories for this content
+    // First, get all review IDs for this content
+    const reviewIds = reviews.map((r: any) => r.id);
+    console.log(`Found ${reviewIds.length} reviews for content ${id}:`, reviewIds);
+    
+    // Then, get all review categories with these review IDs
+    const allReviewCategories = await db.reviewCategory.findMany({
+      where: { 
+        reviewId: { in: reviewIds }
+      },
+      include: { category: true }
+    });
+    
+    // Debug log
+    console.log(`Found ${allReviewCategories.length} review categories for content ${id}`);
+    
+    // Directly query categories to ensure they exist
+    const categories = await db.category.findMany();
+    console.log(`Total categories in database: ${categories.length}`);
+    
+    // 2. Count votes for each category
+    const categoryCountMap: Record<string, { name: string, count: number }> = {};
+    
+    allReviewCategories.forEach((rc: any) => {
+      if (!rc.categoryId || !rc.category?.name) {
+        console.log('Missing category data:', rc);
+        return;
+      }
+      
+      if (!categoryCountMap[rc.categoryId]) {
+        categoryCountMap[rc.categoryId] = { name: rc.category.name, count: 1 };
+      } else {
+        categoryCountMap[rc.categoryId].count++;
+      }
+    });
+    
+    // 3. Prepare summary array
+    const totalReviews = reviews.length;
+    const wokeReasons = Object.entries(categoryCountMap).map(([categoryId, { name, count }]) => ({
+      categoryId,
+      name,
+      count,
+      percent: totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0
+    }));
+    
+    // Debug log
+    console.log(`Generated ${wokeReasons.length} woke reasons for content ${id}:`, wokeReasons);
+    
+    // If no categories were found through the normal query, try a direct approach
+    if (wokeReasons.length === 0) {
+      console.log('No categories found through normal query, trying direct approach');
+      
+      // Get all review categories directly from the database
+      const directCategories = [];
+      for (const review of reviews) {
+        if (review.categories && Array.isArray(review.categories)) {
+          for (const cat of review.categories) {
+            if (cat.category && cat.category.name) {
+              directCategories.push({
+                categoryId: cat.categoryId,
+                name: cat.category.name,
+                count: 1,
+                percent: 100
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`Found ${directCategories.length} categories directly from reviews`);
+      
+      if (directCategories.length > 0) {
+        // Merge duplicate categories
+        const mergedCategories: Record<string, any> = {};
+        directCategories.forEach(cat => {
+          if (!mergedCategories[cat.categoryId]) {
+            mergedCategories[cat.categoryId] = cat;
+          } else {
+            mergedCategories[cat.categoryId].count++;
+          }
+        });
+        
+        // Calculate percentages
+        Object.values(mergedCategories).forEach((cat: any) => {
+          cat.percent = Math.round((cat.count / totalReviews) * 100);
+        });
+        
+        console.log('Using direct categories:', Object.values(mergedCategories));
+        return NextResponse.json({
+          reviews: reviewsWithReactions,
+          wokeReasons: Object.values(mergedCategories),
+          totalReviews
+        });
+      }
+    }
+
+    return NextResponse.json({
+      reviews: reviewsWithReactions,
+      wokeReasons,
+      totalReviews
+    });
   } catch (error: unknown) {
     let message = 'Failed to fetch reviews.';
     if (
@@ -164,7 +274,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { rating, text, categories } = await req.json();
+    const { rating, text, categoryIds } = await req.json();
+    console.log('Received review submission with categories:', categoryIds);
     if (typeof rating !== 'number' || rating < 0 || rating > 10) {
       return NextResponse.json({ error: 'Rating must be between 0 and 10' }, { status: 400 });
     }
@@ -195,7 +306,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         userId: user.id,
         contentId,
         categories: {
-          create: categories?.map((catId: string) => ({
+          create: categoryIds?.map((catId: string) => ({
             categoryId: catId,
           })) || [],
         },

@@ -32,10 +32,10 @@ export default function ReviewSection({ id }: { id: string }) {
   const [categoryCounts, setCategoryCounts] = useState<{ [id: string]: number }>({});
 
   useEffect(() => {
-    axios.get(`/api/reviews/${id}`).then(res => setReviews(res.data));
+    axios.get(`/api/reviews/${id}`).then(res => setReviews(res.data.reviews));
     axios.get(`/api/reviews/${id}`).then(res => {
       const counts: { [id: string]: number } = {};
-      for (const review of res.data) {
+      for (const review of res.data.reviews) {
         if (review.categories && Array.isArray(review.categories)) {
           for (const cat of review.categories) {
             if (cat.categoryId) {
