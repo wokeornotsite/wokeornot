@@ -83,6 +83,8 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             fill
             className="object-cover w-full h-full absolute top-0 left-0 z-0 blur-sm scale-105 opacity-70"
             priority
+            sizes="100vw"
+            quality={75}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#181824] via-[#232946cc] to-transparent z-10" />
@@ -93,7 +95,9 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             className="w-36 h-52 md:w-52 md:h-80 rounded-xl shadow-2xl border-4 border-white/10 bg-white/5 object-cover"
             width={208}
             height={320}
-            priority
+            sizes="(max-width: 768px) 144px, 208px"
+            quality={80}
+            unoptimized={!tvShow.poster_path}
           />
           <div className="flex flex-col gap-2 md:gap-4">
             <div className="flex items-center gap-4">

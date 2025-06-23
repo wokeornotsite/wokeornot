@@ -73,7 +73,10 @@ export default function TrendingCarousel({ items, type, wokeScores }: TrendingCa
                 width={176}
                 height={264}
                 className="object-cover w-full h-48 sm:h-56"
-                priority
+                loading="lazy"
+                unoptimized={!item.poster_path}
+                sizes="(max-width: 640px) 128px, (max-width: 768px) 144px, (max-width: 1024px) 160px, 176px"
+                quality={75}
               />
               <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
                 {(wokeScores && wokeScores[item.id] !== undefined) ? (

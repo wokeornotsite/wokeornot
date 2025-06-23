@@ -43,8 +43,9 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
             className="w-full h-full object-cover"
             width={32}
             height={32}
+            loading="lazy"
+            unoptimized={!(session.user as any).avatar && !session.user.image}
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/avatar-placeholder.png'; }}
-            priority
           />
         </div>
       </button>

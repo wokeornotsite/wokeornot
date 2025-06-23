@@ -51,13 +51,41 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   // Fetch weighted woke reasons summary and reviews
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-const reviewsApiRes = await fetch(`${baseUrl}/api/reviews/${dbContent.id}`, { cache: 'no-store' });
-  const apiJson = reviewsApiRes.ok ? await reviewsApiRes.json() : {};
-if (typeof window !== 'undefined') {
-  // Only log in browser (client-side)
-  console.log('API /api/reviews/[id] response:', apiJson);
-}
-const { wokeReasons = [], reviews = [], totalReviews = 0 } = apiJson;
+  const reviewsApiRes = await fetch(`${baseUrl}/api/reviews/${dbContent.id}`, { 
+    cache: 'no-store',
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+
+  let apiJson;
+  try {
+    apiJson = await reviewsApiRes.json();
+    if (typeof window !== 'undefined') {
+      console.log('[Debug] API Response Status:', reviewsApiRes.status);
+      console.log('[Debug] API Response Headers:', Object.fromEntries(reviewsApiRes.headers.entries()));
+      console.log('[Debug] API /api/reviews/[id] raw response:', apiJson);
+    }
+  } catch (error) {
+    console.error('[Error] Failed to parse API response:', error);
+    apiJson = {};
+  }
+
+  // Ensure wokeReasons is always an array
+  const rawWokeReasons = apiJson?.wokeReasons;
+  const wokeReasons = Array.isArray(rawWokeReasons) ? rawWokeReasons : [];
+  const reviews = Array.isArray(apiJson?.reviews) ? apiJson.reviews : [];
+  const totalReviews = typeof apiJson?.totalReviews === 'number' ? apiJson.totalReviews : 0;
+
+  if (typeof window !== 'undefined') {
+    console.log('[Debug] Processed data:', {
+      wokeReasonsLength: wokeReasons?.length,
+      reviewsLength: reviews?.length,
+      totalReviews,
+      isWokeReasonsArray: Array.isArray(wokeReasons),
+      baseUrl
+    });
+  }
 
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = totalReviews; // Use real-time count from API
@@ -79,6 +107,8 @@ const { wokeReasons = [], reviews = [], totalReviews = 0 } = apiJson;
             fill
             className="object-cover w-full h-full absolute top-0 left-0 z-0 blur-sm scale-105 opacity-70"
             priority
+            sizes="100vw"
+            quality={75}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#181824] via-[#232946cc] to-transparent z-10" />
@@ -89,7 +119,9 @@ const { wokeReasons = [], reviews = [], totalReviews = 0 } = apiJson;
             className="w-36 h-52 md:w-52 md:h-80 rounded-xl shadow-2xl border-4 border-white/10 bg-white/5 object-cover"
             width={208}
             height={320}
-            priority
+            sizes="(max-width: 768px) 144px, 208px"
+            quality={80}
+            unoptimized={!movie.poster_path}
           />
           <div className="flex flex-col gap-2 md:gap-4">
             <div className="flex items-center gap-4">
@@ -125,7 +157,7 @@ const { wokeReasons = [], reviews = [], totalReviews = 0 } = apiJson;
             <WokenessBar score={wokeScore} />
             <div>
               <h4 className="text-xs font-bold text-blue-300 mb-1 tracking-wide uppercase">Woke Reasons</h4>
-              {wokeReasons && wokeReasons.length > 0 ? (
+              {wokeReasons.length > 0 ? (
                 <div className="w-full flex flex-col gap-2">
                   {wokeReasons
                     .filter((cs: any) => cs.count > 0)

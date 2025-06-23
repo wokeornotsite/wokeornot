@@ -37,8 +37,10 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             alt={content.title}
             className={`absolute inset-0 w-full h-full object-cover bg-[#181824] group-hover:brightness-110 group-focus:brightness-110 transition-all duration-300 ${imgError ? 'blur-sm grayscale' : ''}`}
             fill
-            sizes="(max-width: 768px) 100vw, 320px"
-            priority
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            loading="lazy"
+            quality={75}
+            unoptimized={imgError || !content.posterPath}
             onError={() => setImgError(true)}
           />
           <div className="absolute top-2 right-2">

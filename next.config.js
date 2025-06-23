@@ -21,14 +21,17 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+    formats: ['image/webp'],
+    minimumCacheTTL: 2678400,
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96],
   },
-  // Disable static optimization to fix useSearchParams Vercel build error
   output: 'standalone',
   staticPageGenerationTimeout: 1000,
   experimental: {
-    // Explicitly disable static rendering for pages using client hooks like useSearchParams
-    appDir: true,
-    serverActions: true
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'wokeornot.net']
+    }
   }
 };
 
