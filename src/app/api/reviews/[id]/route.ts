@@ -63,6 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         createdAt: review.createdAt,
         updatedAt: review.updatedAt,
         userId: review.userId,
+        guestName: review.guestName, // Include guestName for anonymous reviews
         contentId: review.contentId,
         user: review.user,
         categories: review.categories, // Ensure categories are preserved
