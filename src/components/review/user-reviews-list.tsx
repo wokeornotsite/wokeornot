@@ -12,6 +12,7 @@ interface Category {
 interface Review {
   id: string;
   user?: { name?: string };
+  guestName?: string;
   rating: number;
   text?: string;
   createdAt: string;
@@ -73,9 +74,9 @@ export default function UserReviewsList({ reviews: initialReviews }: { reviews: 
         <li key={review.id} className="rounded-2xl bg-white border border-gray-100 shadow-md px-5 py-4 flex flex-col">
           <div className="flex items-center gap-3 pb-2">
             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 font-semibold text-base">
-              {review.user?.name?.[0]?.toUpperCase() || 'A'}
+              {(review.user?.name || review.guestName)?.[0]?.toUpperCase() || 'A'}
             </span>
-            <span className="font-medium text-gray-900 text-base truncate max-w-[120px]">{review.user?.name || 'Anonymous'}</span>
+            <span className="font-medium text-gray-900 text-base truncate max-w-[120px]">{review.user?.name || review.guestName || 'Anonymous'}</span>
             <span className="bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
               {review.rating}/10
             </span>

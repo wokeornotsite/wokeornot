@@ -5,6 +5,7 @@ import UserReviewsList from "./user-reviews-list";
 interface Review {
   id: string;
   user?: { name?: string };
+  guestName?: string;
   rating: number;
   text?: string;
   createdAt: string;
