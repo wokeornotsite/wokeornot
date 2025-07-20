@@ -190,12 +190,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 // POST handler
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   try {
-    const { rating, text, categoryIds } = await req.json();
+    const { rating, text, categoryIds, guestName } = await req.json();
+    const session = await getServerSession(authOptions);
     console.log('Received review submission with categories:', categoryIds);
     if (typeof rating !== 'number' || rating < 0 || rating > 10) {
       return NextResponse.json({ error: 'Rating must be between 0 and 10' }, { status: 400 });
@@ -205,30 +202,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     // Get review count before adding new review
     const reviewCountBefore = await db.review.findMany({ where: { contentId } }).then((reviews: { length: number }) => reviews.length);
-    
-    // Get the user
-    const user = await db.user.findUnique({
-      where: { email: session.user.email as string },
-    });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-    // Check if the user has already reviewed this content
-    const existingReview = await db.review.findFirst({
-      where: {
-        contentId,
-        userId: user.id,
-      },
-    });
-    if (existingReview) {
-      return NextResponse.json({ error: 'You have already reviewed this content' }, { status: 400 });
+
+    let userId = null;
+    // If user is authenticated, get their ID and check for existing review
+    if (session?.user) {
+      const user = await db.user.findUnique({
+        where: { email: session.user.email as string },
+      });
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      userId = user.id;
+      
+      // Check if the user has already reviewed this content
+      const existingReview = await db.review.findFirst({
+        where: {
+          contentId,
+          userId: user.id,
+        },
+      });
+      if (existingReview) {
+        return NextResponse.json({ error: 'You have already reviewed this content' }, { status: 400 });
+      }
+    } else if (!guestName) {
+      return NextResponse.json({ error: 'Guest name is required for anonymous reviews' }, { status: 400 });
     }
     // Create the review
     const review = await db.review.create({
       data: {
         rating,
         text,
-        userId: user.id,
+        userId,
+        guestName: userId ? undefined : guestName,
         contentId,
         categories: {
           create: categoryIds?.map((catId: string) => ({

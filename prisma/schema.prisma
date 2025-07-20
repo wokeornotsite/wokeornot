@@ -167,6 +167,7 @@ model CategoryScore {
 model Review {
   id          String          @id @default(auto()) @map("_id") @db.ObjectId
   userId      String?         // Now optional for guest reviews
+  guestName   String?         // Name for anonymous reviews
   contentId   String
   rating      Int             @default(0) // 1-10 scale
   text        String?
