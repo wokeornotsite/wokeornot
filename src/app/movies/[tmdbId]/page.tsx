@@ -61,31 +61,21 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   let apiJson;
   try {
     apiJson = await reviewsApiRes.json();
-    if (typeof window !== 'undefined') {
-      console.log('[Debug] API Response Status:', reviewsApiRes.status);
-      console.log('[Debug] API Response Headers:', Object.fromEntries(reviewsApiRes.headers.entries()));
-      console.log('[Debug] API /api/reviews/[id] raw response:', apiJson);
-    }
   } catch (error) {
     console.error('[Error] Failed to parse API response:', error);
     apiJson = {};
   }
 
-  // Ensure wokeReasons is always an array
-  const rawWokeReasons = apiJson?.wokeReasons;
-  const wokeReasons = Array.isArray(rawWokeReasons) ? rawWokeReasons : [];
+  // Fetch categoryScores directly from the database (same approach as TV shows page)
+  const categoryScores = dbContent
+    ? await prisma.categoryScore.findMany({
+        where: { contentId: dbContent.id },
+        include: { category: true },
+      })
+    : [];
+
   const reviews = Array.isArray(apiJson?.reviews) ? apiJson.reviews : [];
   const totalReviews = typeof apiJson?.totalReviews === 'number' ? apiJson.totalReviews : 0;
-
-  if (typeof window !== 'undefined') {
-    console.log('[Debug] Processed data:', {
-      wokeReasonsLength: wokeReasons?.length,
-      reviewsLength: reviews?.length,
-      totalReviews,
-      isWokeReasonsArray: Array.isArray(wokeReasons),
-      baseUrl
-    });
-  }
 
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = totalReviews; // Use real-time count from API
@@ -157,32 +147,33 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <WokenessBar score={wokeScore} />
             <div>
               <h4 className="text-xs font-bold text-blue-300 mb-1 tracking-wide uppercase">Woke Reasons</h4>
-              {wokeReasons.length > 0 ? (
+              {categoryScores && categoryScores.length > 0 ? (
                 <div className="w-full flex flex-col gap-2">
-                  {wokeReasons
-                    .filter((cs: any) => cs.count > 0)
-                    .sort((a: any, b: any) => b.percent !== a.percent ? b.percent - a.percent : (a.name || '').localeCompare(b.name || ''))
-                    .map((cs: any) => (
+                  {categoryScores
+                    .filter(cs => cs.count > 0)
+                    .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
+                    .map(cs => (
                       <div key={cs.categoryId} className="flex items-center gap-2 w-full">
                         <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
-                          {categoryIcons[cs.name || ''] || <FaQuestionCircle className="text-gray-400" />}
-                          {cs.name || ''}
+                          {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
+                          {cs.category?.name || ''}
                         </span>
                         <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
                           <div
                             className="h-6 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
                             style={{ 
-                              width: `${cs.percent}%`, 
+                              width: `${cs.percentage}%`, 
                               transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
                               animationDuration: '0.6s',
-                              animationDelay: `${0.1 * (wokeReasons.findIndex((c: any) => c.categoryId === cs.categoryId))}s`
+                              animationDelay: `${0.1 * (categoryScores.findIndex(c => c.categoryId === cs.categoryId))}s`
                             }}
                           />
-                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percent}%</span>
+                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percentage}%</span>
                         </div>
                         <span className="w-14 text-xs text-blue-700 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
-                    ))}
+                    ))
+                }
                 </div>
               ) : (
                 <div className="text-xs text-gray-400 italic">No wokeness reasons yet. Be the first to rate!</div>
