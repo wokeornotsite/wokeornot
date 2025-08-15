@@ -8,6 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 import { useUsers } from './useUsers';
 import Snackbar from '@mui/material/Snackbar';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 export default function ModerationUsersTable() {
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
@@ -15,6 +16,7 @@ export default function ModerationUsersTable() {
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [role, setRole] = React.useState<string>('');
+  const dq = useDebouncedValue(q, 300);
 
   const sortField = sortModel[0]?.field;
   const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
@@ -26,7 +28,7 @@ export default function ModerationUsersTable() {
     pageSize: paginationModel.pageSize,
     sortBy,
     sortOrder: sortDir,
-    q: q || undefined,
+    q: dq || undefined,
     role: role || undefined,
   });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -126,6 +128,10 @@ export default function ModerationUsersTable() {
     setDeleteDialog({ open: false, userId: null });
   }
 
+  const NoRows = React.useCallback(() => (
+    <Box sx={{ p: 2, color: '#9ca3af' }}>No users found</Box>
+  ), []);
+
   return (
     <Box sx={{ height: 660, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
@@ -160,12 +166,13 @@ export default function ModerationUsersTable() {
         rowCount={total}
         paginationMode="server"
         sortingMode="server"
+        slots={{ noRowsOverlay: NoRows }}
+        loading={isLoading}
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         onSortModelChange={(model) => setSortModel(model)}
         pageSizeOptions={[10, 20, 50]}
         autoHeight={false}
-        loading={isLoading}
         disableRowSelectionOnClick
         sx={{
           fontFamily: 'Inter, Segoe UI, Arial, sans-serif',

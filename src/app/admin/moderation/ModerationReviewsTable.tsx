@@ -8,12 +8,14 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 export default function ModerationReviewsTable() {
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 5 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [contentType, setContentType] = React.useState<string>('');
+  const dq = useDebouncedValue(q, 300);
 
   const sortField = sortModel[0]?.field;
   const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
@@ -24,7 +26,7 @@ export default function ModerationReviewsTable() {
     pageSize: paginationModel.pageSize,
     sortBy,
     sortOrder: sortDir,
-    q: q || undefined,
+    q: dq || undefined,
     contentType: contentType || undefined,
   });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -128,11 +130,13 @@ export default function ModerationReviewsTable() {
         rowCount={total}
         paginationMode="server"
         sortingMode="server"
+        loading={isLoading}
+        slots={{ noRowsOverlay: () => (<Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box>) }}
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         onSortModelChange={(model) => setSortModel(model)}
         pageSizeOptions={[5, 10, 20]}
-        loading={isLoading}
+        autoHeight={false}
         disableRowSelectionOnClick
         sx={{
           fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
