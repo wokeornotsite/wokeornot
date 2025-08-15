@@ -66,3 +66,22 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  try {
+    const body = await req.json();
+    const { id, text, rating } = body as { id?: string; text?: string | null; rating?: number };
+    if (!id) return NextResponse.json({ error: 'Review ID required' }, { status: 400 });
+    const data: any = {};
+    if (typeof text !== 'undefined') data.text = text;
+    if (typeof rating === 'number') data.rating = rating;
+    const updated = await prisma.review.update({ where: { id }, data });
+    return NextResponse.json({ data: updated });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update review' }, { status: 500 });
+  }
+}

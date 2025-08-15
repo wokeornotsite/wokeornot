@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert } from '@mui/material';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -9,13 +9,46 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ModerationReviewsTable() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 5 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [contentType, setContentType] = React.useState<string>('');
   const dq = useDebouncedValue(q, 300);
+
+  // Initialize from URL
+  React.useEffect(() => {
+    const qp = new URLSearchParams(searchParams as any);
+    const page = parseInt(qp.get('page') || '0', 10);
+    const pageSize = parseInt(qp.get('pageSize') || '5', 10);
+    const q0 = qp.get('q') || '';
+    const ct0 = qp.get('contentType') || '';
+    const sortBy0 = qp.get('sortBy');
+    const sortOrder0 = (qp.get('sortOrder') as 'asc' | 'desc') || undefined;
+    setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 5 : pageSize });
+    setQ(q0);
+    setContentType(ct0);
+    if (sortBy0 && sortOrder0) setSortModel([{ field: sortBy0, sort: sortOrder0 } as any]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist to URL
+  React.useEffect(() => {
+    const qp = new URLSearchParams();
+    if (paginationModel.page) qp.set('page', String(paginationModel.page));
+    if (paginationModel.pageSize !== 5) qp.set('pageSize', String(paginationModel.pageSize));
+    if (dq) qp.set('q', dq);
+    if (contentType) qp.set('contentType', contentType);
+    const sf = sortModel[0]?.field;
+    const sd = sortModel[0]?.sort;
+    if (sf && sd) { qp.set('sortBy', String(sf)); qp.set('sortOrder', String(sd)); }
+    const query = qp.toString();
+    router.replace(`?${query}`);
+  }, [dq, contentType, paginationModel.page, paginationModel.pageSize, sortModel, router]);
 
   const sortField = sortModel[0]?.field;
   const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
@@ -99,6 +132,11 @@ export default function ModerationReviewsTable() {
       fontSize: 16,
       boxShadow: '0 2px 12px #0002',
     }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load reviews. Please try again.
+        </Alert>
+      )}
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         <TextField
           size="small"

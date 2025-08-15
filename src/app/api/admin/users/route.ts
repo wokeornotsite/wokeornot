@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const [data, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        select: { id: true, email: true, role: true, createdAt: true },
+        select: { id: true, email: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true } as any,
         orderBy: { [sortBy]: sortOrder },
         skip: page * pageSize,
         take: pageSize,
@@ -33,9 +33,8 @@ export async function GET(req: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    // Strip createdAt from response rows for backward compatibility with grids that don't expect it
-    const rows = data.map(({ createdAt, ...rest }) => rest);
-    return NextResponse.json({ data: rows, total });
+    // Keep createdAt in data, clients can ignore if unused
+    return NextResponse.json({ data, total });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
@@ -58,4 +57,49 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// Optionally, you can add GET, PATCH, etc. here for other admin user actions.
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  try {
+    const body = await req.json();
+    const { id, role, isBanned, banReason, warnDelta, warnCount } = body as {
+      id?: string;
+      role?: 'USER' | 'ADMIN' | 'MODERATOR' | 'BANNED';
+      isBanned?: boolean;
+      banReason?: string | null;
+      warnDelta?: number; // increment by delta
+      warnCount?: number; // or set absolute value
+    };
+    if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+
+    const data: any = {};
+    if (typeof role !== 'undefined') data.role = role;
+    if (typeof isBanned !== 'undefined') data.isBanned = !!isBanned;
+    if (typeof banReason !== 'undefined') data.banReason = banReason;
+    if (typeof warnCount === 'number') data.warnCount = Math.max(0, Math.floor(warnCount));
+
+    // If only warnDelta provided, perform increment
+    let updated;
+    if (typeof warnDelta === 'number' && typeof warnCount !== 'number') {
+      updated = await prisma.user.update({
+        where: { id },
+        data: {
+          ...data,
+          warnCount: { increment: Math.floor(warnDelta) },
+        },
+        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true } as any,
+      });
+    } else {
+      updated = await prisma.user.update({
+        where: { id },
+        data,
+        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true } as any,
+      });
+    }
+    return NextResponse.json({ data: updated });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+  }
+}

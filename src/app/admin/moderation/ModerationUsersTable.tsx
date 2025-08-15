@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -9,14 +9,47 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useUsers } from './useUsers';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ModerationUsersTable() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [role, setRole] = React.useState<string>('');
   const dq = useDebouncedValue(q, 300);
+
+  // Initialize from URL
+  React.useEffect(() => {
+    const qp = new URLSearchParams(searchParams as any);
+    const page = parseInt(qp.get('page') || '0', 10);
+    const pageSize = parseInt(qp.get('pageSize') || '10', 10);
+    const q0 = qp.get('q') || '';
+    const role0 = qp.get('role') || '';
+    const sortBy0 = qp.get('sortBy');
+    const sortOrder0 = (qp.get('sortOrder') as 'asc' | 'desc') || undefined;
+    setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 10 : pageSize });
+    setQ(q0);
+    setRole(role0);
+    if (sortBy0 && sortOrder0) setSortModel([{ field: sortBy0, sort: sortOrder0 } as any]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist to URL
+  React.useEffect(() => {
+    const qp = new URLSearchParams();
+    if (paginationModel.page) qp.set('page', String(paginationModel.page));
+    if (paginationModel.pageSize !== 10) qp.set('pageSize', String(paginationModel.pageSize));
+    if (dq) qp.set('q', dq);
+    if (role) qp.set('role', role);
+    const sf = sortModel[0]?.field;
+    const sd = sortModel[0]?.sort;
+    if (sf && sd) { qp.set('sortBy', String(sf)); qp.set('sortOrder', String(sd)); }
+    const query = qp.toString();
+    router.replace(`?${query}`);
+  }, [dq, role, paginationModel.page, paginationModel.pageSize, sortModel, router]);
 
   const sortField = sortModel[0]?.field;
   const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
@@ -35,15 +68,16 @@ export default function ModerationUsersTable() {
 
   async function handleBan(row: any) {
     try {
+      const reason = window.prompt('Ban reason (optional)?') || undefined;
       await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, role: 'BANNED' }),
+        body: JSON.stringify({ id: row.id, isBanned: true, banReason: reason }),
       });
       await fetch('/api/admin/auditlog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'BAN_USER', targetId: row.id, targetType: 'User', details: row.email }),
+        body: JSON.stringify({ action: 'BAN_USER', targetId: row.id, targetType: 'User', details: `${row.email} | ${reason || ''}` }),
       });
       setSnackbar({ open: true, message: 'User banned' });
       mutate();
@@ -51,13 +85,41 @@ export default function ModerationUsersTable() {
       setSnackbar({ open: true, message: 'Error banning user' });
     }
   }
+  async function handleUnban(row: any) {
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, isBanned: false, banReason: null }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'UNBAN_USER', targetId: row.id, targetType: 'User', details: row.email }),
+      });
+      setSnackbar({ open: true, message: 'User unbanned' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error unbanning user' });
+    }
+  }
   async function handleWarn(row: any) {
-    await fetch('/api/admin/auditlog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'WARN_USER', targetId: row.id, targetType: 'User', details: row.email }),
-    });
-    setSnackbar({ open: true, message: 'User warned (logged only)' });
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, warnDelta: 1 }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'WARN_USER', targetId: row.id, targetType: 'User', details: row.email }),
+      });
+      setSnackbar({ open: true, message: 'Warning recorded' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error warning user' });
+    }
   }
   async function handlePromote(row: any) {
     try {
@@ -80,6 +142,8 @@ export default function ModerationUsersTable() {
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 2 },
     { field: 'role', headerName: 'Role', width: 110 },
+    { field: 'warnCount', headerName: 'Warnings', width: 120 },
+    { field: 'isBanned', headerName: 'Banned', width: 110, type: 'boolean' },
     {
       field: 'actions',
       type: 'actions',
@@ -87,7 +151,9 @@ export default function ModerationUsersTable() {
       width: 240,
       getActions: (params) => {
         const actions = [
-          <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => handleBan(params.row)} />,
+          params.row.isBanned
+            ? <GridActionsCellItem icon={<BlockIcon color="success" />} label="Unban" onClick={() => handleUnban(params.row)} />
+            : <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => handleBan(params.row)} />,
           <GridActionsCellItem icon={<WarningIcon color="warning" />} label="Warn" onClick={() => handleWarn(params.row)} />,
         ];
         if (params.row.role !== 'ADMIN') {
@@ -134,6 +200,11 @@ export default function ModerationUsersTable() {
 
   return (
     <Box sx={{ height: 660, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load users. Please try again.
+        </Alert>
+      )}
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         <TextField
           size="small"
@@ -156,7 +227,6 @@ export default function ModerationUsersTable() {
             <MenuItem value="USER">USER</MenuItem>
             <MenuItem value="ADMIN">ADMIN</MenuItem>
             <MenuItem value="MODERATOR">MODERATOR</MenuItem>
-            <MenuItem value="BANNED">BANNED</MenuItem>
           </Select>
         </FormControl>
       </Box>
