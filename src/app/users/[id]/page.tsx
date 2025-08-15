@@ -24,7 +24,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   return (
     <div className="max-w-2xl mx-auto p-8">
       <div className="flex items-center gap-4 mb-6">
-        <Image src={user.avatar || "/avatars/default.png"} width={80} height={80} className="rounded-full" alt={user.name || "User"} />
+        <Image src={user.avatar || "/avatars/default.png"} width={80} height={80} className="rounded-full" alt={user.name || "User"} unoptimized />
         <div>
           <h2 className="text-2xl font-bold">{user.name || "User"}</h2>
           <p className="text-gray-500 text-sm">@{user.id}</p>
@@ -35,7 +35,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         {user.reviews.map(review => (
           <li key={review.id} className="border rounded-lg p-4 bg-white/10">
             <div className="flex items-center gap-2 mb-2">
-              <Image src={user.avatar || "/avatars/default.png"} width={32} height={32} className="rounded-full" alt={user.name || "User"} />
+              <Image src={user.avatar || "/avatars/default.png"} width={32} height={32} className="rounded-full" alt={user.name || "User"} unoptimized />
               <span className="font-bold">{user.name || "User"}</span>
             </div>
             <div className="text-sm text-gray-300 mb-1">{review.content?.title || "Title"}</div>

@@ -74,7 +74,7 @@ export default function TrendingCarousel({ items, type, wokeScores }: TrendingCa
                 height={264}
                 className="object-cover w-full h-48 sm:h-56"
                 loading="lazy"
-                unoptimized={!item.poster_path}
+                unoptimized
                 sizes="(max-width: 640px) 128px, (max-width: 768px) 144px, (max-width: 1024px) 160px, 176px"
                 quality={75}
               />
