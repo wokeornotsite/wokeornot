@@ -194,9 +194,7 @@ export default function ReviewSection({ id }: { id: string }) {
             {loading ? <span className="animate-pulse">Submitting...</span> : <span>Submit Review</span>}
           </button>
         </form>
-      ) : (
-        <div className="mb-4 text-gray-600">Sign in to write a review.</div>
-      )}
+      
     </div>
   );
 }

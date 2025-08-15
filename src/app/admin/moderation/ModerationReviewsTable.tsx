@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
+import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import CheckIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -10,7 +10,23 @@ import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
 
 export default function ModerationReviewsTable() {
-  const { reviews, isLoading, error, mutate } = useReviews();
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 5 });
+  const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
+  const [q, setQ] = React.useState('');
+  const [contentType, setContentType] = React.useState<string>('');
+
+  const sortField = sortModel[0]?.field;
+  const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
+  const sortBy: 'createdAt' | 'rating' = sortField === 'rating' ? 'rating' : 'createdAt';
+
+  const { rows: reviews, total, isLoading, error, mutate } = useReviews({
+    page: paginationModel.page,
+    pageSize: paginationModel.pageSize,
+    sortBy,
+    sortOrder: sortDir,
+    q: q || undefined,
+    contentType: contentType || undefined,
+  });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   async function handleApprove(row: any) {
@@ -51,15 +67,15 @@ export default function ModerationReviewsTable() {
     setDeleteDialog({ open: false, reviewId: null });
   }
   const columns: GridColDef[] = [
-    // TODO: Use the correct type for params in valueGetter if available
-    { field: 'user', headerName: 'User', flex: 1, valueGetter: (params: any) => (params.row && params.row.user && params.row.user.email) ? params.row.user.email : '' },
+    { field: 'user', headerName: 'User', flex: 1, valueGetter: (params: any) => (params?.row?.user?.email) || params?.row?.guestName || '' },
     { field: 'text', headerName: 'Review', flex: 2 },
-    { field: 'rating', headerName: 'Rating', width: 100 },
+    { field: 'rating', headerName: 'Rating', width: 110, sortable: true },
+    { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (params: any) => (params?.row?.createdAt ? new Date(params.row.createdAt) : null), sortable: true },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 180,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
         <GridActionsCellItem icon={<CheckIcon color="success" />} label="Approve" onClick={() => handleApprove(params.row)} />,
         <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleHide(params.row)} />,
@@ -81,11 +97,41 @@ export default function ModerationReviewsTable() {
       fontSize: 16,
       boxShadow: '0 2px 12px #0002',
     }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <TextField
+          size="small"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          placeholder="Search text, user, title..."
+          InputProps={{ sx: { color: '#fff' } }}
+          sx={{ minWidth: 280 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel id="ctype-label" sx={{ color: '#fff' }}>Content Type</InputLabel>
+          <Select
+            labelId="ctype-label"
+            label="Content Type"
+            value={contentType}
+            onChange={(e) => { setContentType(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+            sx={{ color: '#fff' }}
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="MOVIE">MOVIE</MenuItem>
+            <MenuItem value="TV_SHOW">TV_SHOW</MenuItem>
+            <MenuItem value="KIDS">KIDS</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
       <DataGrid
         rows={reviews}
         columns={columns}
-        pageSizeOptions={[5]}
-        initialState={{ pagination: { paginationModel: { pageSize: 5 } } }}
+        rowCount={total}
+        paginationMode="server"
+        sortingMode="server"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onSortModelChange={(model) => setSortModel(model)}
+        pageSizeOptions={[5, 10, 20]}
         loading={isLoading}
         disableRowSelectionOnClick
         sx={{

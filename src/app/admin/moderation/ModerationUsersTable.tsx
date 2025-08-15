@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
+import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -11,7 +11,24 @@ import Snackbar from '@mui/material/Snackbar';
 
 export default function ModerationUsersTable() {
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
-  const { users, isLoading, error, mutate } = useUsers();
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
+  const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
+  const [q, setQ] = React.useState('');
+  const [role, setRole] = React.useState<string>('');
+
+  const sortField = sortModel[0]?.field;
+  const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
+  const sortBy: 'email' | 'createdAt' | 'role' =
+    sortField === 'email' || sortField === 'role' ? (sortField as any) : 'createdAt';
+
+  const { rows, total, isLoading, error, mutate } = useUsers({
+    page: paginationModel.page,
+    pageSize: paginationModel.pageSize,
+    sortBy,
+    sortOrder: sortDir,
+    q: q || undefined,
+    role: role || undefined,
+  });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   async function handleBan(row: any) {
@@ -110,12 +127,43 @@ export default function ModerationUsersTable() {
   }
 
   return (
-    <Box sx={{ height: 600, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+    <Box sx={{ height: 660, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <TextField
+          size="small"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          placeholder="Search email..."
+          InputProps={{ sx: { color: '#fff' } }}
+          sx={{ minWidth: 240 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel id="role-label" sx={{ color: '#fff' }}>Role</InputLabel>
+          <Select
+            labelId="role-label"
+            label="Role"
+            value={role}
+            onChange={(e) => { setRole(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+            sx={{ color: '#fff' }}
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="USER">USER</MenuItem>
+            <MenuItem value="ADMIN">ADMIN</MenuItem>
+            <MenuItem value="MODERATOR">MODERATOR</MenuItem>
+            <MenuItem value="BANNED">BANNED</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
       <DataGrid
-        rows={users}
+        rows={rows}
         columns={columns}
+        rowCount={total}
+        paginationMode="server"
+        sortingMode="server"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onSortModelChange={(model) => setSortModel(model)}
         pageSizeOptions={[10, 20, 50]}
-        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
         autoHeight={false}
         loading={isLoading}
         disableRowSelectionOnClick
