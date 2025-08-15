@@ -99,6 +99,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
             fill
             className="object-cover w-full h-full absolute top-0 left-0 z-0 blur-sm scale-105 opacity-70"
             priority
+            unoptimized
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#181824] via-[#232946cc] to-transparent z-10" />
@@ -110,6 +111,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
             width={208}
             height={320}
             priority
+            unoptimized
           />
           <div className="flex flex-col gap-2 md:gap-4">
             <div className="flex items-center gap-4">

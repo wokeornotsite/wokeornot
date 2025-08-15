@@ -40,7 +40,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading="lazy"
             quality={75}
-            unoptimized={imgError || !content.posterPath}
+            unoptimized
             onError={() => setImgError(true)}
           />
           <div className="absolute top-2 right-2">

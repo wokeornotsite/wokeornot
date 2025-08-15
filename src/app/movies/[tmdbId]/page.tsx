@@ -99,6 +99,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             priority
             sizes="100vw"
             quality={75}
+            unoptimized
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#181824] via-[#232946cc] to-transparent z-10" />
@@ -111,7 +112,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             height={320}
             sizes="(max-width: 768px) 144px, 208px"
             quality={80}
-            unoptimized={!movie.poster_path}
+            unoptimized
           />
           <div className="flex flex-col gap-2 md:gap-4">
             <div className="flex items-center gap-4">
