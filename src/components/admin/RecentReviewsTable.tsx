@@ -16,6 +16,7 @@ interface Review {
   text: string | null;
   rating: number;
   createdAt: Date;
+  guestName?: string | null;
   user: {
     name: string | null;
     email: string | null;
@@ -83,6 +84,8 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
   };
 
   const handleDelete = async (id: string) => {
+    const ok = typeof window !== 'undefined' ? window.confirm('Delete this review? This action cannot be undone.') : true;
+    if (!ok) return;
     try {
       const response = await fetch('/api/admin/reviews', {
         method: 'DELETE',
@@ -166,15 +169,15 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                   borderBottom: '1px solid rgba(255,255,255,0.05)',
                   fontSize: '0.9rem',
                 }}>
-                  {review.user ? (
+                  {review.user?.email || review.user?.name ? (
                     <Tooltip title={review.user.email || ''}>
                       <Typography variant="body2" sx={{ color: '#a78bfa' }}>
-                        {review.user.name || review.user.email || 'Anonymous'}
+                        {review.user.name || review.user.email}
                       </Typography>
                     </Tooltip>
                   ) : (
                     <Typography variant="body2" sx={{ color: '#9ca3af' }}>
-                      Anonymous
+                      {review.guestName || 'Anonymous'}
                     </Typography>
                   )}
                 </TableCell>
