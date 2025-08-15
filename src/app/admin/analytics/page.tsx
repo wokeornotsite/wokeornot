@@ -1,10 +1,12 @@
 import React from 'react';
 import { Typography, Box, Grid, Paper } from '@mui/material';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 import AnalyticsCharts from './AnalyticsCharts';
 
 export default function AnalyticsPage() {
   return (
     <Box>
+      <AdminBreadcrumbs items={[{ label: 'Admin', href: '/admin' }, { label: 'Analytics' }]} />
       <Typography variant="h4" component="h2" gutterBottom style={{ fontWeight: 800, color: '#38bdf8' }}>
         Analytics
       </Typography>

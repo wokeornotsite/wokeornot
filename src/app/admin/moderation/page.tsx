@@ -2,10 +2,12 @@ import React from 'react';
 import { Typography, Box, Divider, Paper } from '@mui/material';
 import ModerationReviewsTable from './ModerationReviewsTable';
 import ModerationUsersTable from './ModerationUsersTable';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 
 export default function ModerationPage() {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 3 } }}>
+      <AdminBreadcrumbs items={[{ label: 'Admin', href: '/admin' }, { label: 'Moderation' }]} />
       <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 900, background: 'linear-gradient(90deg,#e879f9,#a78bfa 50%,#38bdf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
         Moderation Tools
       </Typography>

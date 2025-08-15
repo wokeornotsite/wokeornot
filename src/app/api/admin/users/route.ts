@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const [data, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        select: { id: true, email: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true } as any,
+        select: { id: true, email: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true },
         orderBy: { [sortBy]: sortOrder },
         skip: page * pageSize,
         take: pageSize,
@@ -89,13 +89,13 @@ export async function PATCH(req: NextRequest) {
           ...data,
           warnCount: { increment: Math.floor(warnDelta) },
         },
-        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true } as any,
+        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true },
       });
     } else {
       updated = await prisma.user.update({
         where: { id },
         data,
-        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true } as any,
+        select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true },
       });
     }
     return NextResponse.json({ data: updated });

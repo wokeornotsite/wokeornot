@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 import RecentReviewsTable from '@/components/admin/RecentReviewsTable';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 
 export default async function AdminDashboardPage() {
   // Protect route: Only allow admins
@@ -28,6 +29,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
+      <AdminBreadcrumbs items={[{ label: 'Admin', href: '/admin' }, { label: 'Dashboard' }]} />
       <Typography variant="h3" component="h1" gutterBottom style={{ fontWeight: 900, background: 'linear-gradient(90deg,#e879f9,#a78bfa 50%,#38bdf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
         Admin Dashboard
       </Typography>
