@@ -154,7 +154,7 @@ export default function ReviewSection({ id }: { id: string }) {
                   <span key={i} className="relative inline-flex items-center">
                     <button
                       type="button"
-                      className={`text-4xl w-11 h-11 flex items-center justify-center focus:outline-none transition-transform duration-150 transform hover:scale-125 focus:scale-125`}
+                      className={`text-4xl w-11 h-11 flex items-center justify-center leading-none focus:outline-none transition-transform duration-150 transform hover:scale-125 focus:scale-125`}
                       style={{ 
                         color: i < activeCount ? color : '#e5e7eb',
                         textShadow: i < activeCount ? '0 0 5px rgba(255,255,255,0.5)' : 'none'
@@ -168,7 +168,17 @@ export default function ReviewSection({ id }: { id: string }) {
                       onTouchStart={() => { setHoverIdx(i); showHint(i); }}
                       onClick={() => { setRating(i + 1); setHoverIdx(null); showHint(i); }}
                     >
-                      ★
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="w-7 h-7"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                        />
+                      </svg>
                     </button>
                   </span>
                 );
