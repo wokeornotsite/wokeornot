@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './review-section.module.css';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
@@ -30,6 +30,25 @@ export default function ReviewSection({ id }: { id: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoryCounts, setCategoryCounts] = useState<{ [id: string]: number }>({});
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const getTooltip = (i: number) => (i === 0 ? 'Not woke at all' : i === 9 ? 'Very Woke' : '');
+
+  // Cleanup hover timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showHint = (i: number) => {
+    if (i !== 0 && i !== 9) return;
+    setHoverIdx(i);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => setHoverIdx(null), 1500);
+  };
 
   useEffect(() => {
     axios.get(`/api/reviews/${id}`).then(res => setReviews(res.data.reviews));
@@ -125,28 +144,53 @@ export default function ReviewSection({ id }: { id: string }) {
             <label className="block text-base font-bold mb-2 text-gray-900">Your Rating</label>
             <div className="flex items-center gap-1">
               {[...Array(10)].map((_, i) => {
+                const activeCount = hoverIdx !== null ? hoverIdx + 1 : rating;
                 const percent = i / 9;
                 const r = Math.round(255 * percent);
                 const g = Math.round(180 * (1 - percent));
                 const b = 80;
                 const color = `rgb(${r},${g},${b})`;
                 return (
-                  <button
-                    type="button"
-                    key={i}
-                    className={`text-2xl focus:outline-none transition-all duration-200 transform hover:scale-125 focus:scale-125`}
-                    style={{ 
-                      color: i < rating ? color : '#e5e7eb',
-                      textShadow: i < rating ? '0 0 5px rgba(255,255,255,0.5)' : 'none'
-                    }}
-                    aria-label={`Rate ${i + 1}`}
-                    onClick={() => setRating(i + 1)}
-                  >
-                    ★
-                  </button>
+                  <span key={i} className="relative inline-flex items-center">
+                    <button
+                      type="button"
+                      className={`text-4xl w-11 h-11 flex items-center justify-center focus:outline-none transition-transform duration-150 transform hover:scale-125 focus:scale-125`}
+                      style={{ 
+                        color: i < activeCount ? color : '#e5e7eb',
+                        textShadow: i < activeCount ? '0 0 5px rgba(255,255,255,0.5)' : 'none'
+                      }}
+                      aria-label={`Rate ${i + 1}`}
+                      title={i === 0 ? '1 = Not woke at all' : i === 9 ? '10 = Very Woke' : undefined}
+                      onMouseEnter={() => setHoverIdx(i)}
+                      onMouseLeave={() => setHoverIdx(null)}
+                      onFocus={() => setHoverIdx(i)}
+                      onBlur={() => setHoverIdx(null)}
+                      onTouchStart={() => { setHoverIdx(i); showHint(i); }}
+                      onClick={() => { setRating(i + 1); setHoverIdx(null); showHint(i); }}
+                    >
+                      ★
+                    </button>
+                  </span>
                 );
               })}
               <span className="ml-2 text-sm text-gray-500">{rating > 0 ? `${rating}/10` : ''}</span>
+            </div>
+            {/* Hover/Focus hint under stars */}
+            <div className="mt-2 min-h-[20px]">
+              {hoverIdx !== null && getTooltip(hoverIdx) && (
+                <div className="text-sm text-gray-800">{getTooltip(hoverIdx)}</div>
+              )}
+            </div>
+            {/* Legend */}
+            <div className="mt-2 flex items-center gap-8 md:gap-12 text-xs text-gray-600">
+              <span className="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" className="shrink-0"><path fill="#22c55e" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                <span>1 = "Not Woke"</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" className="shrink-0"><path fill="#ef4444" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                <span>10 = "Very Woke"</span>
+              </span>
             </div>
           </div>
           <div>
