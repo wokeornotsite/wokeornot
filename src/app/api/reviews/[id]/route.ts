@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
+import { error as httpError } from '@/lib/http';
 
 // Type assertion to bypass TypeScript errors until Prisma types are updated
 const db = prisma as any;
@@ -192,12 +195,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // POST handler
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { rating, text, categoryIds, guestName } = await req.json();
+    // Shadow-mode rate limiting for review submissions (IP-based).
+    const rl = rateLimitCheck(req as any, { limit: 10, windowMs: 60_000, route: 'review_submit' });
+    if (!rl.allowed && !rl.shadowed) {
+      const res = httpError(429, 'Too Many Requests', 'RATE_LIMITED');
+      setRateLimitHeaders(res, rl);
+      return res;
+    }
+    const { rating, text, categoryIds, guestName } = await parseJson(req as any, schemas.reviewCreate);
+    const safeText = text ? sanitizeHTML(text) : '';
     const session = await getServerSession(authOptions);
     console.log('Received review submission with categories:', categoryIds);
-    if (typeof rating !== 'number' || rating < 0 || rating > 10) {
-      return NextResponse.json({ error: 'Rating must be between 0 and 10' }, { status: 400 });
-    }
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
     
@@ -232,7 +240,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const review = await db.review.create({
       data: {
         rating,
-        text,
+        text: safeText,
         userId,
         guestName: userId ? undefined : guestName,
         contentId,
@@ -305,7 +313,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     await Promise.all(updatePercentages);
-    return NextResponse.json({ message: 'Review created successfully' });
+    const res = NextResponse.json({ message: 'Review created successfully' });
+    setRateLimitHeaders(res, rl);
+    return res;
   } catch (error: unknown) {
     let message = 'Failed to create review.';
     if (
@@ -327,7 +337,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { rating, text } = await req.json();
+    const { rating, text } = await parseJson(req as any, schemas.reviewUpdate);
+    const safeText = typeof text === 'string' ? sanitizeHTML(text) : undefined;
     const resolvedParams = await params;
     const { id } = resolvedParams;
     const review = await db.review.findUnique({ where: { id } });
@@ -337,7 +348,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     const updated = await db.review.update({
       where: { id },
-      data: { rating, text },
+      data: { rating, text: safeText },
     });
     return NextResponse.json({ message: 'Review updated successfully' });
   } catch (error: unknown) {

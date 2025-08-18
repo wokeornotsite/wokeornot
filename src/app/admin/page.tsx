@@ -18,14 +18,48 @@ export default async function AdminDashboardPage() {
   const avgRating = await prisma.review.aggregate({ _avg: { rating: true } });
   
   // Fetch recent reviews for the dashboard
-  const recentReviews = await prisma.review.findMany({
+  // Avoid including relations directly to prevent ObjectId coercion errors on malformed contentId
+  const baseReviews = await prisma.review.findMany({
     take: 10,
     orderBy: { createdAt: 'desc' },
-    include: {
+    select: {
+      id: true,
+      text: true,
+      rating: true,
+      createdAt: true,
+      guestName: true,
       user: { select: { name: true, email: true } },
-      content: { select: { title: true, contentType: true } }
-    }
+      contentId: true,
+    },
   });
+
+  // Collect valid Mongo ObjectId-like contentIds (24-hex chars)
+  const objectIdHex = /^[a-f\d]{24}$/i;
+  const validContentIds = Array.from(
+    new Set(
+      baseReviews
+        .map(r => r.contentId)
+        .filter((id): id is string => Boolean(id) && objectIdHex.test(id as string))
+    )
+  );
+
+  const contents = validContentIds.length
+    ? await prisma.content.findMany({
+        where: { id: { in: validContentIds } },
+        select: { id: true, title: true, contentType: true },
+      })
+    : [];
+  const contentMap = new Map(contents.map(c => [c.id, { title: c.title, contentType: c.contentType }]));
+
+  const recentReviews = baseReviews.map(r => ({
+    id: r.id,
+    text: r.text,
+    rating: r.rating,
+    createdAt: r.createdAt,
+    guestName: r.guestName,
+    user: r.user,
+    content: contentMap.get(r.contentId) ?? null,
+  }));
 
   return (
     <div>
@@ -61,7 +95,7 @@ export default async function AdminDashboardPage() {
         border: '1px solid rgba(56,189,248,0.15)',
         overflow: 'hidden'
       }}>
-        <RecentReviewsTable reviews={recentReviews} />
+        <RecentReviewsTable reviews={recentReviews as any} />
       </Paper>
     </div>
   );

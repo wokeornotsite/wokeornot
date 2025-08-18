@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
+import { parseJson, schemas } from '@/lib/validation';
+import { error } from '@/lib/http';
 
 // Type assertion to bypass TypeScript errors until Prisma types are updated
 const db = prisma as any;
@@ -18,19 +21,27 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Shadow-mode rate limiting for reactions (IP-based). Does not block when in shadow, but logs and sets headers.
+    const rl = rateLimitCheck(request as any, { limit: 30, windowMs: 60_000, route: 'review_reaction' });
+    if (!rl.allowed && !rl.shadowed) {
+      const res = error(429, 'Too Many Requests', 'RATE_LIMITED');
+      setRateLimitHeaders(res, rl);
+      return res;
+    }
+
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      setRateLimitHeaders(res, rl);
+      return res;
     }
 
     // Next.js 15 requires awaiting params
     const resolvedParams = await params;
     const reviewId = resolvedParams.id;
-    const { reaction } = await request.json();
+    const { reaction } = await parseJson(request as any, schemas.reaction);
 
-    if (!['like', 'dislike'].includes(reaction)) {
-      return NextResponse.json({ error: 'Invalid reaction type' }, { status: 400 });
-    }
+    // Zod already validates reaction value
 
     // Get the current user
     const user = await prisma.user.findUnique({
@@ -38,7 +49,9 @@ export async function POST(
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      const res = NextResponse.json({ error: 'User not found' }, { status: 404 });
+      setRateLimitHeaders(res, rl);
+      return res;
     }
 
     // Check if the review exists
@@ -112,11 +125,13 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       likes,
       dislikes,
       userReaction: updatedUserReaction ? updatedUserReaction.type : null
     });
+    setRateLimitHeaders(res, rl);
+    return res;
   } catch (error) {
     console.error('Error handling review reaction:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

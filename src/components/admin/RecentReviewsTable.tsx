@@ -24,7 +24,7 @@ interface Review {
   content: {
     title: string;
     contentType: string;
-  };
+  } | null;
 }
 
 interface RecentReviewsTableProps {
@@ -66,7 +66,7 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
       case 'KIDS':
         return 'Kids';
       default:
-        return type;
+        return type || 'Unknown';
     }
   };
 
@@ -170,9 +170,9 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                   fontSize: '0.9rem',
                 }}>
                   {review.user?.email || review.user?.name ? (
-                    <Tooltip title={review.user.email || ''}>
+                    <Tooltip title={review.user?.email || ''}>
                       <Typography variant="body2" sx={{ color: '#a78bfa' }}>
-                        {review.user.name || review.user.email}
+                        {review.user?.name || review.user?.email}
                       </Typography>
                     </Tooltip>
                   ) : (
@@ -187,14 +187,14 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body2" sx={{ color: '#e2e8f0' }}>
-                      {review.content.title}
+                      {review.content?.title || 'Unknown content'}
                     </Typography>
                     <Chip 
-                      label={getContentTypeLabel(review.content.contentType)} 
+                      label={getContentTypeLabel(review.content?.contentType || '')} 
                       size="small"
                       sx={{ 
-                        backgroundColor: `${getContentTypeColor(review.content.contentType)}20`,
-                        color: getContentTypeColor(review.content.contentType),
+                        backgroundColor: `${getContentTypeColor(review.content?.contentType || '')}20`,
+                        color: getContentTypeColor(review.content?.contentType || ''),
                         fontWeight: 500,
                         fontSize: '0.7rem',
                       }}
