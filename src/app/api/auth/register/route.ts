@@ -1,34 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
+import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
+import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { error as httpError } from '@/lib/http';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const rl = rateLimitCheck(req as any, { limit: 5, windowMs: 60_000, route: 'auth_register' });
+    if (!rl.allowed && !rl.shadowed) {
+      const res = NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+      setRateLimitHeaders(res, rl);
+      return res;
+    }
+    const { name, email, password } = await parseJson(req as any, schemas.authRegister);
+    const safeName = name ? sanitizeHTML(name) : '';
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+      const res = NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+      setRateLimitHeaders(res, rl);
+      return res;
     }
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: 'User already exists.' }, { status: 400 });
+      const res = NextResponse.json({ error: 'User already exists.' }, { status: 400 });
+      setRateLimitHeaders(res, rl);
+      return res;
     }
     // Strong password validation
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters, include a number and an uppercase letter.' }, { status: 400 });
+      const res = NextResponse.json({ error: 'Password must be at least 8 characters, include a number and an uppercase letter.' }, { status: 400 });
+      setRateLimitHeaders(res, rl);
+      return res;
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
+        name: safeName,
         email,
         password: hashedPassword,
       },
     });
     // Generate verification token
-    const crypto = await import('crypto');
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
     await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
@@ -54,7 +71,9 @@ export async function POST(req: NextRequest) {
       subject: 'Verify your email',
       text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${token}&email=${email}`,
     });
-    return NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
+    setRateLimitHeaders(res, rl);
+    return res;
   } catch (error: unknown) {
     let message = 'Registration failed.';
     if (
@@ -65,6 +84,8 @@ export async function POST(req: NextRequest) {
     ) {
       message = (error as { message: string }).message;
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    const res = NextResponse.json({ error: message }, { status: 500 });
+    // no rl here if exception before initialized
+    return res;
   }
 }

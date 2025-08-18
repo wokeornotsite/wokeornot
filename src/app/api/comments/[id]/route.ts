@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 
  
 // @ts-expect-error Next.js does not export type for context
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest, context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const id = context.params.id;
-    const { text, parentId } = await req.json();
+    const { text, parentId } = await parseJson(req as any, schemas.commentCreate);
+    const safeText = sanitizeHTML(text);
     // Find user
     const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (!dbUser) {
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest, context) {
       data: {
         userId: dbUser.id,
         id,
-        text,
+        text: safeText,
         parentId: parentId || null,
       },
       include: {
@@ -100,7 +102,8 @@ export async function PATCH(req: NextRequest, context) {
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { commentId, text } = await req.json();
+    const { commentId, text } = await parseJson(req as any, schemas.commentUpdate);
+    const safeText = sanitizeHTML(text);
     // Find user
     const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (!dbUser) {
@@ -112,7 +115,7 @@ export async function PATCH(req: NextRequest, context) {
       return NextResponse.json({ error: 'Not authorized to edit this comment' }, { status: 403 });
     }
     // Update comment
-    const updated = await prisma.comment.update({ where: { id: commentId }, data: { text } });
+    const updated = await prisma.comment.update({ where: { id: commentId }, data: { text: safeText } });
     return NextResponse.json(updated);
   } catch (error: unknown) {
     let message = 'Failed to update comment.';
@@ -147,7 +150,7 @@ export async function DELETE(req: NextRequest, context) {
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { commentId } = await req.json();
+    const { commentId } = await parseJson(req as any, schemas.commentDelete);
     // Find user
     const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (!dbUser) {
