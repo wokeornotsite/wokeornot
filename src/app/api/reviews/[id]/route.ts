@@ -233,8 +233,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (existingReview) {
         return NextResponse.json({ error: 'You have already reviewed this content' }, { status: 400 });
       }
-    } else if (!guestName) {
-      return NextResponse.json({ error: 'Guest name is required for anonymous reviews' }, { status: 400 });
     }
     // Create the review
     const review = await db.review.create({
@@ -242,7 +240,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         rating,
         text: safeText,
         userId,
-        guestName: userId ? undefined : guestName,
+        guestName: userId ? undefined : ((guestName && guestName.trim()) ? guestName.trim() : 'Anonymous'),
         contentId,
         categories: {
           create: categoryIds?.map((catId: string) => ({

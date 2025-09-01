@@ -51,15 +51,14 @@ export default function ReviewSection({ id }: { id: string }) {
   };
 
   useEffect(() => {
-    axios.get(`/api/reviews/${id}`).then(res => setReviews(res.data.reviews));
     axios.get(`/api/reviews/${id}`).then(res => {
+      // API returns { reviews, wokeReasons, totalReviews }
+      setReviews(res.data.reviews || []);
       const counts: { [id: string]: number } = {};
-      for (const review of res.data.reviews) {
-        if (review.categories && Array.isArray(review.categories)) {
-          for (const cat of review.categories) {
-            if (cat.categoryId) {
-              counts[cat.categoryId] = (counts[cat.categoryId] || 0) + 1;
-            }
+      if (Array.isArray(res.data.wokeReasons)) {
+        for (const wr of res.data.wokeReasons) {
+          if (wr.categoryId) {
+            counts[wr.categoryId] = wr.count || 0;
           }
         }
       }
@@ -76,18 +75,36 @@ export default function ReviewSection({ id }: { id: string }) {
     setLoading(true);
     setError('');
     setSuccess('');
+    if (rating === 0) {
+      setError('Please select a rating.');
+      setLoading(false);
+      return;
+    }
     if (rating > 1 && selectedCategories.length === 0) {
       setError('Please select at least one category for this rating.');
       setLoading(false);
       return;
     }
     try {
-      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : guestName });
+      const trimmedName = guestName.trim();
+      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined) });
       setRating(0);
       setText('');
       setSelectedCategories([]);
       setSuccess('Thank you! Your review has been submitted.');
-      axios.get(`/api/reviews/${id}`).then(res => setReviews(res.data));
+      // Refresh reviews and category counts
+      axios.get(`/api/reviews/${id}`).then(res => {
+        setReviews(res.data.reviews || []);
+        const counts: { [id: string]: number } = {};
+        if (Array.isArray(res.data.wokeReasons)) {
+          for (const wr of res.data.wokeReasons) {
+            if (wr.categoryId) {
+              counts[wr.categoryId] = wr.count || 0;
+            }
+          }
+        }
+        setCategoryCounts(counts);
+      });
     } catch (err: unknown) {
       let message = 'Failed to submit review';
       if (
@@ -235,7 +252,7 @@ export default function ReviewSection({ id }: { id: string }) {
                   aria-pressed={selectedCategories.includes(cat.id)}
                   disabled={rating === 1}
                 >
-                  {cat.name}
+                  {cat.name}{categoryCounts[cat.id] ? ` (${categoryCounts[cat.id]})` : ''}
                 </button>
               ))}
             </div>
