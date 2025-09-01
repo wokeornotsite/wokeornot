@@ -142,7 +142,7 @@ export default function ReviewSection({ id }: { id: string }) {
 
           <div>
             <label className="block text-base font-bold mb-2 text-gray-900">Your Rating</label>
-            <div className="flex items-center gap-0.5 sm:gap-1">
+            <div className="flex items-center sm:justify-center gap-0.5 sm:gap-1 md:gap-1.5 max-w-full">
               {[...Array(10)].map((_, i) => {
                 const activeCount = hoverIdx !== null ? hoverIdx + 1 : rating;
                 const percent = i / 9;
@@ -154,7 +154,7 @@ export default function ReviewSection({ id }: { id: string }) {
                   <span key={i} className="relative inline-flex items-center">
                     <button
                       type="button"
-                      className={`text-4xl w-9 h-9 md:w-11 md:h-11 flex items-center justify-center leading-none focus:outline-none transition-transform duration-150 transform hover:scale-125 focus:scale-125`}
+                      className={`text-2xl w-7 h-7 sm:text-3xl sm:w-9 sm:h-9 md:w-11 md:h-11 flex items-center justify-center leading-none focus:outline-none transition-transform duration-150 transform hover:scale-110 focus:scale-110`}
                       style={{ 
                         color: i < activeCount ? color : '#e5e7eb',
                         textShadow: i < activeCount ? '0 0 5px rgba(255,255,255,0.5)' : 'none'
@@ -172,7 +172,7 @@ export default function ReviewSection({ id }: { id: string }) {
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
                         aria-hidden="true"
-                        className="w-6 h-6 md:w-7 md:h-7"
+                        className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7"
                       >
                         <path
                           fill="currentColor"
@@ -183,7 +183,7 @@ export default function ReviewSection({ id }: { id: string }) {
                   </span>
                 );
               })}
-              <span className="ml-2 text-sm text-gray-500">{rating > 0 ? `${rating}/10` : ''}</span>
+              <span className="ml-1 text-xs sm:ml-2 sm:text-sm text-gray-500">{rating > 0 ? `${rating}/10` : ''}</span>
             </div>
             {/* Hover/Focus hint under stars */}
             <div className="mt-2 min-h-[20px]">
