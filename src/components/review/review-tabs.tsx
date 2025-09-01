@@ -1,10 +1,12 @@
 "use client";
 import React, { useState } from "react";
+import { useSession } from "next-auth/react";
 import ReviewSection from "./review-section";
 import ReviewsTab from "./reviews-tab";
 
 export default function ReviewTabs({ id }: { id: string }) {
   const [tab, setTab] = useState<'submit' | 'reviews'>('submit');
+  const { status } = useSession();
 
   return (
     <div className="max-w-2xl mx-auto mt-8">
@@ -30,6 +32,12 @@ export default function ReviewTabs({ id }: { id: string }) {
           </button>
         </div>
       </div>
+      {status !== 'authenticated' && (
+        <div className="text-center text-sm text-gray-600 mb-3">
+          Sign in to unlock reactions and edit your reviews.{' '}
+          <a href="/login" className="text-blue-600 hover:underline font-medium">Sign in</a>
+        </div>
+      )}
       <div className="rounded-xl shadow bg-white border border-blue-100 p-0 md:p-2">
         {tab === 'submit' && <ReviewSection id={id} />}
         {tab === 'reviews' && <ReviewsTab id={id} />}
