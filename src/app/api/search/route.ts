@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchMovies, searchTVShows } from '@/lib/tmdb';
 import type { TMDBMovie, TMDBTVShow, ContentItem } from '@/types';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
       contentType: 'MOVIE',
       wokeScore: 0,
       reviewCount: 0,
-      genres: m.genre_ids?.map(id => ({ id, name: '' })) ?? [],
+      genres: m.genre_ids?.map(id => ({ id: String(id), name: '' })) ?? [],
       categoryScores: [],
     }));
     let tvItems: ContentItem[] = tvRes.results.map((tv: TMDBTVShow) => ({
@@ -46,11 +47,11 @@ export async function GET(req: NextRequest) {
       contentType: 'TV_SHOW',
       wokeScore: 0,
       reviewCount: 0,
-      genres: tv.genre_ids?.map(id => ({ id, name: '' })) ?? [],
+      genres: tv.genre_ids?.map(id => ({ id: String(id), name: '' })) ?? [],
       categoryScores: [],
     }));
 
-    // --- Filtering ---
+    // --- Filtering (by type, genre, year) ---
     let results: ContentItem[] = [];
     if (mediaType === 'movie') {
       results = movieItems;
@@ -58,12 +59,12 @@ export async function GET(req: NextRequest) {
       results = tvItems;
     } else if (mediaType === 'kids') {
       // Only family genre (10751)
-      results = movieItems.filter(item => item.genres?.some(g => g.id === 10751));
+      results = movieItems.filter(item => item.genres?.some(g => g.id === '10751'));
     } else {
       results = [...movieItems, ...tvItems];
     }
     if (genre) {
-      const genreId = parseInt(genre, 10);
+      const genreId = genre; // keep as string to match Genre.id type
       results = results.filter(item => item.genres?.some(g => g.id === genreId));
     }
     if (year) {
@@ -72,11 +73,40 @@ export async function GET(req: NextRequest) {
         return item.releaseDate.getFullYear() === parseInt(year, 10);
       });
     }
-    // Wokeness filter (if you want to filter by score)
-    if (wokeness) {
-      const minWoke = parseInt(wokeness, 10);
-      results = results.filter(item => (item.wokeScore ?? 0) >= minWoke);
+
+    // Merge wokeScore and reviewCount from local DB for the current result set
+    if (results.length > 0) {
+      const localEntries = await prisma.content.findMany({
+        where: {
+          OR: results.map(r => ({ tmdbId: r.tmdbId, contentType: r.contentType as any })),
+        },
+        select: { tmdbId: true, contentType: true, wokeScore: true, reviewCount: true },
+      });
+      const scoreMap = new Map<string, { wokeScore: number; reviewCount: number }>();
+      localEntries.forEach(e => {
+        scoreMap.set(`${e.contentType}-${e.tmdbId}`, { wokeScore: (e as any).wokeScore ?? 0, reviewCount: (e as any).reviewCount ?? 0 });
+      });
+      results = results.map(r => {
+        const key = `${r.contentType}-${r.tmdbId}`;
+        const match = scoreMap.get(key);
+        if (match) {
+          return { ...r, wokeScore: match.wokeScore, reviewCount: match.reviewCount };
+        }
+        return r;
+      });
     }
+
+    // Wokeness filter aligned with UI values (low/medium/high)
+    if (wokeness) {
+      results = results.filter(item => {
+        const s = item.wokeScore ?? 0;
+        if (wokeness === 'low') return s <= 3;
+        if (wokeness === 'medium') return s > 3 && s <= 6;
+        if (wokeness === 'high') return s > 6;
+        return true;
+      });
+    }
+    
     // Sort by release date descending
     results = results.sort((a, b) => (b.releaseDate?.getTime() || 0) - (a.releaseDate?.getTime() || 0));
     return NextResponse.json({ results });
