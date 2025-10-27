@@ -7,14 +7,14 @@ import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
-  const rl = rateLimitCheck(req as any, { limit: 10, windowMs: 60_000, route: 'auth_forgot' });
+  const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'auth_forgot' });
   if (!rl.allowed && !rl.shadowed) {
     const res = httpError(429, 'Too Many Requests', 'RATE_LIMITED');
     setRateLimitHeaders(res, rl);
     return res;
   }
   try {
-    const { email } = await parseJson(req as any, schemas.authForgot);
+    const { email } = await parseJson(req, schemas.authForgot);
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       const res = NextResponse.json({ error: 'No user with that email.' }, { status: 404 });

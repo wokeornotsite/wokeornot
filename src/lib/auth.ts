@@ -63,8 +63,13 @@ export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt" as SessionStrategy,
+    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+  },
   callbacks: {
     async jwt({ token, user }: { token: Record<string, unknown>; user?: { id?: string; role?: string } }) {
       if (user) {
@@ -73,16 +78,14 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
-    async session({ session, token }: { session: { user?: Record<string, unknown> }; token?: Record<string, unknown> }) {
+    async session({ session, token }: { session: any; token?: Record<string, unknown> }) {
       if (token) {
         session.user = session.user || {};
         session.user.id = token.id as string;
         session.user.role = token.role as string;
       }
-      // Ensure 'expires' is present to satisfy Session/DefaultSession type
-      if (!('expires' in session)) {
-        (session as any).expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(); // 30 days expiry
-      }
+      // Session expiry is now handled by session.maxAge configuration
+      // No need to manually set expires - NextAuth handles it automatically
       return session;
     }
   }

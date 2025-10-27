@@ -7,13 +7,13 @@ import { parseJson, schemas } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
-    const rl = rateLimitCheck(req as any, { limit: 10, windowMs: 60_000, route: 'auth_resend_verification' });
+    const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'auth_resend_verification' });
     if (!rl.allowed && !rl.shadowed) {
       const res = httpError(429, 'Too Many Requests', 'RATE_LIMITED');
       setRateLimitHeaders(res, rl);
       return res;
     }
-    const { email } = await parseJson(req as any, schemas.authResendVerification);
+    const { email } = await parseJson(req, schemas.authResendVerification);
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       const res = NextResponse.json({ error: 'User not found.' }, { status: 404 });

@@ -1,13 +1,22 @@
 import { z } from 'zod';
+import { NextRequest } from 'next/server';
 
-export async function parseJson<T extends z.ZodTypeAny>(req: Request, schema: T) {
+// Create a custom error type with status
+export class ValidationError extends Error {
+  status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = 'ValidationError';
+    this.status = status;
+  }
+}
+
+export async function parseJson<T extends z.ZodTypeAny>(req: NextRequest | Request, schema: T) {
   const json = await req.json();
   const result = schema.safeParse(json);
   if (!result.success) {
     const message = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
-    const error = new Error(message);
-    (error as any).status = 400;
-    throw error;
+    throw new ValidationError(message, 400);
   }
   return result.data as z.infer<T>;
 }
@@ -29,7 +38,7 @@ export const schemas = {
     rating: z.number().min(0).max(10),
     text: z.string().max(5000).optional().default(''),
     categoryIds: z.array(z.string()).max(20).optional().default([]),
-    guestName: z.string().trim().min(1, 'Guest name is required for anonymous reviews').optional(),
+    guestName: z.string().trim().max(32).optional(),
   }),
   reviewUpdate: z.object({
     rating: z.number().min(0).max(10).optional(),

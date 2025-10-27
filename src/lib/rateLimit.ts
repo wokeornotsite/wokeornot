@@ -25,7 +25,9 @@ export type LimitResult = {
 };
 
 export function rateLimitCheck(req: NextRequest, opts: LimitOptions): LimitResult {
-  const enabled = process.env.RATE_LIMIT_ENABLED === '1' || process.env.RATE_LIMIT_ENABLED === 'true';
+  // Enable by default in production, allow disabling via env var
+  const explicitlyDisabled = process.env.RATE_LIMIT_ENABLED === '0' || process.env.RATE_LIMIT_ENABLED === 'false';
+  const enabled = !explicitlyDisabled && process.env.NODE_ENV === 'production';
   const shadowEnv = process.env.RATE_LIMIT_SHADOW === '1' || process.env.RATE_LIMIT_SHADOW === 'true';
   const shadow = opts.shadow ?? shadowEnv;
 
