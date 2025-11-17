@@ -24,31 +24,35 @@ module.exports = {
         },
       },
       colors: {
+        // Unified design system colors
         background: {
-          DEFAULT: '#f9fafb', // ultra-light background
-          subtle: '#e0e7ef', // secondary background, very pale
-        },
-        surface: {
-          DEFAULT: '#fff', // card and nav surfaces
-          muted: '#f4f5f7',
+          DEFAULT: '#181824',
+          dark: '#0f0f1a',
+          navy: '#232946',
         },
         primary: {
-          DEFAULT: '#2563eb', // modern blue accent
-          light: '#60a5fa',
-          dark: '#1e40af',
+          DEFAULT: '#3b82f6',      // blue-500
+          pink: '#ec4899',         // pink-500
+          purple: '#8b5cf6',       // purple-500
         },
-        highlight: {
-          DEFAULT: '#ffe066', // IMDb-inspired yellow for highlights
-          soft: '#fff9db',
+        wokeness: {
+          green: '#10b981',        // Not woke
+          yellow: '#f59e0b',       // Moderate
+          red: '#ef4444',          // Very woke
         },
-        border: '#f1f5f9', // ultra-light border
         text: {
-          DEFAULT: '#22292f', // main text, softer than black
-          muted: '#6b7280',   // muted/secondary text
+          DEFAULT: '#ffffff',
+          secondary: '#93c5fd',
+          muted: '#9ca3af',
         },
+        border: {
+          DEFAULT: 'rgba(255, 255, 255, 0.2)',
+          light: 'rgba(255, 255, 255, 0.1)',
+          strong: 'rgba(255, 255, 255, 0.3)',
+        },
+        success: '#10b981',
         error: '#ef4444',
-        success: '#22c55e',
-        warning: '#f59e42',
+        warning: '#f59e0b',
       },
       borderRadius: {
         xl: '1.25rem',
