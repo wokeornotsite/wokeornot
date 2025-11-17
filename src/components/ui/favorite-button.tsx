@@ -84,8 +84,10 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
 
   return (
     <button
-      aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-      className={`rounded-full p-2 transition border border-blue-400/30 bg-blue-950/60 hover:bg-blue-800/80 ${favorite ? 'text-yellow-400' : 'text-blue-200'}`}
+      aria-label={favorite ? `Remove ${title} from favorites` : `Add ${title} to favorites`}
+      aria-pressed={favorite}
+      disabled={loading}
+      className={`rounded-full p-2 transition border border-blue-400/30 bg-blue-950/60 hover:bg-blue-800/80 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed ${favorite ? 'text-yellow-400' : 'text-blue-200'}`}
       onClick={handleClick}
       tabIndex={0}
     >

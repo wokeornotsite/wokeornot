@@ -65,7 +65,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex items-center gap-1 px-3 py-2 rounded-lg font-medium text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-white/20"
+        className="flex items-center gap-1 px-3 py-2 rounded-lg font-medium text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
         aria-label="Previous page"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -93,7 +93,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             <button
               key={pageNum}
               onClick={() => onPageChange(pageNum)}
-              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 border ${
+              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                 isActive
                   ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white border-transparent shadow-lg'
                   : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
@@ -111,7 +111,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex items-center gap-1 px-3 py-2 rounded-lg font-medium text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-white/20"
+        className="flex items-center gap-1 px-3 py-2 rounded-lg font-medium text-white bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
         aria-label="Next page"
       >
         <span className="hidden sm:inline">Next</span>
