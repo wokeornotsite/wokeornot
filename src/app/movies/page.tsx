@@ -17,6 +17,7 @@ export default function MoviesPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('wokeness-desc'); // wokeness-desc, wokeness-asc, title-asc, title-desc, date-desc, date-asc, reviews-desc
 
   useEffect(() => {
     async function fetchData() {
@@ -44,10 +45,10 @@ export default function MoviesPage() {
     fetchData();
   }, [genre, year, language]);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, year, language, wokeness]);
+  }, [genre, year, language, wokeness, sortBy]);
 
   const filteredMovies = allMovies.filter(movie => {
     const matchesWokeness = !wokeness ||
@@ -57,10 +58,32 @@ export default function MoviesPage() {
     return matchesWokeness;
   });
 
+  // Sort filtered movies
+  const sortedMovies = [...filteredMovies].sort((a, b) => {
+    switch (sortBy) {
+      case 'wokeness-desc':
+        return (b.wokeScore || 0) - (a.wokeScore || 0);
+      case 'wokeness-asc':
+        return (a.wokeScore || 0) - (b.wokeScore || 0);
+      case 'title-asc':
+        return a.title.localeCompare(b.title);
+      case 'title-desc':
+        return b.title.localeCompare(a.title);
+      case 'date-desc':
+        return new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime();
+      case 'date-asc':
+        return new Date(a.releaseDate || 0).getTime() - new Date(b.releaseDate || 0).getTime();
+      case 'reviews-desc':
+        return (b.reviewCount || 0) - (a.reviewCount || 0);
+      default:
+        return 0;
+    }
+  });
+
   // Pagination logic
-  const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedMovies.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedMovies = filteredMovies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedMovies = sortedMovies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -141,6 +164,21 @@ export default function MoviesPage() {
             <option value="medium">Moderately Woke (4-6)</option>
             <option value="high">Very Woke (7-10)</option>
           </select>
+          <label htmlFor="sort" className="sr-only">Sort By</label>
+          <select
+            id="sort"
+            className="min-w-[140px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+          >
+            <option value="wokeness-desc">Most Woke</option>
+            <option value="wokeness-asc">Least Woke</option>
+            <option value="title-asc">Title A-Z</option>
+            <option value="title-desc">Title Z-A</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="reviews-desc">Most Reviews</option>
+          </select>
           <button
             type="button"
             className="ml-2 px-3 py-1 rounded-md bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -179,12 +217,12 @@ export default function MoviesPage() {
       </div>
 
       {/* Pagination */}
-      {filteredMovies.length > 0 && (
+      {sortedMovies.length > 0 && (
         <div className="mt-8 space-y-4">
           <PaginationInfo
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredMovies.length}
+            totalItems={sortedMovies.length}
             itemsPerPage={ITEMS_PER_PAGE}
             className="text-center"
           />
