@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdminAPI } from '@/lib/admin-auth';
 
 const objectIdHex = /^[a-f\d]{24}$/i;
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAdminAPI();
+  if ('error' in auth) return auth.error;
 
   try {
     // Optional limit param for faster scans
@@ -72,10 +69,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAdminAPI();
+  if ('error' in auth) return auth.error;
   try {
     const body = await req.json();
     const ids: string[] = Array.isArray(body?.ids) ? body.ids : [];
