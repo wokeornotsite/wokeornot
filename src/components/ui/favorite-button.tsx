@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
+import { trackFavoriteAdded, trackFavoriteRemoved } from '@/lib/analytics';
 
 interface FavoriteButtonProps {
   contentId: string | number;
@@ -58,6 +59,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
         // Remove from favorites
         await axios.delete(`/api/favorites?contentId=${contentId}&contentType=${contentType}`);
         setFavorite(false);
+        trackFavoriteRemoved(String(contentId), contentType, title);
       } else {
         // Add to favorites
         await axios.post('/api/favorites', {
@@ -68,6 +70,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
           wokeScore,
         });
         setFavorite(true);
+        trackFavoriteAdded(String(contentId), contentType, title);
       }
     } catch (error: any) {
       console.error('Error toggling favorite:', error);
