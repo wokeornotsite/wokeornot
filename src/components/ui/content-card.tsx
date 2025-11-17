@@ -6,6 +6,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { GenreBadges } from './genre-badges';
 import { FavoriteButton } from './favorite-button';
 import { CategoryIcon } from './category-icon';
+import { getYear } from '@/lib/date-utils';
 
 import { SkeletonCard } from './skeleton-card';
 
@@ -99,7 +100,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">
-            {content.releaseDate ? new Date(content.releaseDate).getFullYear() : 'Unknown'}
+            {getYear(content.releaseDate) || 'Unknown'}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
           {/* Wokeness indicator */}

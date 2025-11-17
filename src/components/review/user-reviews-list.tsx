@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
+import { formatDisplayDateTime } from '@/lib/date-utils';
 
 interface Category {
   id: string;
@@ -104,7 +105,7 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
             <span className="bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
               {review.rating}/10
             </span>
-            <span className="text-xs text-gray-400 font-normal ml-auto">{new Date(review.createdAt).toLocaleDateString()}<span className="mx-1">•</span>{new Date(review.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <span className="text-xs text-gray-400 font-normal ml-auto">{formatDisplayDateTime(review.createdAt)}</span>
           </div>
           {review.categories && review.categories.some(cat =>
             (cat.name && cat.name.trim()) ||

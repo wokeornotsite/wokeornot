@@ -9,6 +9,7 @@ import { FavoriteButton } from './favorite-button';
 import { CategoryIcon } from './category-icon';
 import { SkeletonCard } from './skeleton-card';
 import { getWokenessLabel, getWokenessBadgeColor, getWokenessBadgeBg, formatWokenessScore, getWokenessTextColor } from '@/lib/wokeness-utils';
+import { getYear } from '@/lib/date-utils';
 
 interface ContentCardProps {
   content?: ContentItem;
@@ -63,19 +64,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">
-            {(() => {
-              if (content.releaseDate) {
-                // Handle both Date and string
-                const date = typeof content.releaseDate === 'string' ? new Date(content.releaseDate) : content.releaseDate;
-                if (!isNaN(date.getTime())) return date.getFullYear();
-              }
-              // Fallback: try movie.release_date (from TMDB)
-              if ((content as any).release_date) {
-                const date = new Date((content as any).release_date);
-                if (!isNaN(date.getTime())) return date.getFullYear();
-              }
-              return '';
-            })()}
+            {getYear(content.releaseDate) || getYear((content as any).release_date) || ''}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
           <div className="mt-2 flex justify-between items-center">

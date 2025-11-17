@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { formatDisplayDateTime } from '@/lib/date-utils';
 import { useSession } from 'next-auth/react';
 
 export default function ForumCommentSection({ threadId }: { threadId: string }) {
@@ -72,7 +73,7 @@ const [comments, setComments] = useState<Comment[]>([]);
           <li key={i} className="border p-4 rounded bg-white">
             <div className="font-semibold">{comment.user?.name || 'Anonymous'}</div>
             <div className="mt-1 text-gray-800">{comment.text}</div>
-            <div className="text-xs text-gray-400 mt-1">{new Date(comment.createdAt).toLocaleString()}</div>
+            <div className="text-xs text-gray-400 mt-1">{formatDisplayDateTime(comment.createdAt)}</div>
           </li>
         ))}
       </ul>
