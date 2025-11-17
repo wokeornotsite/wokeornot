@@ -3,9 +3,7 @@ import React, { useEffect, useState } from 'react';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
-// import { ContentType } from '@prisma/client';
 
-// This page will be server-rendered
 export default function TVShowsPage() {
   const [allTVShows, setAllTVShows] = useState<ContentItem[]>([]);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
@@ -49,7 +47,6 @@ export default function TVShowsPage() {
       (wokeness === 'high' && show.wokeScore >= 7 && show.wokeScore <= 10);
     return matchesWokeness;
   });
-  // --- Removed all server-side and legacy code for client-side modern implementation ---
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">

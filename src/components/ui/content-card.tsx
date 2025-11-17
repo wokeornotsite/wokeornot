@@ -94,7 +94,8 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
           {/* Genre Badges */}
           {content.genres && content.genres.length > 0 && (
             <div className="mb-2">
-              <GenreBadges genres={content.genres.filter(g => g.name)} />
+              {/* Filter out genres with missing or empty names */}
+              <GenreBadges genres={content.genres.filter(g => g?.name && g.name.trim())} />
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">

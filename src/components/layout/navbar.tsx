@@ -45,7 +45,7 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
             height={32}
             loading="lazy"
             unoptimized
-            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/avatar-placeholder.png'; }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/avatars/default.png'; }}
           />
         </div>
       </button>
