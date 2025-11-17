@@ -57,6 +57,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
       categoryScores: getCategoryScores(show.id),
     }));
+    // Cache for 5 minutes
+    res.setHeader(
+      'Cache-Control',
+      'public, s-maxage=300, stale-while-revalidate=600'
+    );
     res.status(200).json(tvShows);
   } catch (err) {
     res.status(500).json([]);
