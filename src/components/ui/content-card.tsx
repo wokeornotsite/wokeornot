@@ -29,7 +29,13 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
       >
         {/* Favorite Button */}
         <div className="absolute top-2 left-2 z-10">
-          <FavoriteButton />
+          <FavoriteButton
+            contentId={content.tmdbId ?? (content as any).id}
+            contentType={contentType === 'tv_show' ? 'tv' : (contentType as 'movie' | 'tv' | 'kids')}
+            title={content.title}
+            posterPath={content.posterPath ?? undefined}
+            wokeScore={typeof content.wokeScore === 'number' ? content.wokeScore : undefined}
+          />
         </div>
         <div className="relative pb-[150%] bg-gradient-to-br from-[#232946] via-[#232946]/80 to-[#181824]">
           <Image
