@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "WokeOrNot",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "page": "Página",
+    "of": "de",
+    "results": "resultados"
+  },
+  "nav": {
+    "home": "Inicio",
+    "movies": "Películas",
+    "tvShows": "Series de TV",
+    "kids": "Niños y Familia",
+    "search": "Buscar",
+    "favorites": "Mis Favoritos",
+    "profile": "Perfil",
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "register": "Registrarse"
+  },
+  "content": {
+    "wokeScore": "Puntuación Woke",
+    "reviews": "Reseñas",
+    "rating": "Calificación",
+    "releaseDate": "Fecha de Estreno",
+    "genres": "Géneros",
+    "overview": "Resumen",
+    "notYetRated": "Aún no calificado",
+    "addToFavorites": "Añadir a favoritos",
+    "removeFromFavorites": "Quitar de favoritos"
+  },
+  "wokeness": {
+    "notWoke": "No Woke",
+    "moderatelyWoke": "Moderadamente Woke",
+    "veryWoke": "Muy Woke"
+  },
+  "search": {
+    "placeholder": "Buscar por título...",
+    "noResults": "No se encontraron resultados",
+    "tryDifferentFilters": "Prueba con filtros diferentes"
+  },
+  "favorites": {
+    "title": "Mis Favoritos",
+    "empty": "Aún no has añadido favoritos",
+    "addSome": "Comienza a añadir contenido a tus favoritos"
+  },
+  "review": {
+    "submitReview": "Enviar Reseña",
+    "editReview": "Editar Reseña",
+    "yourReview": "Tu Reseña",
+    "wokeCategories": "Categorías Woke",
+    "comment": "Comentario (opcional)",
+    "anonymous": "Publicar anónimamente",
+    "guestName": "Tu nombre"
+  },
+  "errors": {
+    "generic": "Algo salió mal",
+    "network": "Error de red. Por favor verifica tu conexión.",
+    "unauthorized": "Necesitas iniciar sesión",
+    "forbidden": "No tienes permiso para hacer eso",
+    "notFound": "Contenido no encontrado",
+    "validation": "Por favor verifica tu entrada"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "WokeOrNot",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "page": "Page",
+    "of": "of",
+    "results": "results"
+  },
+  "nav": {
+    "home": "Home",
+    "movies": "Movies",
+    "tvShows": "TV Shows",
+    "kids": "Kids & Family",
+    "search": "Search",
+    "favorites": "My Favorites",
+    "profile": "Profile",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "register": "Register"
+  },
+  "content": {
+    "wokeScore": "Wokeness Score",
+    "reviews": "Reviews",
+    "rating": "Rating",
+    "releaseDate": "Release Date",
+    "genres": "Genres",
+    "overview": "Overview",
+    "notYetRated": "Not yet rated",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites"
+  },
+  "wokeness": {
+    "notWoke": "Not Woke",
+    "moderatelyWoke": "Moderately Woke",
+    "veryWoke": "Very Woke"
+  },
+  "search": {
+    "placeholder": "Search for a title...",
+    "noResults": "No results found",
+    "tryDifferentFilters": "Try different filters"
+  },
+  "favorites": {
+    "title": "My Favorites",
+    "empty": "You haven't added any favorites yet",
+    "addSome": "Start adding content to your favorites"
+  },
+  "review": {
+    "submitReview": "Submit Review",
+    "editReview": "Edit Review",
+    "yourReview": "Your Review",
+    "wokeCategories": "Woke Categories",
+    "comment": "Comment (optional)",
+    "anonymous": "Post anonymously",
+    "guestName": "Your name"
+  },
+  "errors": {
+    "generic": "Something went wrong",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You need to be signed in",
+    "forbidden": "You don't have permission to do that",
+    "notFound": "Content not found",
+    "validation": "Please check your input"
+  }
+}
