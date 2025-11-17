@@ -1,21 +1,85 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import axios from 'axios';
 
 interface FavoriteButtonProps {
-  initialFavorite?: boolean;
-  onToggle?: (fav: boolean) => void;
+  contentId: string | number;
+  contentType: 'movie' | 'tv' | 'kids';
+  title: string;
+  posterPath?: string;
+  wokeScore?: number;
 }
 
-export const FavoriteButton: React.FC<FavoriteButtonProps> = ({ initialFavorite = false, onToggle }) => {
-  const [favorite, setFavorite] = useState(initialFavorite);
+export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
+  contentId,
+  contentType,
+  title,
+  posterPath,
+  wokeScore,
+}) => {
+  const { data: session } = useSession();
+  const [favorite, setFavorite] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  // Check if already favorited on mount
+  useEffect(() => {
+    if (!session) return;
+    
+    async function checkFavorite() {
+      try {
+        const res = await axios.get('/api/favorites');
+        const favorites = res.data.favorites || [];
+        const isFavorited = favorites.some(
+          (fav: any) => fav.contentId === String(contentId) && fav.contentType === contentType
+        );
+        setFavorite(isFavorited);
+      } catch (error) {
+        console.error('Error checking favorite:', error);
+      }
+    }
+    
+    checkFavorite();
+  }, [session, contentId, contentType]);
+
+  const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setFavorite(fav => {
-      const newFav = !fav;
-      onToggle?.(newFav);
-      return newFav;
-    });
+    e.stopPropagation();
+    
+    if (!session) {
+      alert('Please sign in to add favorites');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      if (favorite) {
+        // Remove from favorites
+        await axios.delete(`/api/favorites?contentId=${contentId}&contentType=${contentType}`);
+        setFavorite(false);
+      } else {
+        // Add to favorites
+        await axios.post('/api/favorites', {
+          contentId: String(contentId),
+          contentType,
+          title,
+          posterPath,
+          wokeScore,
+        });
+        setFavorite(true);
+      }
+    } catch (error: any) {
+      console.error('Error toggling favorite:', error);
+      if (error.response?.status === 409) {
+        // Already favorited
+        setFavorite(true);
+      } else {
+        alert('Failed to update favorites');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

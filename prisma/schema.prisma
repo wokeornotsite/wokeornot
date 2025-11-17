@@ -33,6 +33,7 @@ model User {
   comments      Comment[]
   auditLogs     AuditLog[]
   reviewReactions ReviewReaction[]
+  favorites     Favorite[]
 
   @@map("users")
 }
@@ -263,6 +264,24 @@ model ReviewReaction {
   
   @@unique([userId, reviewId])
   @@map("review_reactions")
+}
+
+// User favorites/watchlist
+model Favorite {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  contentId   String    // TMDB ID as string
+  contentType String    // 'movie', 'tv', or 'kids'
+  title       String
+  posterPath  String?
+  wokeScore   Float?
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, contentId, contentType])
+  @@map("favorites")
 }
 
 // Forum threads for general discussion
