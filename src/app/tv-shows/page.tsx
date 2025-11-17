@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
+import { Pagination, PaginationInfo } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 20;
 
 export default function TVShowsPage() {
   const [allTVShows, setAllTVShows] = useState<ContentItem[]>([]);
@@ -13,6 +16,7 @@ export default function TVShowsPage() {
   const [wokeness, setWokeness] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchData() {
@@ -40,6 +44,10 @@ export default function TVShowsPage() {
     fetchData();
   }, [genre, year, language]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [genre, year, language, wokeness]);
+
   const filteredTVShows = allTVShows.filter(show => {
     const matchesWokeness = !wokeness || 
       (wokeness === 'low' && show.wokeScore >= 1 && show.wokeScore <= 3) ||
@@ -47,6 +55,15 @@ export default function TVShowsPage() {
       (wokeness === 'high' && show.wokeScore >= 7 && show.wokeScore <= 10);
     return matchesWokeness;
   });
+
+  const totalPages = Math.ceil(filteredTVShows.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedShows = filteredTVShows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
@@ -150,7 +167,7 @@ export default function TVShowsPage() {
               <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {filteredTVShows.map(show => (
+                {paginatedShows.map(show => (
                   <ClientContentCard key={show.id} content={show} />
                 ))}
               </div>
@@ -158,6 +175,26 @@ export default function TVShowsPage() {
           </>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredTVShows.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 pb-12">
+          <div className="mt-8 space-y-4">
+            <PaginationInfo
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredTVShows.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              className="text-center"
+            />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

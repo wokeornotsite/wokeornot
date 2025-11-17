@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
+import { Pagination, PaginationInfo } from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 20;
 
 export default function MoviesPage() {
   const [allMovies, setAllMovies] = useState<ContentItem[]>([]);
@@ -13,6 +16,7 @@ export default function MoviesPage() {
   const [wokeness, setWokeness] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchData() {
@@ -40,6 +44,11 @@ export default function MoviesPage() {
     fetchData();
   }, [genre, year, language]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [genre, year, language, wokeness]);
+
   const filteredMovies = allMovies.filter(movie => {
     const matchesWokeness = !wokeness ||
       (wokeness === 'low' && movie.wokeScore >= 1 && movie.wokeScore <= 3) ||
@@ -47,6 +56,16 @@ export default function MoviesPage() {
       (wokeness === 'high' && movie.wokeScore >= 7 && movie.wokeScore <= 10);
     return matchesWokeness;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedMovies = filteredMovies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
@@ -150,7 +169,7 @@ export default function MoviesPage() {
               <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {filteredMovies.map(movie => (
+                {paginatedMovies.map(movie => (
                   <ClientContentCard key={movie.id} content={movie} />
                 ))}
               </div>
@@ -160,42 +179,22 @@ export default function MoviesPage() {
       </div>
 
       {/* Pagination */}
-      <div className="mt-8 flex justify-center">
-        <nav className="inline-flex rounded-2xl shadow-xl backdrop-blur-xl bg-white/10 border border-white/20">
-          <a
-            href="#"
-            className="px-5 py-3 rounded-l-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
-          >
-            Previous
-          </a>
-          <a
-            href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
-          >
-            1
-          </a>
-          <a
-            href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
-          >
-            2
-          </a>
-          <a
-            href="#"
-            className="px-5 py-3 text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
-          >
-            3
-          </a>
-          <span className="px-5 py-3 text-base font-semibold text-blue-200">...</span>
-          <a
-            href="#"
-            className="px-5 py-3 rounded-r-2xl text-base font-semibold text-blue-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all duration-200"
-          >
-            Next
-          </a>
-        </nav>
-      </div>
+      {filteredMovies.length > 0 && (
+        <div className="mt-8 space-y-4">
+          <PaginationInfo
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredMovies.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            className="text-center"
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      )}
     </div>
   );
 }
-
