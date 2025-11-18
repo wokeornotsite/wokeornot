@@ -32,8 +32,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
-  // Optimize font loading
-  optimizeFonts: true,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'wokeornot.net']
