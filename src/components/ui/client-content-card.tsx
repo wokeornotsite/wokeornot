@@ -8,6 +8,8 @@ import { GenreBadges } from './genre-badges';
 import { FavoriteButton } from './favorite-button';
 import { CategoryIcon } from './category-icon';
 import { SkeletonCard } from './skeleton-card';
+import { getWokenessLabel, getWokenessBadgeColor, getWokenessBadgeBg, formatWokenessScore, getWokenessTextColor } from '@/lib/wokeness-utils';
+import { getYear } from '@/lib/date-utils';
 
 interface ContentCardProps {
   content?: ContentItem;
@@ -29,7 +31,13 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
       >
         {/* Favorite Button */}
         <div className="absolute top-2 left-2 z-10">
-          <FavoriteButton />
+          <FavoriteButton
+            contentId={content.tmdbId ?? (content as any).id}
+            contentType={contentType === 'tv_show' ? 'tv' : (contentType as 'movie' | 'tv' | 'kids')}
+            title={content.title}
+            posterPath={content.posterPath ?? undefined}
+            wokeScore={typeof content.wokeScore === 'number' ? content.wokeScore : undefined}
+          />
         </div>
         <div className="relative pb-[150%] bg-gradient-to-br from-[#232946] via-[#232946]/80 to-[#181824]">
           <Image
@@ -57,24 +65,12 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
           <h3 className="font-semibold text-lg mb-1 line-clamp-2 text-white drop-shadow-sm">{content.title}</h3>
           {content.genres && content.genres.length > 0 && (
             <div className="mb-2">
-              {/* genres now use string IDs (MongoDB migration) */}
-              <GenreBadges genres={content.genres.filter(g => g.name)} />
+              {/* Filter out genres with missing or empty names */}
+              <GenreBadges genres={content.genres.filter(g => g?.name && g.name.trim())} />
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">
-            {(() => {
-              if (content.releaseDate) {
-                // Handle both Date and string
-                const date = typeof content.releaseDate === 'string' ? new Date(content.releaseDate) : content.releaseDate;
-                if (!isNaN(date.getTime())) return date.getFullYear();
-              }
-              // Fallback: try movie.release_date (from TMDB)
-              if ((content as any).release_date) {
-                const date = new Date((content as any).release_date);
-                if (!isNaN(date.getTime())) return date.getFullYear();
-              }
-              return '';
-            })()}
+            {getYear(content.releaseDate) || getYear((content as any).release_date) || ''}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
           <div className="mt-2 flex justify-between items-center">
@@ -87,31 +83,4 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
       </div>
     </Link>
   );
-};
-
-// Helper functions for wokeness visualization
-const getWokenessBadgeColor = (score: number) => {
-  if (score <= 3) return 'bg-green-500 text-white';
-  if (score <= 6) return 'bg-yellow-400 text-gray-900';
-  return 'bg-red-500 text-white';
-};
-
-const getWokenessBadgeBg = (score: number) => {
-  if (score <= 3) return 'linear-gradient(90deg,#d1fae5 0%,#6ee7b7 100%)';
-  if (score <= 6) return 'linear-gradient(90deg,#fef9c3 0%,#fde68a 100%)';
-  return 'linear-gradient(90deg,#fee2e2 0%,#fca5a5 100%)';
-};
-
-const getWokenessTextColor = (score: number) => {
-  if (score <= 3) return 'text-green-600';
-  if (score <= 6) return 'text-yellow-600';
-  return 'text-red-600';
-};
-
-const getWokenessLabel = (score: number | undefined | null) => {
-  if (typeof score !== 'number' || isNaN(score)) return 'Not Woke';
-  if (score <= 3) return 'Not Woke';
-  if (score <= 6) return 'Woke';
-  if (score <= 10) return 'Very Woke';
-  return 'Not Woke';
 };

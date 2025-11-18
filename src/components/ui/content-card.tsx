@@ -6,6 +6,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { GenreBadges } from './genre-badges';
 import { FavoriteButton } from './favorite-button';
 import { CategoryIcon } from './category-icon';
+import { getYear } from '@/lib/date-utils';
 
 import { SkeletonCard } from './skeleton-card';
 
@@ -28,7 +29,13 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
       >
         {/* Favorite Button */}
         <div className="absolute top-2 left-2 z-10">
-          <FavoriteButton />
+          <FavoriteButton
+            contentId={content.tmdbId ?? (content as any).id}
+            contentType={contentType === 'tv_show' ? 'tv' : (contentType as 'movie' | 'tv' | 'kids')}
+            title={content.title}
+            posterPath={content.posterPath ?? undefined}
+            wokeScore={typeof content.wokeScore === 'number' ? content.wokeScore : undefined}
+          />
         </div>
         <div className="relative pb-[150%] bg-gradient-to-br from-[#232946] via-[#232946]/80 to-[#181824]">
           <Image
@@ -94,11 +101,12 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
           {/* Genre Badges */}
           {content.genres && content.genres.length > 0 && (
             <div className="mb-2">
-              <GenreBadges genres={content.genres.filter(g => g.name)} />
+              {/* Filter out genres with missing or empty names */}
+              <GenreBadges genres={content.genres.filter(g => g?.name && g.name.trim())} />
             </div>
           )}
           <p className="text-blue-200 text-xs mb-2">
-            {content.releaseDate ? new Date(content.releaseDate).getFullYear() : 'Unknown'}
+            {getYear(content.releaseDate) || 'Unknown'}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
           {/* Wokeness indicator */}

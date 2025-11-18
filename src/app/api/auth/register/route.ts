@@ -9,13 +9,13 @@ import { error as httpError } from '@/lib/http';
 
 export async function POST(req: NextRequest) {
   try {
-    const rl = rateLimitCheck(req as any, { limit: 5, windowMs: 60_000, route: 'auth_register' });
+    const rl = rateLimitCheck(req, { limit: 5, windowMs: 60_000, route: 'auth_register' });
     if (!rl.allowed && !rl.shadowed) {
       const res = NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
       setRateLimitHeaders(res, rl);
       return res;
     }
-    const { name, email, password } = await parseJson(req as any, schemas.authRegister);
+    const { name, email, password } = await parseJson(req, schemas.authRegister);
     const safeName = name ? sanitizeHTML(name) : '';
     if (!email || !password) {
       const res = NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });

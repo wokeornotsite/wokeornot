@@ -6,20 +6,17 @@ import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 
-// Type assertion to bypass TypeScript errors until Prisma types are updated
-const db = prisma as any;
-
 // GET handler
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    const currentUserId = session?.user ? await db.user.findUnique({
+    const currentUserId = session?.user ? await prisma.user.findUnique({
       where: { email: session.user.email as string },
       select: { id: true }
-    }).then((user: any) => user?.id) : null;
+    }).then((user: { id: string } | null) => user?.id) : null;
     
     const { id } = await params;
-    const reviews = await db.review.findMany({
+    const reviews = await prisma.review.findMany({
       where: { contentId: id },
       include: {
         user: { select: { id: true, name: true, image: true } },
@@ -31,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Get reaction counts separately
     const reviewsWithReactions = await Promise.all(reviews.map(async (review: any) => {
       // Get likes count
-      const likes = await db.reviewReaction.count({
+      const likes = await prisma.reviewReaction.count({
         where: {
           reviewId: review.id,
           type: 'like'
@@ -39,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       });
       
       // Get dislikes count
-      const dislikes = await db.reviewReaction.count({
+      const dislikes = await prisma.reviewReaction.count({
         where: {
           reviewId: review.id,
           type: 'dislike'
@@ -49,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       // Get user's reaction if logged in
       let userReaction = null;
       if (currentUserId) {
-        const reaction = await db.reviewReaction.findFirst({
+        const reaction = await prisma.reviewReaction.findFirst({
           where: {
             reviewId: review.id,
             userId: currentUserId
@@ -83,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     console.log(`Found ${reviewIds.length} reviews for content ${id}:`, reviewIds);
     
     // Then, get all review categories with these review IDs
-    const allReviewCategories = await db.reviewCategory.findMany({
+    const allReviewCategories = await prisma.reviewCategory.findMany({
       where: { 
         reviewId: { in: reviewIds }
       },
@@ -94,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     console.log(`Found ${allReviewCategories.length} review categories for content ${id}`);
     
     // Directly query categories to ensure they exist
-    const categories = await db.category.findMany();
+    const categories = await prisma.category.findMany();
     console.log(`Total categories in database: ${categories.length}`);
     
     // 2. Count votes for each category
@@ -196,13 +193,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Shadow-mode rate limiting for review submissions (IP-based).
-    const rl = rateLimitCheck(req as any, { limit: 10, windowMs: 60_000, route: 'review_submit' });
+    const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'review_submit' });
     if (!rl.allowed && !rl.shadowed) {
       const res = httpError(429, 'Too Many Requests', 'RATE_LIMITED');
       setRateLimitHeaders(res, rl);
       return res;
     }
-    const { rating, text, categoryIds, guestName } = await parseJson(req as any, schemas.reviewCreate);
+    const { rating, text, categoryIds, guestName } = await parseJson(req, schemas.reviewCreate);
     const safeText = text ? sanitizeHTML(text) : '';
     const session = await getServerSession(authOptions);
     console.log('Received review submission with categories:', categoryIds);
@@ -210,12 +207,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: contentId } = resolvedParams;
     
     // Get review count before adding new review
-    const reviewCountBefore = await db.review.findMany({ where: { contentId } }).then((reviews: { length: number }) => reviews.length);
+    const reviewCountBefore = await prisma.review.findMany({ where: { contentId } }).then((reviews: { length: number }) => reviews.length);
 
     let userId = null;
     // If user is authenticated, get their ID and check for existing review
     if (session?.user) {
-      const user = await db.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { email: session.user.email as string },
       });
       if (!user) {
@@ -224,7 +221,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       userId = user.id;
       
       // Check if the user has already reviewed this content
-      const existingReview = await db.review.findFirst({
+      const existingReview = await prisma.review.findFirst({
         where: {
           contentId,
           userId: user.id,
@@ -235,7 +232,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
     // Create the review
-    const review = await db.review.create({
+    const review = await prisma.review.create({
       data: {
         rating,
         text: safeText,
@@ -254,14 +251,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
     // Update category scores for this content
-    const reviewCategories = await db.reviewCategory.findMany({
+    const reviewCategories = await prisma.reviewCategory.findMany({
       where: { reviewId: review.id },
       include: { category: true }
     });
 
     // Update or create category scores
     const categoryUpdates = reviewCategories.map(async (rc: { categoryId: string }) => {
-      const existingScore = await db.categoryScore.findUnique({
+      const existingScore = await prisma.categoryScore.findUnique({
         where: { contentId_categoryId: { contentId, categoryId: rc.categoryId } }
       });
 
@@ -269,7 +266,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const newScore = (existingScore?.score || 0) + review.rating;
       const percentage = (newCount / (reviewCountBefore + 1)) * 100;
 
-      return db.categoryScore.upsert({
+      return prisma.categoryScore.upsert({
         where: { contentId_categoryId: { contentId, categoryId: rc.categoryId } },
         update: {
           count: newCount,
@@ -290,13 +287,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await Promise.all(categoryUpdates);
 
     // Recalculate the content's wokeScore and reviewCount
-    const allReviews = await db.review.findMany({ where: { contentId } });
+    const allReviews = await prisma.review.findMany({ where: { contentId } });
     const reviewCount = allReviews.length;
     const wokeScore = allReviews.length > 0 ? allReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / allReviews.length : 0;
-    await db.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
+    await prisma.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
 
     // Update category percentages
-    const allCategoryScores = await db.categoryScore.findMany({
+    const allCategoryScores = await prisma.categoryScore.findMany({
       where: { contentId },
       include: { category: true }
     });
@@ -304,7 +301,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     const updatePercentages = allCategoryScores.map(async (score: { id: string; score: number }) => {
       const newPercentage = totalScore > 0 ? (score.score / totalScore) * 100 : 0;
-      return db.categoryScore.update({
+      return prisma.categoryScore.update({
         where: { id: score.id },
         data: { percentage: newPercentage }
       });
@@ -335,16 +332,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { rating, text } = await parseJson(req as any, schemas.reviewUpdate);
+    const { rating, text } = await parseJson(req, schemas.reviewUpdate);
     const safeText = typeof text === 'string' ? sanitizeHTML(text) : undefined;
     const resolvedParams = await params;
     const { id } = resolvedParams;
-    const review = await db.review.findUnique({ where: { id } });
-    const user = await db.user.findUnique({ where: { email: session.user.email as string } });
+    const review = await prisma.review.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({ where: { email: session.user.email as string } });
     if (!review || !user || review.userId !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const updated = await db.review.update({
+    const updated = await prisma.review.update({
       where: { id },
       data: { rating, text: safeText },
     });

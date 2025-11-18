@@ -6,9 +6,6 @@ import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { parseJson, schemas } from '@/lib/validation';
 import { error } from '@/lib/http';
 
-// Type assertion to bypass TypeScript errors until Prisma types are updated
-const db = prisma as any;
-
 // Need to run prisma generate after schema changes
 // This is a temporary type until Prisma generates the proper types
 type ReviewWithReactions = {
@@ -22,7 +19,7 @@ export async function POST(
 ) {
   try {
     // Shadow-mode rate limiting for reactions (IP-based). Does not block when in shadow, but logs and sets headers.
-    const rl = rateLimitCheck(request as any, { limit: 30, windowMs: 60_000, route: 'review_reaction' });
+    const rl = rateLimitCheck(request, { limit: 30, windowMs: 60_000, route: 'review_reaction' });
     if (!rl.allowed && !rl.shadowed) {
       const res = error(429, 'Too Many Requests', 'RATE_LIMITED');
       setRateLimitHeaders(res, rl);
@@ -39,7 +36,7 @@ export async function POST(
     // Next.js 15 requires awaiting params
     const resolvedParams = await params;
     const reviewId = resolvedParams.id;
-    const { reaction } = await parseJson(request as any, schemas.reaction);
+    const { reaction } = await parseJson(request, schemas.reaction);
 
     // Zod already validates reaction value
 
@@ -64,7 +61,7 @@ export async function POST(
     }
     
     // Check if the user has already reacted to this review
-    const existingReaction = await db.reviewReaction.findFirst({
+    const existingReaction = await prisma.reviewReaction.findFirst({
       where: {
         userId: user.id,
         reviewId: reviewId
@@ -75,7 +72,7 @@ export async function POST(
     if (existingReaction) {
       if (existingReaction.type === reaction) {
         // User is toggling off their reaction
-        await db.reviewReaction.deleteMany({
+        await prisma.reviewReaction.deleteMany({
           where: {
             userId: user.id,
             reviewId: reviewId
@@ -83,7 +80,7 @@ export async function POST(
         });
       } else {
         // User is changing their reaction from like to dislike or vice versa
-        await db.reviewReaction.updateMany({
+        await prisma.reviewReaction.updateMany({
           where: {
             userId: user.id,
             reviewId: reviewId
@@ -93,7 +90,7 @@ export async function POST(
       }
     } else {
       // User is adding a new reaction
-      await db.reviewReaction.create({
+      await prisma.reviewReaction.create({
         data: {
           type: reaction,
           userId: user.id,
@@ -103,14 +100,14 @@ export async function POST(
     }
 
     // Get updated counts
-    const likes = await db.reviewReaction.count({
+    const likes = await prisma.reviewReaction.count({
       where: {
         reviewId,
         type: 'like'
       }
     });
 
-    const dislikes = await db.reviewReaction.count({
+    const dislikes = await prisma.reviewReaction.count({
       where: {
         reviewId,
         type: 'dislike'
@@ -118,7 +115,7 @@ export async function POST(
     });
 
     // Get the user's current reaction after the update
-    const updatedUserReaction = await db.reviewReaction.findFirst({
+    const updatedUserReaction = await prisma.reviewReaction.findFirst({
       where: {
         userId: user.id,
         reviewId: reviewId

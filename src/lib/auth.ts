@@ -61,8 +61,14 @@ export const authOptions: AuthOptions = {
     signIn: "/login",
   },
   debug: process.env.NODE_ENV === "development",
+  // Explicit session/JWT expiry configuration
+  // 30 days in seconds
   session: {
     strategy: "jwt" as SessionStrategy,
+    maxAge: 60 * 60 * 24 * 30,
+  },
+  jwt: {
+    maxAge: 60 * 60 * 24 * 30,
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
@@ -78,10 +84,6 @@ export const authOptions: AuthOptions = {
         session.user = session.user || {};
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-      }
-      // Ensure 'expires' is present to satisfy Session/DefaultSession type
-      if (!('expires' in session)) {
-        (session as any).expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(); // 30 days expiry
       }
       return session;
     }

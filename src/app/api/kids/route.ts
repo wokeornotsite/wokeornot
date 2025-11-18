@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Cache for 5 minutes (300 seconds)
+export const revalidate = 300;
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const genre = searchParams.get('genre') || '';

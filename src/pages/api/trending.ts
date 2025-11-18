@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const localScores = await prisma.content.findMany({
       where: {
         tmdbId: { in: tmdbIds },
-        contentType: contentType,
+        contentType: contentType as 'MOVIE' | 'TV_SHOW',
       },
       select: {
         tmdbId: true,
@@ -43,6 +43,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       wokeScore: wokeScoreMap.has(item.id) ? wokeScoreMap.get(item.id) : undefined,
     }));
 
+    // Cache for 10 minutes (trending data changes less frequently)
+    res.setHeader(
+      'Cache-Control',
+      'public, s-maxage=600, stale-while-revalidate=1200'
+    );
     res.status(200).json({ results: mergedResults });
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch trending content' });

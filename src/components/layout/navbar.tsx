@@ -45,7 +45,7 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
             height={32}
             loading="lazy"
             unoptimized
-            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/avatar-placeholder.png'; }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/avatars/default.png'; }}
           />
         </div>
       </button>
@@ -55,6 +55,9 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
       >
         <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
           Profile
+        </Link>
+        <Link href="/favorites" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          My Favorites
         </Link>
         {session.user.role === 'ADMIN' && (
           <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

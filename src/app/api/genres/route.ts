@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMovieGenres, getTVGenres } from '@/lib/tmdb';
 
+// Cache for 1 day (genres rarely change)
+export const revalidate = 86400;
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'movie';

@@ -28,10 +28,16 @@ const nextConfig = {
   },
   output: 'standalone',
   staticPageGenerationTimeout: 1000,
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: true,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'wokeornot.net']
-    }
+    },
+    // Enable optimized package imports
+    optimizePackageImports: ['lucide-react', '@mui/material'],
   }
 };
 

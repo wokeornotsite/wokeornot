@@ -1,7 +1,17 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import TrendingSection from "@/components/ui/trending-section";
+import dynamic from "next/dynamic";
+
+// Lazy load TrendingSection for better initial page load
+const TrendingSection = dynamic(() => import("@/components/ui/trending-section"), {
+  loading: () => (
+    <div className="py-16 text-center text-blue-200">
+      <div className="animate-pulse">Loading trending content...</div>
+    </div>
+  ),
+  ssr: true,
+});
 
 export default function Home() {
 
