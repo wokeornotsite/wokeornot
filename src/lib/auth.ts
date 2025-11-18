@@ -13,6 +13,7 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     CredentialsProvider({
       name: "credentials",
@@ -79,7 +80,7 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
-    async session({ session, token }: { session: { user?: Record<string, unknown> }; token?: Record<string, unknown> }) {
+    async session({ session, token }: { session: { user?: Record<string, unknown>; expires: string }; token?: Record<string, unknown> }) {
       if (token) {
         session.user = session.user || {};
         session.user.id = token.id as string;
