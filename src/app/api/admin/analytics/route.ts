@@ -66,7 +66,6 @@ export async function GET(req: NextRequest) {
       userData.push({
         date: dateStr,
         signups: usersByDate[dateStr] || 0,
-        active: usersByDate[dateStr] || 0, // Simplified - could track actual active users
       });
       
       const reviewInfo = reviewsByDate[dateStr];

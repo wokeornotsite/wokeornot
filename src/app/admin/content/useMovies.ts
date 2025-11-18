@@ -4,7 +4,8 @@ import useSWR from 'swr';
 export function useMovies() {
   const { data, error, mutate, isLoading } = useSWR('/api/admin/movies', fetcher);
   return {
-    movies: data || [],
+    movies: (data?.data as any[]) || [],
+    total: (data?.total as number) || 0,
     isLoading,
     error,
     mutate,

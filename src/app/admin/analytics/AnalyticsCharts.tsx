@@ -14,7 +14,7 @@ export default function AnalyticsCharts() {
 
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1, color: '#38bdf8' }}>User Signups & Active Users</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1, color: '#38bdf8' }}>User Signups (Last 30 Days)</Typography>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={userData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -22,8 +22,7 @@ export default function AnalyticsCharts() {
           <YAxis />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="signups" stroke="#e879f9" strokeWidth={2} />
-          <Line type="monotone" dataKey="active" stroke="#38bdf8" strokeWidth={2} />
+          <Line type="monotone" dataKey="signups" stroke="#e879f9" strokeWidth={2} name="New Signups" />
         </LineChart>
       </ResponsiveContainer>
       <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, color: '#a78bfa' }}>Reviews & Average Rating</Typography>

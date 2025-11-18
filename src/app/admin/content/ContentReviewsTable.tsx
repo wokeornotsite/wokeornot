@@ -8,7 +8,7 @@ import { useReviews } from '../moderation/useReviews';
 import Snackbar from '@mui/material/Snackbar';
 
 export default function ContentReviewsTable() {
-  const { reviews, isLoading, error, mutate } = useReviews();
+  const { rows: reviews, isLoading, error, mutate } = useReviews();
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   async function handleEdit(row: any) {
