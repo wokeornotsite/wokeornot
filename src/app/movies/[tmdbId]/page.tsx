@@ -78,7 +78,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   const totalReviews = typeof apiJson?.totalReviews === 'number' ? apiJson.totalReviews : 0;
 
   const wokeScore = dbContent?.wokeScore ?? 0;
-  const reviewCount = totalReviews; // Use real-time count from API
+  const reviewCount = totalReviews || (dbContent?.reviewCount ?? 0);
 
   // Fallback for poster
   const posterUrl = movie.poster_path
