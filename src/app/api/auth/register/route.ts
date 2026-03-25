@@ -15,7 +15,9 @@ export async function POST(req: NextRequest) {
       setRateLimitHeaders(res, rl);
       return res;
     }
-    const { name, email, password } = await parseJson(req, schemas.authRegister);
+    const rawParsed = await parseJson(req, schemas.authRegister);
+    const { name, password } = rawParsed;
+    const email = rawParsed.email.toLowerCase();
     const safeName = name ? sanitizeHTML(name) : '';
     if (!email || !password) {
       const res = NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
     await transporter.sendMail({
       to: email,
       subject: 'Verify your email',
-      text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${token}&email=${email}`,
+      text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,
     });
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);

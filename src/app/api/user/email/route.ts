@@ -12,6 +12,10 @@ export async function POST(req: NextRequest) {
   if (!email || !email.includes('@')) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
   }
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
+  }
   await prisma.user.update({ where: { email: session.user.email }, data: { email } });
   return NextResponse.json({ success: true });
 }

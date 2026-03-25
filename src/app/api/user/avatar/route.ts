@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
 
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.type)) {
+    return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, { status: 400 });
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const ext = file.name.split('.').pop() || 'png';
   const filename = `${session.user.email.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}.${ext}`;
