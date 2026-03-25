@@ -1,7 +1,8 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -15,6 +16,9 @@ export default function ModerationUsersTable() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
+  const [banDialog, setBanDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [banReason, setBanReason] = React.useState('');
+  const [promoteDialog, setPromoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
@@ -66,25 +70,29 @@ export default function ModerationUsersTable() {
   });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
-  async function handleBan(row: any) {
+  async function confirmBan() {
+    const row = banDialog.row;
+    if (!row) return;
     try {
-      const reason = window.prompt('Ban reason (optional)?') || undefined;
       await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, isBanned: true, banReason: reason }),
+        body: JSON.stringify({ id: row.id, isBanned: true, banReason: banReason || undefined }),
       });
       await fetch('/api/admin/auditlog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'BAN_USER', targetId: row.id, targetType: 'User', details: `${row.email} | ${reason || ''}` }),
+        body: JSON.stringify({ action: 'BAN_USER', targetId: row.id, targetType: 'User', details: `${row.email} | ${banReason || ''}` }),
       });
       setSnackbar({ open: true, message: 'User banned' });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error banning user' });
     }
+    setBanDialog({ open: false, row: null });
+    setBanReason('');
   }
+
   async function handleUnban(row: any) {
     try {
       await fetch('/api/admin/users', {
@@ -103,6 +111,7 @@ export default function ModerationUsersTable() {
       setSnackbar({ open: true, message: 'Error unbanning user' });
     }
   }
+
   async function handleWarn(row: any) {
     try {
       await fetch('/api/admin/users', {
@@ -121,7 +130,10 @@ export default function ModerationUsersTable() {
       setSnackbar({ open: true, message: 'Error warning user' });
     }
   }
-  async function handlePromote(row: any) {
+
+  async function confirmPromote() {
+    const row = promoteDialog.row;
+    if (!row) return;
     try {
       await fetch('/api/admin/users', {
         method: 'PATCH',
@@ -138,12 +150,34 @@ export default function ModerationUsersTable() {
     } catch {
       setSnackbar({ open: true, message: 'Error promoting user' });
     }
+    setPromoteDialog({ open: false, row: null });
   }
+
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 2 },
     { field: 'role', headerName: 'Role', width: 110 },
-    { field: 'warnCount', headerName: 'Warnings', width: 120 },
-    { field: 'isBanned', headerName: 'Banned', width: 110, type: 'boolean' },
+    { field: 'warnCount', headerName: 'Warnings', width: 110 },
+    {
+      field: 'createdAt',
+      headerName: 'Joined',
+      width: 120,
+      valueFormatter: (params: any) => params.value ? new Date(params.value).toLocaleDateString() : '—',
+    },
+    {
+      field: 'isBanned',
+      headerName: 'Status',
+      width: 130,
+      renderCell: (params: any) => {
+        if (params.row.isBanned) {
+          return (
+            <Tooltip title={params.row.banReason || 'No reason given'} arrow>
+              <Chip label="Banned" color="error" size="small" />
+            </Tooltip>
+          );
+        }
+        return <Chip label="Active" color="success" size="small" />;
+      },
+    },
     {
       field: 'actions',
       type: 'actions',
@@ -153,7 +187,7 @@ export default function ModerationUsersTable() {
         const actions = [
           params.row.isBanned
             ? <GridActionsCellItem icon={<BlockIcon color="success" />} label="Unban" onClick={() => handleUnban(params.row)} />
-            : <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => handleBan(params.row)} />,
+            : <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => { setBanReason(''); setBanDialog({ open: true, row: params.row }); }} />,
           <GridActionsCellItem icon={<WarningIcon color="warning" />} label="Warn" onClick={() => handleWarn(params.row)} />,
         ];
         if (params.row.role !== 'ADMIN') {
@@ -161,7 +195,7 @@ export default function ModerationUsersTable() {
             <GridActionsCellItem
               icon={<span style={{ fontWeight: 700, color: '#38bdf8' }}>A</span>}
               label="Promote to Admin"
-              onClick={() => handlePromote(params.row)}
+              onClick={() => setPromoteDialog({ open: true, row: params.row })}
               showInMenu
             />
           );
@@ -280,12 +314,8 @@ export default function ModerationUsersTable() {
             color: '#fff !important',
             opacity: 1,
           },
-          '& .MuiDataGrid-iconButtonContainer': {
-            color: '#fff',
-          },
-          '& .MuiDataGrid-actionsCell': {
-            color: '#fff',
-          },
+          '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
+          '& .MuiDataGrid-actionsCell': { color: '#fff' },
         }}
       />
       <Snackbar
@@ -294,6 +324,42 @@ export default function ModerationUsersTable() {
         onClose={() => setSnackbar({ open: false, message: '' })}
         message={snackbar.message}
       />
+
+      {/* Ban dialog */}
+      <Dialog open={banDialog.open} onClose={() => setBanDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Ban {banDialog.row?.email}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="Reason (optional)"
+            value={banReason}
+            onChange={(e) => setBanReason(e.target.value)}
+            InputProps={{ sx: { color: '#fff' } }}
+            InputLabelProps={{ sx: { color: '#9ca3af' } }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBanDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmBan} variant="contained" color="error">Ban User</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Promote to Admin dialog */}
+      <Dialog open={promoteDialog.open} onClose={() => setPromoteDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Promote to Admin</DialogTitle>
+        <DialogContent>
+          <p>Promote <strong>{promoteDialog.row?.email}</strong> to Admin? They will have full access to this admin panel.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPromoteDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmPromote} variant="contained" sx={{ background: '#38bdf8' }}>Promote</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete dialog */}
       {deleteDialog.open && (
         <div style={{
           position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
@@ -303,8 +369,8 @@ export default function ModerationUsersTable() {
             <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete User</h2>
             <p>Are you sure you want to permanently delete this user? This action cannot be undone.</p>
             <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
-              <button onClick={() => setDeleteDialog({ open: false, userId: null })} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none' }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteDialog.userId!)} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none' }}>Delete</button>
+              <button onClick={() => setDeleteDialog({ open: false, userId: null })} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteDialog.userId!)} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>

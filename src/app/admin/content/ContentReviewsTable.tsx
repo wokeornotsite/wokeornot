@@ -2,7 +2,6 @@
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useReviews } from '../moderation/useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -11,10 +10,6 @@ export default function ContentReviewsTable() {
   const { rows: reviews, isLoading, error, mutate } = useReviews();
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
-  async function handleEdit(row: any) {
-    // Implement edit logic (open dialog, send PATCH, etc.)
-    setSnackbar({ open: true, message: 'Edit action not implemented' });
-  }
   async function handleDelete(row: any) {
     try {
       await fetch('/api/admin/reviews', {
@@ -42,9 +37,8 @@ export default function ContentReviewsTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 130,
+      width: 90,
       getActions: (params) => [
-        <GridActionsCellItem icon={<EditIcon color="primary" />} label="Edit" onClick={() => handleEdit(params.row)} />,
         <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => handleDelete(params.row)} />,
       ],
     },
@@ -72,6 +66,12 @@ export default function ContentReviewsTable() {
           '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#18181b' },
           '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#f3f4f6' },
         }}
+      />
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ open: false, message: '' })}
+        message={snackbar.message}
       />
     </Box>
   );
