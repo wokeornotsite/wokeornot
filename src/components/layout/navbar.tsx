@@ -18,11 +18,16 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
         setIsOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsOpen(false);
+    }
     if (isOpen) {
       document.addEventListener('mousedown', handleClick);
+      document.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
 

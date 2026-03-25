@@ -27,7 +27,7 @@ const nextConfig = {
     imageSizes: [32, 64, 96],
   },
   output: 'standalone',
-  staticPageGenerationTimeout: 1000,
+  staticPageGenerationTimeout: 60,
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
@@ -38,7 +38,19 @@ const nextConfig = {
     },
     // Enable optimized package imports
     optimizePackageImports: ['lucide-react', '@mui/material'],
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

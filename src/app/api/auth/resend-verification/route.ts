@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       return res;
     }
     // Generate a new token
-    const token = [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
     await prisma.verificationToken.create({
       data: {

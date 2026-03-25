@@ -20,6 +20,7 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 
 import { prisma } from '@/lib/prisma';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
+import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
 export default async function MovieDetailPage({ params }: { params: { tmdbId: string } }) {
   // Next.js 15: params may be a promise, so await if needed
@@ -119,9 +120,18 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
               <h1 className="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
                 {movie.title}
               </h1>
-              <span className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2">
-                WOKE
-              </span>
+              {reviewCount > 0 ? (
+                <span
+                  className="text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2 text-white"
+                  style={{ background: getWokenessBadgeBg(wokeScore) }}
+                >
+                  {getWokenessLabel(wokeScore)}
+                </span>
+              ) : (
+                <span className="text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2 text-white bg-gray-600">
+                  Not Rated
+                </span>
+              )}
             </div>
             <SocialShareButtons url={`https://www.wokeornot.net/movies/${tmdbId}`} title={movie.title} />
             <div className="flex items-center gap-4 text-base md:text-lg text-gray-200">

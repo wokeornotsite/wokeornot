@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, context) {
   try {
     const { id } = await context.params;
     const comments = await prisma.comment.findMany({
-      where: { id, parentId: null },
+      where: { contentId: id, parentId: null },
       include: {
         user: { select: { id: true, name: true, image: true } },
         replies: {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, context) {
     const comment = await prisma.comment.create({
       data: {
         userId: dbUser.id,
-        id,
+        contentId: id,
         text: safeText,
         parentId: parentId || null,
       },

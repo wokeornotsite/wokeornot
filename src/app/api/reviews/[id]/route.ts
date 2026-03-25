@@ -25,92 +25,66 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       orderBy: { createdAt: 'desc' },
     });
     
-    // Get reaction counts separately
-    const reviewsWithReactions = await Promise.all(reviews.map(async (review: any) => {
-      // Get likes count
-      const likes = await prisma.reviewReaction.count({
-        where: {
-          reviewId: review.id,
-          type: 'like'
-        }
-      });
-      
-      // Get dislikes count
-      const dislikes = await prisma.reviewReaction.count({
-        where: {
-          reviewId: review.id,
-          type: 'dislike'
-        }
-      });
-      
-      // Get user's reaction if logged in
-      let userReaction = null;
-      if (currentUserId) {
-        const reaction = await prisma.reviewReaction.findFirst({
-          where: {
-            reviewId: review.id,
-            userId: currentUserId
-          }
-        });
-        userReaction = reaction?.type || null;
-      }
-      
-      // Make sure we preserve the categories structure exactly
-      return {
-        id: review.id,
-        rating: review.rating,
-        text: review.text,
-        createdAt: review.createdAt,
-        updatedAt: review.updatedAt,
-        userId: review.userId,
-        guestName: review.guestName, // Include guestName for anonymous reviews
-        contentId: review.contentId,
-        user: review.user,
-        categories: review.categories, // Ensure categories are preserved
-        likes,
-        dislikes,
-        userReaction
-      };
-    }));
-    
-    // Calculate weighted Woke Reasons summary for this contentId
-    // 1. Get all categories for this content
-    // First, get all review IDs for this content
     const reviewIds = reviews.map((r: any) => r.id);
-    console.log(`Found ${reviewIds.length} reviews for content ${id}:`, reviewIds);
-    
-    // Then, get all review categories with these review IDs
+
+    // Fetch all reaction counts in a single grouped query (avoids N+1)
+    const reactionGroups = await (prisma.reviewReaction as any).groupBy({
+      by: ['reviewId', 'type'],
+      _count: { _all: true },
+      where: { reviewId: { in: reviewIds } },
+    });
+
+    // Fetch current user's reactions in a single query
+    const userReactionsMap: Record<string, string> = {};
+    if (currentUserId && reviewIds.length > 0) {
+      const userReactions = await prisma.reviewReaction.findMany({
+        where: { reviewId: { in: reviewIds }, userId: currentUserId },
+        select: { reviewId: true, type: true },
+      });
+      for (const r of userReactions) {
+        userReactionsMap[r.reviewId] = r.type;
+      }
+    }
+
+    const likesMap: Record<string, number> = {};
+    const dislikesMap: Record<string, number> = {};
+    for (const group of reactionGroups) {
+      if (group.type === 'like') likesMap[group.reviewId] = group._count._all;
+      else if (group.type === 'dislike') dislikesMap[group.reviewId] = group._count._all;
+    }
+
+    const reviewsWithReactions = reviews.map((review: any) => ({
+      id: review.id,
+      rating: review.rating,
+      text: review.text,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      userId: review.userId,
+      guestName: review.guestName,
+      contentId: review.contentId,
+      user: review.user,
+      categories: review.categories,
+      likes: likesMap[review.id] || 0,
+      dislikes: dislikesMap[review.id] || 0,
+      userReaction: userReactionsMap[review.id] || null,
+    }));
+
+    // Calculate woke reasons summary
     const allReviewCategories = await prisma.reviewCategory.findMany({
-      where: { 
-        reviewId: { in: reviewIds }
-      },
+      where: { reviewId: { in: reviewIds } },
       include: { category: true }
     });
-    
-    // Debug log
-    console.log(`Found ${allReviewCategories.length} review categories for content ${id}`);
-    
-    // Directly query categories to ensure they exist
-    const categories = await prisma.category.findMany();
-    console.log(`Total categories in database: ${categories.length}`);
-    
-    // 2. Count votes for each category
+
     const categoryCountMap: Record<string, { name: string, count: number }> = {};
-    
     allReviewCategories.forEach((rc: any) => {
-      if (!rc.categoryId || !rc.category?.name) {
-        console.log('Missing category data:', rc);
-        return;
-      }
-      
+      if (!rc.categoryId || !rc.category?.name) return;
       if (!categoryCountMap[rc.categoryId]) {
         categoryCountMap[rc.categoryId] = { name: rc.category.name, count: 1 };
       } else {
         categoryCountMap[rc.categoryId].count++;
       }
     });
-    
-    // 3. Prepare summary array
+
     const totalReviews = reviews.length;
     const wokeReasons = Object.entries(categoryCountMap).map(([categoryId, { name, count }]) => ({
       categoryId,
@@ -118,55 +92,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       count,
       percent: totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0
     }));
-    
-    // Debug log
-    console.log(`Generated ${wokeReasons.length} woke reasons for content ${id}:`, wokeReasons);
-    
-    // If no categories were found through the normal query, try a direct approach
+
+    // Fallback: derive categories from already-loaded reviews if normal query yielded nothing
     if (wokeReasons.length === 0) {
-      console.log('No categories found through normal query, trying direct approach');
-      
-      // Get all review categories directly from the database
-      const directCategories = [];
+      const mergedCategories: Record<string, { name: string, count: number, percent: number }> = {};
       for (const review of reviews) {
         if (review.categories && Array.isArray(review.categories)) {
           for (const cat of review.categories) {
-            if (cat.category && cat.category.name) {
-              directCategories.push({
-                categoryId: cat.categoryId,
-                name: cat.category.name,
-                count: 1,
-                percent: 100
-              });
+            if (cat.category?.name) {
+              if (!mergedCategories[cat.categoryId]) {
+                mergedCategories[cat.categoryId] = { name: cat.category.name, count: 1, percent: 0 };
+              } else {
+                mergedCategories[cat.categoryId].count++;
+              }
             }
           }
         }
       }
-      
-      console.log(`Found ${directCategories.length} categories directly from reviews`);
-      
-      if (directCategories.length > 0) {
-        // Merge duplicate categories
-        const mergedCategories: Record<string, { name: string, count: number, percent: number }> = {};
-        directCategories.forEach(cat => {
-          if (!mergedCategories[cat.categoryId]) {
-            mergedCategories[cat.categoryId] = cat;
-          } else {
-            mergedCategories[cat.categoryId].count++;
-          }
-        });
-        
-        // Calculate percentages
-        Object.values(mergedCategories).forEach((cat: { name: string, count: number, percent: number }) => {
-          cat.percent = Math.round((cat.count / totalReviews) * 100);
-        });
-        
-        console.log('Using direct categories:', Object.values(mergedCategories));
-        return NextResponse.json({
-          reviews: reviewsWithReactions,
-          wokeReasons: Object.values(mergedCategories),
-          totalReviews
-        });
+      Object.values(mergedCategories).forEach((cat) => {
+        cat.percent = Math.round((cat.count / totalReviews) * 100);
+      });
+      if (Object.keys(mergedCategories).length > 0) {
+        return NextResponse.json({ reviews: reviewsWithReactions, wokeReasons: Object.values(mergedCategories), totalReviews });
       }
     }
 
@@ -202,7 +149,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { rating, text, categoryIds, guestName } = await parseJson(req, schemas.reviewCreate);
     const safeText = text ? sanitizeHTML(text) : '';
     const session = await getServerSession(authOptions);
-    console.log('Received review submission with categories:', categoryIds);
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
     

@@ -52,9 +52,9 @@ export default async function ProfilePage() {
     );
   }
 
-  // Convert all dates to strings for client component
-  const reviews = user.reviews.map((r: any) => ({ ...r, createdAt: r.createdAt.toString() }));
-  const comments = user.comments.map((c: any) => ({ ...c, createdAt: c.createdAt.toString() }));
+  // Convert all dates to ISO strings for client component (avoids raw Date.toString() format)
+  const reviews = user.reviews.map((r: any) => ({ ...r, createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt }));
+  const comments = user.comments.map((c: any) => ({ ...c, createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt }));
 
   return (
     <AvatarProvider initialAvatar={user.avatar || ""}>

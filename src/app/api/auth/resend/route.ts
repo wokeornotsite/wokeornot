@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   await transporter.sendMail({
     to: email,
     subject: 'Verify your email',
-    text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${token}&email=${email}`,
+    text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,
   });
   const res = NextResponse.json({ success: true });
   setRateLimitHeaders(res, rl);

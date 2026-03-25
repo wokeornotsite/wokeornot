@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   await transporter.sendMail({
     to: email,
     subject: 'Reset your password',
-    text: `Click the link to reset your password: ${process.env.NEXTAUTH_URL}/reset?token=${token}&email=${email}`,
+    text: `Click the link to reset your password: ${process.env.NEXTAUTH_URL}/reset?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,
   });
   const res = NextResponse.json({ success: true });
   setRateLimitHeaders(res, rl);

@@ -4,12 +4,6 @@ import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
 
-
-
-// import { searchMovies, searchTVShows } from '@/lib/tmdb';
-// import type { TMDBMovie, TMDBTVShow, ContentItem } from '@/types';
-import type { ContentItem } from '@/types';
-
 async function searchContent(query: string, genre: string, year: string, wokeness: string, mediaType: string): Promise<ContentItem[]> {
   if (!query) return [];
   try {
@@ -196,6 +190,11 @@ export default function SearchPage() {
       {/* Results Grid */}
       <section className="max-w-5xl mx-auto px-4">
         {error && <ErrorMessage message={error} />}
+        {results === null && !loading && (
+          <div className="text-center text-blue-200 py-8 text-xl">
+            Enter a title above to search movies, shows, and more.
+          </div>
+        )}
         {results && results.length === 0 && !loading && (
           <div className="text-center text-blue-200 py-8 text-xl">No results found. Try a different search.</div>
         )}

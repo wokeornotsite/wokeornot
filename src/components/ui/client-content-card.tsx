@@ -25,7 +25,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
   return (
     <Link href={contentUrl}>
       <div
-        className="relative rounded-2xl overflow-hidden h-full flex flex-col group border border-white/20 backdrop-blur-xl bg-white/10 shadow-2xl transition-transform duration-200 hover:scale-105 focus-within:scale-105 hover:border-gradient-to-tr hover:from-pink-400 hover:to-blue-400 focus-within:border-gradient-to-tr focus-within:from-pink-400 focus-within:to-blue-400"
+        className="relative rounded-2xl overflow-hidden h-full flex flex-col group border border-white/20 backdrop-blur-xl bg-white/10 shadow-2xl transition-transform duration-200 hover:scale-105 focus-within:scale-105 active:scale-95 hover:border-gradient-to-tr hover:from-pink-400 hover:to-blue-400 focus-within:border-gradient-to-tr focus-within:from-pink-400 focus-within:to-blue-400"
         tabIndex={0}
         aria-label={`View details for ${content.title}`}
       >
