@@ -14,6 +14,7 @@ export default function TVShowsPage() {
   const [year, setYear] = useState('');
   const [language, setLanguage] = useState('en');
   const [wokeness, setWokeness] = useState('');
+  const [sortBy, setSortBy] = useState('wokeness-desc');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,19 +47,32 @@ export default function TVShowsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, year, language, wokeness]);
+  }, [genre, year, language, wokeness, sortBy]);
 
   const filteredTVShows = allTVShows.filter(show => {
-    const matchesWokeness = !wokeness || 
+    const matchesWokeness = !wokeness ||
       (wokeness === 'low' && show.wokeScore >= 1 && show.wokeScore <= 3) ||
       (wokeness === 'medium' && show.wokeScore >= 4 && show.wokeScore <= 6) ||
       (wokeness === 'high' && show.wokeScore >= 7 && show.wokeScore <= 10);
     return matchesWokeness;
   });
 
-  const totalPages = Math.ceil(filteredTVShows.length / ITEMS_PER_PAGE);
+  const sortedShows = [...filteredTVShows].sort((a, b) => {
+    switch (sortBy) {
+      case 'wokeness-desc': return (b.wokeScore || 0) - (a.wokeScore || 0);
+      case 'wokeness-asc': return (a.wokeScore || 0) - (b.wokeScore || 0);
+      case 'title-asc': return a.title.localeCompare(b.title);
+      case 'title-desc': return b.title.localeCompare(a.title);
+      case 'date-desc': return new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime();
+      case 'date-asc': return new Date(a.releaseDate || 0).getTime() - new Date(b.releaseDate || 0).getTime();
+      case 'reviews-desc': return (b.reviewCount || 0) - (a.reviewCount || 0);
+      default: return 0;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedShows.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedShows = filteredTVShows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedShows = sortedShows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -139,10 +153,25 @@ export default function TVShowsPage() {
             <option value="medium">Moderately Woke (4-6)</option>
             <option value="high">Very Woke (7-10)</option>
           </select>
+          <label htmlFor="sort" className="sr-only">Sort By</label>
+          <select
+            id="sort"
+            className="min-w-[140px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+          >
+            <option value="wokeness-desc">Most Woke</option>
+            <option value="wokeness-asc">Least Woke</option>
+            <option value="title-asc">Title A-Z</option>
+            <option value="title-desc">Title Z-A</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="reviews-desc">Most Reviews</option>
+          </select>
           <button
             type="button"
             className="ml-2 px-3 py-1 rounded-md bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
-            onClick={() => { setGenre(''); setYear(''); setWokeness(''); }}
+            onClick={() => { setGenre(''); setYear(''); setWokeness(''); setSortBy('wokeness-desc'); }}
           >
             Reset Filters
           </button>
@@ -163,7 +192,7 @@ export default function TVShowsPage() {
           </div>
         ) : (
           <>
-            {filteredTVShows.length === 0 ? (
+            {sortedShows.length === 0 ? (
               <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

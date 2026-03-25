@@ -71,7 +71,11 @@ export const RegisterForm = () => {
         )}
         {showVerificationNotice && (
           <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
-            Registration successful! Please check your email and click the verification link to activate your account.
+            <p className="font-semibold mb-1">Account created!</p>
+            <p>Please check your email and click the verification link to activate your account before signing in.</p>
+            <a href="/login" className="mt-3 inline-block text-blue-600 hover:underline font-semibold">
+              Go to sign in →
+            </a>
           </div>
         )}
         {!showVerificationNotice && (

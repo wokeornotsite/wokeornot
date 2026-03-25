@@ -34,6 +34,13 @@ export default function ReviewSection({ id }: { id: string }) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const getTooltip = (i: number) => (i === 0 ? 'Not woke at all' : i === 9 ? 'Very Woke' : '');
 
+  // Auto-dismiss success message after 4 seconds
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(''), 4000);
+    return () => clearTimeout(t);
+  }, [success]);
+
   // Cleanup hover timeout on unmount
   useEffect(() => {
     return () => {
