@@ -98,7 +98,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                   ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white border-transparent shadow-lg'
                   : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
               }`}
-              aria-label={`Page ${pageNum}`}
+              aria-label={`Page ${pageNum} of ${totalPages}`}
               aria-current={isActive ? 'page' : undefined}
             >
               {pageNum}

@@ -30,7 +30,7 @@ export const WokenessBar: React.FC<WokenessBarProps> = ({ score, categoryScores 
       </div>
       
       {/* Main gradient bar */}
-      <div className="h-6 w-full bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-6 w-full bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
         {sortedScores.length > 0 ? (
           <div className="h-full flex">
             {sortedScores.map((categoryScore, index) => (
