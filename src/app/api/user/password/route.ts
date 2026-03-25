@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Password too short' }, { status: 400 });
   }
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user || !user.hashedPassword) {
+  if (!user || !user.password) {
     return NextResponse.json({ error: 'No password set for this account' }, { status: 400 });
   }
-  const valid = await bcrypt.compare(oldPassword, user.hashedPassword);
+  const valid = await bcrypt.compare(oldPassword, user.password);
   if (!valid) {
     return NextResponse.json({ error: 'Old password is incorrect' }, { status: 400 });
   }
   const hashed = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({ where: { email: session.user.email }, data: { hashedPassword: hashed } });
+  await prisma.user.update({ where: { email: session.user.email }, data: { password: hashed } });
   return NextResponse.json({ success: true });
 }
