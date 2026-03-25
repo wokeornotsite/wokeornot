@@ -83,6 +83,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -93,6 +94,7 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -184,6 +186,8 @@ model Review {
   categories  ReviewCategory[]
   reactions   ReviewReaction[]
 
+  @@index([contentId])
+  @@index([userId])
   @@map("reviews")
 }
 
@@ -214,7 +218,9 @@ model AuditLog {
   
   // Relations
   admin       User      @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  
+
+  @@index([adminId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
@@ -234,6 +240,9 @@ model Comment {
   parent      Comment?  @relation("CommentToComment", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies     Comment[] @relation("CommentToComment")
 
+  @@index([contentId])
+  @@index([parentId])
+  @@index([userId])
   @@map("comments")
 }
 
@@ -263,6 +272,7 @@ model ReviewReaction {
   review      Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   
   @@unique([userId, reviewId])
+  @@index([reviewId])
   @@map("review_reactions")
 }
 
