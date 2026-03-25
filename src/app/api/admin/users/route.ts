@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const role = searchParams.get('role') || '';
 
     const where: any = {};
-    if (q) where.email = { contains: q, mode: 'insensitive' };
+    if (q) where.OR = [{ email: { contains: q, mode: 'insensitive' } }, { name: { contains: q, mode: 'insensitive' } }];
     if (role) where.role = role;
 
     const [data, total] = await Promise.all([

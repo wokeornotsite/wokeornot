@@ -19,6 +19,7 @@ export default function ModerationUsersTable() {
   const [banDialog, setBanDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [banReason, setBanReason] = React.useState('');
   const [promoteDialog, setPromoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [demoteDialog, setDemoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
@@ -131,6 +132,28 @@ export default function ModerationUsersTable() {
     }
   }
 
+  async function confirmDemote() {
+    const row = demoteDialog.row;
+    if (!row) return;
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, role: 'USER' }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'DEMOTE_USER', targetId: row.id, targetType: 'User', details: row.email }),
+      });
+      setSnackbar({ open: true, message: 'User demoted to User role' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error demoting user' });
+    }
+    setDemoteDialog({ open: false, row: null });
+  }
+
   async function confirmPromote() {
     const row = promoteDialog.row;
     if (!row) return;
@@ -200,6 +223,16 @@ export default function ModerationUsersTable() {
             />
           );
         }
+        if (params.row.role !== 'USER') {
+          actions.push(
+            <GridActionsCellItem
+              icon={<span style={{ fontWeight: 700, color: '#f87171' }}>↓</span>}
+              label="Demote to User"
+              onClick={() => setDemoteDialog({ open: true, row: params.row })}
+              showInMenu
+            />
+          );
+        }
         actions.push(
           <GridActionsCellItem
             icon={<DeleteIcon color="error" />}
@@ -244,7 +277,7 @@ export default function ModerationUsersTable() {
           size="small"
           value={q}
           onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
-          placeholder="Search email..."
+          placeholder="Search email or name..."
           InputProps={{ sx: { color: '#fff' } }}
           sx={{ minWidth: 240 }}
         />
@@ -360,21 +393,28 @@ export default function ModerationUsersTable() {
       </Dialog>
 
       {/* Delete dialog */}
-      {deleteDialog.open && (
-        <div style={{
-          position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: '#232336', padding: 24, borderRadius: 8, color: '#fff', minWidth: 320 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete User</h2>
-            <p>Are you sure you want to permanently delete this user? This action cannot be undone.</p>
-            <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
-              <button onClick={() => setDeleteDialog({ open: false, userId: null })} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteDialog.userId!)} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, userId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete User</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>Are you sure you want to permanently delete this user? This action cannot be undone.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, userId: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={() => handleDelete(deleteDialog.userId!)} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Demote to User dialog */}
+      <Dialog open={demoteDialog.open} onClose={() => setDemoteDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Demote to User</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>Demote <strong>{demoteDialog.row?.email}</strong> to User? They will lose admin/moderator access.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDemoteDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmDemote} variant="contained" color="error">Demote</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

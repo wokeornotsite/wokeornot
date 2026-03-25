@@ -2,7 +2,6 @@ import React from 'react';
 import { Typography, Box } from '@mui/material';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 import ContentMoviesTable from './ContentMoviesTable';
-import ContentReviewsTable from './ContentReviewsTable';
 
 export default function ContentManagementPage() {
   return (
@@ -15,8 +14,6 @@ export default function ContentManagementPage() {
         Edit or remove movies, shows, and reviews. Manage categories and featured content.
       </Typography>
       <ContentMoviesTable />
-      <Box mt={5} />
-      <ContentReviewsTable />
     </Box>
   );
 }

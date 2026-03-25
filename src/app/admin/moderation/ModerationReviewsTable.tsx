@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -108,7 +108,18 @@ export default function ModerationReviewsTable() {
   const columns: GridColDef[] = [
     { field: 'user', headerName: 'User', flex: 1, valueGetter: (params: any) => (params?.row?.user?.email) || params?.row?.guestName || '' },
     { field: 'contentTitle', headerName: 'Content', flex: 1, valueGetter: (params: any) => params?.row?.content?.title || '' },
-    { field: 'text', headerName: 'Review', flex: 2 },
+    {
+      field: 'text',
+      headerName: 'Review',
+      flex: 2,
+      renderCell: (params: any) => (
+        <Tooltip title={params.value || ''} arrow placement="top">
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
+            {params.value || '—'}
+          </span>
+        </Tooltip>
+      ),
+    },
     { field: 'rating', headerName: 'Rating', width: 110, sortable: true },
     { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (params: any) => (params?.row?.createdAt ? new Date(params.row.createdAt) : null), sortable: true },
     {
@@ -136,7 +147,7 @@ export default function ModerationReviewsTable() {
 
   return (
     <Box sx={{
-      height: 370,
+      height: 560,
       width: '100%',
       background: 'rgba(24,24,27,0.98)',
       borderRadius: 2,
@@ -241,21 +252,16 @@ export default function ModerationReviewsTable() {
         onClose={() => setSnackbar({ open: false, message: '' })}
         message={snackbar.message}
       />
-      {deleteDialog.open && (
-        <div style={{
-          position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: '#232336', padding: 24, borderRadius: 8, color: '#fff', minWidth: 320 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete Review</h2>
-            <p>Are you sure you want to permanently delete this review? This action cannot be undone.</p>
-            <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
-              <button onClick={() => setDeleteDialog({ open: false, reviewId: null })} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteDialog.reviewId!)} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, reviewId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete Review</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>Are you sure you want to permanently delete this review? This action cannot be undone.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, reviewId: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={() => handleDelete(deleteDialog.reviewId!)} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
