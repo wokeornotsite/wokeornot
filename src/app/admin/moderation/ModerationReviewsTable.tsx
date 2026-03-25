@@ -1,8 +1,10 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -63,6 +65,26 @@ export default function ModerationReviewsTable() {
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; reviewId: string | null }>({ open: false, reviewId: null });
 
+  async function handleToggleHide(row: any) {
+    const nextHidden = !row.isHidden;
+    try {
+      await fetch('/api/admin/reviews', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, isHidden: nextHidden }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: nextHidden ? 'HIDE_REVIEW' : 'UNHIDE_REVIEW', targetId: row.id, targetType: 'Review' }),
+      });
+      setSnackbar({ open: true, message: nextHidden ? 'Review hidden' : 'Review unhidden' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error updating review visibility' });
+    }
+  }
+
   async function handleDelete(reviewId: string) {
     try {
       await fetch('/api/admin/reviews', {
@@ -90,11 +112,23 @@ export default function ModerationReviewsTable() {
     { field: 'rating', headerName: 'Rating', width: 110, sortable: true },
     { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (params: any) => (params?.row?.createdAt ? new Date(params.row.createdAt) : null), sortable: true },
     {
+      field: 'isHidden',
+      headerName: 'Status',
+      width: 110,
+      renderCell: (params: any) =>
+        params.row.isHidden
+          ? <Chip label="Hidden" color="error" size="small" />
+          : <Chip label="Visible" color="success" size="small" />,
+    },
+    {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 90,
+      width: 130,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
+        params.row.isHidden
+          ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} />
+          : <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} />,
         <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} />,
       ],
     },

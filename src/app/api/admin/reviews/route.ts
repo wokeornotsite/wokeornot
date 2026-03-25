@@ -63,6 +63,7 @@ export async function GET(req: NextRequest) {
           id: true,
           text: true,
           rating: true,
+          isHidden: true,
           createdAt: true,
           guestName: true,
           user: { select: { email: true, name: true } },
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
       id: r.id,
       text: r.text,
       rating: r.rating,
+      isHidden: r.isHidden,
       createdAt: r.createdAt,
       guestName: r.guestName,
       user: r.user,
@@ -118,11 +120,12 @@ export async function PATCH(req: NextRequest) {
   if ('error' in auth) return auth.error;
   try {
     const body = await req.json();
-    const { id, text, rating } = body as { id?: string; text?: string | null; rating?: number };
+    const { id, text, rating, isHidden } = body as { id?: string; text?: string | null; rating?: number; isHidden?: boolean };
     if (!id) return NextResponse.json({ error: 'Review ID required' }, { status: 400 });
     const data: any = {};
     if (typeof text !== 'undefined') data.text = text;
     if (typeof rating === 'number') data.rating = rating;
+    if (typeof isHidden === 'boolean') data.isHidden = isHidden;
     const updated = await prisma.review.update({ where: { id }, data });
     return NextResponse.json({ data: updated });
   } catch (error) {

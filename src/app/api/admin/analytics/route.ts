@@ -7,9 +7,12 @@ export async function GET(req: NextRequest) {
   if ('error' in auth) return auth.error;
 
   try {
-    // Get data for the last 30 days
+    const { searchParams } = new URL(req.url);
+    const rawDays = Number(searchParams.get('days') || '30');
+    const days = [7, 14, 30, 90].includes(rawDays) ? rawDays : 30;
+
     const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - days);
 
     // Fetch users created in the last 30 days
     const users = await prisma.user.findMany({
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest) {
     const userData = [];
     const reviewData = [];
     
-    for (let i = 29; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];

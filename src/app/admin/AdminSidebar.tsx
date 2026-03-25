@@ -13,6 +13,8 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import BuildIcon from '@mui/icons-material/Build';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
+import HistoryIcon from '@mui/icons-material/History';
+import ForumIcon from '@mui/icons-material/Forum';
 import { Button, Drawer, IconButton, useMediaQuery, useTheme } from '@mui/material';
 
 const navLinks = [
@@ -21,6 +23,8 @@ const navLinks = [
   { href: '/admin/users', icon: <PeopleIcon />, label: 'Users', exact: false },
   { href: '/admin/content', icon: <ManageSearchIcon />, label: 'Content', exact: false },
   { href: '/admin/analytics', icon: <BarChartIcon />, label: 'Analytics', exact: false },
+  { href: '/admin/audit-log', icon: <HistoryIcon />, label: 'Audit Log', exact: false },
+  { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false },
   { href: '/admin/maintenance', icon: <BuildIcon />, label: 'Maintenance', exact: false },
 ];
 

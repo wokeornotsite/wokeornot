@@ -1,12 +1,14 @@
 "use client";
 import useSWR from 'swr';
 
-export function useAnalytics() {
-  const { data, error, isLoading } = useSWR('/api/admin/analytics', fetcher);
+export function useAnalytics(days?: number) {
+  const key = days && days !== 30 ? `/api/admin/analytics?days=${days}` : '/api/admin/analytics';
+  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
   return {
     analytics: data || {},
     isLoading,
     error,
+    mutate,
   };
 }
 

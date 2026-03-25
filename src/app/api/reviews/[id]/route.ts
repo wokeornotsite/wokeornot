@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     
     const { id } = await params;
     const reviews = await prisma.review.findMany({
-      where: { contentId: id },
+      where: { contentId: id, isHidden: false },
       include: {
         user: { select: { id: true, name: true, image: true } },
         categories: { include: { category: true } },
