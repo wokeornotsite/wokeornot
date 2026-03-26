@@ -51,24 +51,21 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
     await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
-    // Send verification email
-    const nodemailer = await import('nodemailer');
-    
-    // Handle both EMAIL_SERVER format and individual EMAIL_HOST/PORT variables
+    // Send verification email — individual vars take priority over EMAIL_SERVER URL
     let transportConfig: any;
-    if (process.env.EMAIL_SERVER) {
-      // Parse the EMAIL_SERVER string (format: smtp://user:pass@host:port)
-      transportConfig = process.env.EMAIL_SERVER;
-    } else {
+    if (process.env.EMAIL_HOST) {
       transportConfig = {
         host: process.env.EMAIL_HOST,
         port: Number(process.env.EMAIL_PORT || 587),
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
       };
+    } else {
+      transportConfig = process.env.EMAIL_SERVER;
     }
-    
+
     const transporter = nodemailer.createTransport(transportConfig);
     await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Verify your email',
       text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,

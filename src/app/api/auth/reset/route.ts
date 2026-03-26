@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return res;
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword, emailVerified: new Date() } });
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);
