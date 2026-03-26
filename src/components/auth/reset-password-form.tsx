@@ -16,7 +16,7 @@ const resetSchema = z.object({
 
 type ResetFormValues = z.infer<typeof resetSchema>;
 
-export const ResetPasswordForm = ({ token }: { token: string }) => {
+export const ResetPasswordForm = ({ token, email }: { token: string; email: string }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export const ResetPasswordForm = ({ token }: { token: string }) => {
     setError(null);
     setSuccess(null);
     try {
-      await axios.post('/api/auth/reset', { ...data, token });
+      await axios.post('/api/auth/reset', { ...data, token, email });
       setSuccess('Your password has been reset. You may now log in.');
     } catch (err: any) {
       setError(
