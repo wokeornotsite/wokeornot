@@ -29,7 +29,12 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
   const tmdbId = resolvedParams?.tmdbId;
   if (!tmdbId) return notFound();
   // Fetch TV show details from TMDB
-  const tvShow = await getTVShowDetails(Number(tmdbId));
+  let tvShow;
+  try {
+    tvShow = await getTVShowDetails(Number(tmdbId));
+  } catch {
+    return notFound();
+  }
   if (!tvShow) return notFound();
 
   // --- Automatic content creation ---
@@ -66,12 +71,18 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
     : '/images/placeholder.png';
 
   // Fetch credits (cast)
-  const credits = await getTVCredits(Number(tmdbId));
-  const mainCast = credits.cast?.slice(0, 3) || [];
+  let mainCast: any[] = [];
+  try {
+    const credits = await getTVCredits(Number(tmdbId));
+    mainCast = credits.cast?.slice(0, 3) || [];
+  } catch { /* non-critical */ }
 
   // Fetch similar TV shows
-  const similarShowsData = await getSimilarTVShows(Number(tmdbId));
-  const similarShows = similarShowsData.results || [];
+  let similarShows: any[] = [];
+  try {
+    const similarShowsData = await getSimilarTVShows(Number(tmdbId));
+    similarShows = similarShowsData.results || [];
+  } catch { /* non-critical */ }
 
   // Batch-fetch real woke scores for similar shows from DB
   const similarTmdbIds = similarShows.slice(0, 8).map((s: any) => s.id).filter(Boolean);

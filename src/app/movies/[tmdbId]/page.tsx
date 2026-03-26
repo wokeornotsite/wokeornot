@@ -28,7 +28,12 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   const tmdbId = resolvedParams?.tmdbId;
   if (!tmdbId) return notFound();
   // Fetch movie details from TMDB
-  const movie = await getMovieDetails(Number(tmdbId));
+  let movie;
+  try {
+    movie = await getMovieDetails(Number(tmdbId));
+  } catch {
+    return notFound();
+  }
   if (!movie) return notFound();
 
   // --- Automatic content creation ---
@@ -49,25 +54,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   }
   // --- End automatic content creation ---
 
-  // Fetch weighted woke reasons summary and reviews
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  const reviewsApiRes = await fetch(`${baseUrl}/api/reviews/${dbContent.id}`, { 
-    cache: 'no-store',
-    headers: {
-      'Accept': 'application/json'
-    }
-  });
-
-  let apiJson;
-  try {
-    apiJson = await reviewsApiRes.json();
-  } catch (error) {
-    console.error('[Error] Failed to parse API response:', error);
-    apiJson = {};
-  }
-
-  // Fetch categoryScores directly from the database (same approach as TV shows page)
+  // Fetch categoryScores directly from the database
   const categoryScores = dbContent
     ? await prisma.categoryScore.findMany({
         where: { contentId: dbContent.id },
@@ -75,11 +62,8 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
       })
     : [];
 
-  const reviews = Array.isArray(apiJson?.reviews) ? apiJson.reviews : [];
-  const totalReviews = typeof apiJson?.totalReviews === 'number' ? apiJson.totalReviews : 0;
-
   const wokeScore = dbContent?.wokeScore ?? 0;
-  const reviewCount = totalReviews || (dbContent?.reviewCount ?? 0);
+  const reviewCount = dbContent?.reviewCount ?? 0;
 
   // Fallback for poster
   const posterUrl = movie.poster_path
