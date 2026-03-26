@@ -53,7 +53,9 @@ export async function POST(req: NextRequest) {
     setRateLimitHeaders(res, rl);
     return res;
   } catch (err: any) {
-    console.error('[forgot] email error:', err);
+    console.error('[forgot] email error code:', err?.code);
+    console.error('[forgot] email error message:', err?.message);
+    console.error('[forgot] email error response:', err?.response);
     const status = err?.status === 400 ? 400 : 500;
     const message = err?.status === 400 ? err.message : 'Server error.';
     const res = NextResponse.json({ error: message }, { status });
