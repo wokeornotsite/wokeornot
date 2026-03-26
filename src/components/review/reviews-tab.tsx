@@ -49,14 +49,14 @@ export default function ReviewsTab({ id }: { id: string }) {
   return (
     <div className="max-w-2xl mx-auto mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">User Reviews</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight">User Reviews</h2>
         <div className="flex items-center gap-2 text-sm">
-          <label htmlFor="reviews-sort" className="text-gray-600">Sort by</label>
+          <label htmlFor="reviews-sort" className="text-blue-300/70">Sort by</label>
           <select
             id="reviews-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'helpful' | 'newest')}
-            className="border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-800 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="border border-blue-400/30 rounded-lg px-2 py-1 bg-[#181824] text-white hover:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <option value="helpful">Most helpful</option>
             <option value="newest">Newest</option>

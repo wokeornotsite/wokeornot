@@ -133,31 +133,31 @@ export default function ReviewSection({ id }: { id: string }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-8 mt-8 rounded-3xl shadow-xl border border-blue-200 bg-white">
-      <h2 className="flex items-center justify-center gap-2 text-3xl font-extrabold mb-5 text-gray-900 tracking-tight text-center">
+    <div className="max-w-2xl mx-auto p-8 mt-8 rounded-3xl shadow-xl border border-white/10 bg-transparent">
+      <h2 className="flex items-center justify-center gap-2 text-3xl font-extrabold mb-5 text-white tracking-tight text-center">
         <svg xmlns="http://www.w3.org/2000/svg" fill="#facc15" viewBox="0 0 24 24" width="32" height="32" className="inline-block -mt-1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
         Submit Your Review
       </h2>
-      <div className="w-16 h-1 mx-auto mb-8 rounded-full bg-blue-200"></div>
+      <div className="w-16 h-1 mx-auto mb-8 rounded-full bg-blue-400/40"></div>
       {success && (
-        <div className="mb-4 p-3 rounded-lg bg-green-100 border border-green-400 text-green-800 font-semibold text-center">
+        <div className="mb-4 p-3 rounded-lg bg-green-900/40 border border-green-500 text-green-300 font-semibold text-center">
           {success}
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-400 text-red-800 font-semibold text-center">
+        <div className="mb-4 p-3 rounded-lg bg-red-900/40 border border-red-500 text-red-300 font-semibold text-center">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-white/90 border-2 border-blue-200 shadow-lg rounded-2xl p-8 text-gray-900 relative z-10">
+      <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-[#1a1a2e]/60 border-2 border-blue-400/20 shadow-lg rounded-2xl p-8 text-white relative z-10">
         {!session && (
           <div>
-            <label className="block text-base font-bold mb-2 text-gray-900">Your Name <span className='font-normal'>(optional)</span></label>
+            <label className="block text-base font-bold mb-2 text-blue-100">Your Name <span className='font-normal'>(optional)</span></label>
             <input
               type="text"
               value={guestName}
               onChange={e => setGuestName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-3 py-2 border border-blue-400/30 rounded-lg bg-[#181824] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="Anonymous"
               maxLength={32}
             />
@@ -165,7 +165,7 @@ export default function ReviewSection({ id }: { id: string }) {
         )}
 
           <div>
-            <label className="block text-base font-bold mb-2 text-gray-900">Your Rating</label>
+            <label className="block text-base font-bold mb-2 text-blue-100">Your Rating</label>
             <div className="flex items-center sm:justify-center gap-0.5 sm:gap-1 md:gap-1.5 max-w-full">
               {[...Array(10)].map((_, i) => {
                 const activeCount = hoverIdx !== null ? hoverIdx + 1 : rating;
@@ -207,16 +207,16 @@ export default function ReviewSection({ id }: { id: string }) {
                   </span>
                 );
               })}
-              <span className="ml-1 text-xs sm:ml-2 sm:text-sm text-gray-500">{rating > 0 ? `${rating}/10` : ''}</span>
+              <span className="ml-1 text-xs sm:ml-2 sm:text-sm text-blue-300">{rating > 0 ? `${rating}/10` : ''}</span>
             </div>
             {/* Hover/Focus hint under stars */}
             <div className="mt-2 min-h-[20px]">
               {hoverIdx !== null && getTooltip(hoverIdx) && (
-                <div className="text-sm text-gray-800">{getTooltip(hoverIdx)}</div>
+                <div className="text-sm text-blue-200">{getTooltip(hoverIdx)}</div>
               )}
             </div>
             {/* Legend */}
-            <div className="mt-2 flex items-center gap-8 md:gap-12 text-xs text-gray-600">
+            <div className="mt-2 flex items-center gap-8 md:gap-12 text-xs text-blue-300/70">
               <span className="inline-flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" className="shrink-0"><path fill="#22c55e" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
                 <span>1 = "Not Woke"</span>
@@ -228,7 +228,7 @@ export default function ReviewSection({ id }: { id: string }) {
             </div>
           </div>
           <div>
-            <label className="block text-base font-bold mb-2 text-gray-900">Your Review <span className='font-normal'>(optional)</span></label>
+            <label className="block text-base font-bold mb-2 text-blue-100">Your Review <span className='font-normal'>(optional)</span></label>
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
@@ -237,7 +237,7 @@ export default function ReviewSection({ id }: { id: string }) {
             />
           </div>
           <div>
-            <label className="block text-base font-bold mb-2 text-gray-900">
+            <label className="block text-base font-bold mb-2 text-blue-100">
               Categories {rating > 1 ? '(required)' : '(optional)'}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -248,7 +248,7 @@ export default function ReviewSection({ id }: { id: string }) {
                   className={`px-3 py-1 rounded-full border text-sm font-semibold shadow-sm transition-all duration-300
                     ${selectedCategories.includes(cat.id) 
                       ? 'bg-blue-600 text-white border-blue-700 transform scale-105 shadow-md' 
-                      : 'bg-white text-blue-700 border-blue-400 hover:bg-blue-50 hover:shadow-md hover:scale-105'}
+                      : 'bg-transparent text-blue-300 border-blue-400/50 hover:bg-blue-800/30 hover:shadow-md hover:scale-105'}
                     ${rating === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={() => {
                     if (rating === 1) return;

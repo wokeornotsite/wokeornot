@@ -90,19 +90,19 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
   return (
     <>
       {actionError && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+        <div className="bg-red-900/40 text-red-300 p-3 rounded-lg mb-4 text-sm">
           {actionError}
         </div>
       )}
       <ul className="space-y-5">
         {sortedReviews.map((review) => (
-        <li key={review.id} className="rounded-2xl bg-white border border-gray-100 shadow-md px-5 py-4 flex flex-col">
+        <li key={review.id} className="rounded-2xl bg-[#232946] border border-white/10 shadow-md px-5 py-4 flex flex-col">
           <div className="flex items-center gap-3 pb-2">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 font-semibold text-base">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-900/50 text-blue-300 font-semibold text-base">
               {(review.user?.name || review.guestName)?.[0]?.toUpperCase() || 'A'}
             </span>
-            <span className="font-medium text-gray-900 text-base truncate max-w-[120px]">{review.user?.name || review.guestName || 'Anonymous'}</span>
-            <span className="bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
+            <span className="font-medium text-white text-base truncate max-w-[120px]">{review.user?.name || review.guestName || 'Anonymous'}</span>
+            <span className="bg-yellow-900/40 text-yellow-300 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
               {review.rating}/10
             </span>
             <span className="text-xs text-gray-400 font-normal ml-auto">{formatDisplayDateTime(review.createdAt)}</span>
@@ -116,14 +116,14 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
                 .map(cat => cat.name || (cat.category && cat.category.name))
                 .filter(name => name && name.trim())
                 .map((name, idx) => (
-                  <span key={idx} className="bg-blue-50 text-blue-700 text-xs rounded-full px-2 py-0.5 font-medium border border-blue-100">
+                  <span key={idx} className="bg-blue-900/40 text-blue-300 text-xs rounded-full px-2 py-0.5 font-medium border border-blue-800/50">
                     {name}
                   </span>
                 ))}
             </div>
           )}
           {review.text && (
-            <div className="text-gray-900 text-base md:text-lg leading-relaxed whitespace-pre-line mt-1">
+            <div className="text-gray-100 text-base md:text-lg leading-relaxed whitespace-pre-line mt-1">
               {review.text}
             </div>
           )}
@@ -132,7 +132,7 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
             <button 
               onClick={() => handleReviewReaction(review.id, 'like')}
               disabled={pendingId === review.id}
-              className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'like' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition-colors text-sm disabled:opacity-50`}
+              className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'like' ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'} transition-colors text-sm disabled:opacity-50`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
@@ -143,7 +143,7 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
             <button 
               onClick={() => handleReviewReaction(review.id, 'dislike')}
               disabled={pendingId === review.id}
-              className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'dislike' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition-colors text-sm disabled:opacity-50`}
+              className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'dislike' ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'} transition-colors text-sm disabled:opacity-50`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
