@@ -73,6 +73,16 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
   const similarShowsData = await getSimilarTVShows(Number(tmdbId));
   const similarShows = similarShowsData.results || [];
 
+  // Batch-fetch real woke scores for similar shows from DB
+  const similarTmdbIds = similarShows.slice(0, 8).map((s: any) => s.id).filter(Boolean);
+  const similarDbData = similarTmdbIds.length > 0
+    ? await prisma.content.findMany({
+        where: { tmdbId: { in: similarTmdbIds }, contentType: 'TV_SHOW' },
+        select: { tmdbId: true, wokeScore: true, reviewCount: true },
+      })
+    : [];
+  const similarDbMap = Object.fromEntries(similarDbData.map(c => [c.tmdbId, c]));
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
       {/* Hero Section with Backdrop */}
@@ -213,8 +223,8 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                 backdropPath: show.backdrop_path,
                 releaseDate: show.first_air_date ? new Date(show.first_air_date) : undefined,
                 contentType: 'TV_SHOW',
-                wokeScore: Math.random() * 10, // Placeholder
-                reviewCount: Math.floor(Math.random() * 100), // Placeholder
+                wokeScore: similarDbMap[show.id]?.wokeScore ?? 0,
+                reviewCount: similarDbMap[show.id]?.reviewCount ?? 0,
                 genres,
               };
               return (
