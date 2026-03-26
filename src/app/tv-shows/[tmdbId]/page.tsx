@@ -21,6 +21,7 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { notFound } from 'next/navigation';
 // Import ContentType enum directly from Prisma client
 import { prisma } from '@/lib/prisma';
+import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
 export default async function TvShowDetailPage({ params }: { params: { tmdbId: string } }) {
   // Next.js 15: params may be a promise, so await if needed
@@ -105,9 +106,16 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
               <h1 className="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
                 {tvShow.name}
               </h1>
-              <span className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2">
-                WOKE
-              </span>
+              {reviewCount > 0 ? (
+                <span className="text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2 text-white"
+                  style={{ background: getWokenessBadgeBg(wokeScore) }}>
+                  {getWokenessLabel(wokeScore)}
+                </span>
+              ) : (
+                <span className="text-xs px-3 py-1 rounded-full font-bold shadow-lg border border-white/10 ml-2 text-white bg-gray-600">
+                  Not Rated
+                </span>
+              )}
             </div>
             {/* Social Share Buttons */}
             <SocialShareButtons url={`https://www.wokeornot.net/tv-shows/${tmdbId}`} title={tvShow.name} />
@@ -141,7 +149,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                   {categoryScores
                     .filter(cs => cs.count > 0)
                     .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
-                    .map(cs => (
+                    .map((cs, i) => (
                       <div key={cs.categoryId} className="flex items-center gap-2 w-full">
                         <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
                           {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
@@ -150,16 +158,16 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                         <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
                           <div
                             className="h-6 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
-                            style={{ 
-                              width: `${cs.percentage}%`, 
-                              transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
+                            style={{
+                              width: `${Math.round(cs.percentage)}%`,
+                              transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
                               animationDuration: '0.6s',
-                              animationDelay: `${0.1 * (categoryScores.findIndex(c => c.categoryId === cs.categoryId))}s`
+                              animationDelay: `${0.1 * i}s`
                             }}
                           />
-                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percentage}%</span>
+                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{Math.round(cs.percentage)}%</span>
                         </div>
-                        <span className="w-14 text-xs text-blue-700 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
+                        <span className="w-14 text-xs text-gray-300 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
                     ))}
                 </div>

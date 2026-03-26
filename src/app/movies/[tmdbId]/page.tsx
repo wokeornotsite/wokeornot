@@ -163,7 +163,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
                   {categoryScores
                     .filter(cs => cs.count > 0)
                     .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
-                    .map(cs => (
+                    .map((cs, i) => (
                       <div key={cs.categoryId} className="flex items-center gap-2 w-full">
                         <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
                           {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
@@ -172,16 +172,16 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
                         <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
                           <div
                             className="h-6 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
-                            style={{ 
-                              width: `${cs.percentage}%`, 
-                              transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
+                            style={{
+                              width: `${Math.round(cs.percentage)}%`,
+                              transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
                               animationDuration: '0.6s',
-                              animationDelay: `${0.1 * (categoryScores.findIndex(c => c.categoryId === cs.categoryId))}s`
+                              animationDelay: `${0.1 * i}s`
                             }}
                           />
-                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{cs.percentage}%</span>
+                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{Math.round(cs.percentage)}%</span>
                         </div>
-                        <span className="w-14 text-xs text-blue-700 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
+                        <span className="w-14 text-xs text-gray-300 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
                     ))
                 }
