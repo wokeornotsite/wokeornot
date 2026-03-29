@@ -63,6 +63,8 @@ export default async function ProfilePage() {
         email: user.email || '',
         avatar: user.avatar || '',
         image: user.image || '',
+        createdAt: user.createdAt.toISOString(),
+        reviewCount: user.reviews.length,
         reviews,
         comments,
       }} />

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const reviews = await prisma.review.findMany({
       where: { contentId: id, isHidden: false },
       include: {
-        user: { select: { id: true, name: true, image: true } },
+        user: { select: { id: true, name: true, image: true, avatar: true } },
         categories: { include: { category: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       },
       include: {
-        user: { select: { id: true, name: true, image: true } },
+        user: { select: { id: true, name: true, image: true, avatar: true } },
         categories: { include: { category: true } },
       },
     });

@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
+import Image from "next/image";
 import { formatDisplayDateTime } from '@/lib/date-utils';
 
 interface Category {
@@ -12,7 +13,7 @@ interface Category {
 
 interface Review {
   id: string;
-  user?: { name?: string };
+  user?: { name?: string; avatar?: string; image?: string };
   guestName?: string;
   rating: number;
   text?: string;
@@ -98,9 +99,20 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
         {sortedReviews.map((review) => (
         <li key={review.id} className="rounded-2xl bg-[#232946] border border-white/10 shadow-md px-5 py-4 flex flex-col">
           <div className="flex items-center gap-3 pb-2">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-900/50 text-blue-300 font-semibold text-base">
-              {(review.user?.name || review.guestName)?.[0]?.toUpperCase() || 'A'}
-            </span>
+            {(review.user?.avatar || review.user?.image) ? (
+              <Image
+                src={review.user.avatar || review.user.image!}
+                alt={review.user?.name || 'User'}
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0"
+                unoptimized
+              />
+            ) : (
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-900/50 text-blue-300 font-semibold text-base shrink-0">
+                {(review.user?.name || review.guestName)?.[0]?.toUpperCase() || 'A'}
+              </span>
+            )}
             <span className="font-medium text-white text-base truncate max-w-[120px]">{review.user?.name || review.guestName || 'Anonymous'}</span>
             <span className="bg-yellow-900/40 text-yellow-300 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
               {review.rating}/10
