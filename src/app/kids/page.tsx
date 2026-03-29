@@ -105,98 +105,115 @@ export default function KidsPage() {
         </div>
       </section>
 
-      {/* Elegant Filter Bar */}
-      <div className="mb-8 max-w-5xl mx-auto px-2">
-        <form className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-4 py-3">
-          <label htmlFor="genre" className="text-white font-bold text-base mr-1">Genre</label>
-          <select
-            id="genre"
-            className="min-w-[120px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={genre}
-            onChange={e => setGenre(e.target.value)}
-          >
-            <option value="">All Genres</option>
-            {genres.map((g: { id: number; name: string }) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-          <label htmlFor="year" className="text-white font-bold text-base mr-1">Year</label>
-          <select
-            id="year"
-            className="min-w-[100px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={year}
-            onChange={e => setYear(e.target.value)}
-          >
-            <option value="">All Years</option>
-            {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-          <label htmlFor="language" className="text-white font-bold text-base mr-1">Language</label>
-          <select
-            id="language"
-            className="min-w-[120px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={language}
-            onChange={e => setLanguage(e.target.value)}
-          >
-            <option value="en">English</option>
-            <option value="">All Languages</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
-            <option value="ja">Japanese</option>
-            <option value="ko">Korean</option>
-            <option value="zh">Chinese</option>
-            <option value="hi">Hindi</option>
-            <option value="ru">Russian</option>
-            <option value="it">Italian</option>
-          </select>
-          <label htmlFor="wokeness" className="text-white font-bold text-base mr-1">Wokeness</label>
-          <select
-            id="wokeness"
-            className="min-w-[120px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={wokeness}
-            onChange={e => setWokeness(e.target.value)}
-          >
-            <option value="">All Levels</option>
-            <option value="low">Not Woke (1-3)</option>
-            <option value="medium">Moderately Woke (4-6)</option>
-            <option value="high">Very Woke (7-10)</option>
-          </select>
-          <label htmlFor="sort" className="sr-only">Sort By</label>
-          <select
-            id="sort"
-            className="min-w-[140px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-          >
-            <option value="wokeness-desc">Most Woke</option>
-            <option value="wokeness-asc">Least Woke</option>
-            <option value="title-asc">Title A-Z</option>
-            <option value="title-desc">Title Z-A</option>
-            <option value="date-desc">Newest First</option>
-            <option value="date-asc">Oldest First</option>
-            <option value="reviews-desc">Most Reviews</option>
-          </select>
-          <label htmlFor="category" className="text-white font-bold text-base mr-1">Woke Reason</label>
-          <select
-            id="category"
-            className="min-w-[140px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
-            value={categoryId}
-            onChange={e => setCategoryId(e.target.value)}
-          >
-            <option value="">All Reasons</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="ml-2 px-3 py-1 rounded-md bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
-            onClick={() => { setGenre(''); setYear(''); setWokeness(''); setSortBy('wokeness-desc'); setCategoryId(''); }}
-          >
-            Reset Filters
-          </button>
+      {/* Filter Bar */}
+      <div className="mb-8 max-w-7xl mx-auto px-4">
+        <form className="bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-5 py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="genre" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Genre</label>
+              <select
+                id="genre"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={genre}
+                onChange={e => setGenre(e.target.value)}
+              >
+                <option value="">All Genres</option>
+                {genres.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="year" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Year</label>
+              <select
+                id="year"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={year}
+                onChange={e => setYear(e.target.value)}
+              >
+                <option value="">All Years</option>
+                {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="language" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Language</label>
+              <select
+                id="language"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+              >
+                <option value="en">English</option>
+                <option value="">All Languages</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="zh">Chinese</option>
+                <option value="hi">Hindi</option>
+                <option value="ru">Russian</option>
+                <option value="it">Italian</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="wokeness" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Wokeness</label>
+              <select
+                id="wokeness"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={wokeness}
+                onChange={e => setWokeness(e.target.value)}
+              >
+                <option value="">All Levels</option>
+                <option value="low">Not Woke (1-3)</option>
+                <option value="medium">Moderately Woke (4-6)</option>
+                <option value="high">Very Woke (7-10)</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="sort" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Sort By</label>
+              <select
+                id="sort"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+              >
+                <option value="wokeness-desc">Most Woke</option>
+                <option value="wokeness-asc">Least Woke</option>
+                <option value="title-asc">Title A-Z</option>
+                <option value="title-desc">Title Z-A</option>
+                <option value="date-desc">Newest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="reviews-desc">Most Reviews</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="category" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Woke Reason</label>
+              <select
+                id="category"
+                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                value={categoryId}
+                onChange={e => setCategoryId(e.target.value)}
+              >
+                <option value="">All Reasons</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 justify-end">
+              <label className="text-transparent text-xs select-none">Reset</label>
+              <button
+                type="button"
+                className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-blue-500 text-white text-sm font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all"
+                onClick={() => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); setCategoryId(''); }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 
