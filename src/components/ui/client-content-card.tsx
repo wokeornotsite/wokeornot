@@ -8,7 +8,7 @@ import { GenreBadges } from './genre-badges';
 import { FavoriteButton } from './favorite-button';
 import { CategoryIcon } from './category-icon';
 import { SkeletonCard } from './skeleton-card';
-import { getWokenessLabel, getWokenessBadgeColor, getWokenessBadgeBg, formatWokenessScore, getWokenessTextColor } from '@/lib/wokeness-utils';
+import { getWokenessLabel, getWokenessBadgeColor, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 import { getYear } from '@/lib/date-utils';
 
 interface ContentCardProps {
@@ -73,11 +73,10 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             {getYear(content.releaseDate) || getYear((content as any).release_date) || ''}
           </p>
           <p className="text-gray-200 text-sm line-clamp-3 flex-grow mb-2">{content.overview}</p>
-          <div className="mt-2 flex justify-between items-center">
+          <div className="mt-2">
             <span className="text-xs text-blue-300">
               {content.reviewCount} {content.reviewCount === 1 ? 'review' : 'reviews'}
             </span>
-            <span className={`text-xs font-bold ${getWokenessTextColor(content.wokeScore)}`}>{content.reviewCount === 0 ? 'Not yet rated' : getWokenessLabel(content.wokeScore)}</span>
           </div>
         </div>
       </div>

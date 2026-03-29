@@ -84,21 +84,18 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
-      {/* Hero Section */}
-      <section className="relative w-full flex flex-col items-center justify-center py-16 mb-10">
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-900/60 via-blue-900/60 to-purple-900/60 blur-2xl animate-gradient-x z-0" aria-hidden="true" />
-        <div className="relative z-10 max-w-3xl mx-auto px-6 py-12 rounded-3xl backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl flex flex-col items-center text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg mb-4 animate-fadeIn">
-            My Favorites
-          </h1>
-          <p className="text-lg md:text-xl text-blue-200 mb-3 animate-fadeIn delay-100">
-            Your personal watchlist of movies and shows
+      {/* Hero */}
+      <section className="bg-[#1a1a2e] border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 py-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3">My Favorites</h1>
+          <p className="text-gray-400 text-lg">
+            Your personal watchlist
+            {favorites.length > 0 && (
+              <span className="ml-2 inline-block bg-purple-900/40 border border-purple-700/40 text-purple-300 text-sm font-semibold rounded-full px-3 py-0.5">
+                {favorites.length} {favorites.length === 1 ? 'item' : 'items'}
+              </span>
+            )}
           </p>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow">
-              {favorites.length} {favorites.length === 1 ? 'item' : 'items'}
-            </span>
-          </div>
         </div>
       </section>
 

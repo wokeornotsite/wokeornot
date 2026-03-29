@@ -58,20 +58,20 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
         className={`absolute right-0 mt-2 w-52 py-2 z-50 transition-opacity duration-150 ${styles.dropdown} ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         tabIndex={-1}
       >
-        <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+        <Link href="/profile" className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-md mx-1">
           Profile
         </Link>
-        <Link href="/favorites" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+        <Link href="/favorites" className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-md mx-1">
           My Favorites
         </Link>
         {session.user.role === 'ADMIN' && (
-          <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          <Link href="/admin" className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-md mx-1">
             Admin Panel
           </Link>
         )}
         <button
           onClick={() => signOut()}
-          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-md mx-1"
         >
           Sign Out
         </button>
@@ -99,7 +99,7 @@ export const Navbar = () => {
           <span className={styles.logoIcon}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#2563eb" opacity="0.13"/><path d="M8 19c0-3 4-7 6-7s6 4 6 7" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/><circle cx="14" cy="12" r="2" fill="#2563eb"/></svg>
           </span>
-          <span style={{color:'#2563eb'}}>Woke</span><span style={{color:'#1e293b'}}>OrNot</span>
+          <span style={{color:'#a78bfa'}}>Woke</span><span style={{color:'#e2e8f0'}}>OrNot</span>
         </Link>
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-6">

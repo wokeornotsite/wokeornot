@@ -12,7 +12,7 @@ export default function MoviesPage() {
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState('');
   const [wokeness, setWokeness] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -92,17 +92,11 @@ export default function MoviesPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
-      {/* Cinematic Hero Section */}
-      <section className="relative w-full flex flex-col items-center justify-center py-16 mb-10">
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-900/60 via-blue-900/60 to-purple-900/60 blur-2xl animate-gradient-x z-0" aria-hidden="true" />
-        <div className="relative z-10 max-w-3xl mx-auto px-6 py-12 rounded-3xl backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl flex flex-col items-center text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg mb-4 animate-fadeIn">Movies</h1>
-          <p className="text-lg md:text-xl text-blue-200 mb-3 animate-fadeIn delay-100">Discover and rate the most talked-about movies through a new lens.</p>
-          <div className="flex flex-wrap gap-2 items-center justify-center animate-fadeIn delay-200">
-            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow">Cinematic</span>
-            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold shadow">Glassmorphism</span>
-            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold shadow">Modern UI</span>
-          </div>
+      {/* Hero */}
+      <section className="bg-[#1a1a2e] border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 py-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3">Movies</h1>
+          <p className="text-gray-400 text-lg">Rate and discover movies through a new lens</p>
         </div>
       </section>
 

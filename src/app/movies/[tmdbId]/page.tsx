@@ -12,7 +12,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 import Image from 'next/image';
-import { getMovieDetails } from '@/lib/tmdb';
+import { getMovieDetails, getSimilarMovies } from '@/lib/tmdb';
+import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
 import { SocialShareButtons } from '@/components/ui/social-share-buttons';
 import { notFound } from 'next/navigation';
@@ -20,6 +21,7 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 
 import { prisma } from '@/lib/prisma';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
+import { ClientContentCard } from '@/components/ui/client-content-card';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
 export default async function MovieDetailPage({ params }: { params: { tmdbId: string } }) {
@@ -64,6 +66,24 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
 
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = dbContent?.reviewCount ?? 0;
+
+  // Fetch similar movies
+  let similarMovies: any[] = [];
+  try {
+    const similar = await getSimilarMovies(Number(tmdbId));
+    similarMovies = similar?.results?.slice(0, 8) || [];
+  } catch { /* non-critical */ }
+
+  // Pre-populate genre cache and batch-fetch woke scores for similar movies
+  await fetchAndCacheGenres();
+  const similarTmdbIds = similarMovies.map((m: any) => m.id).filter(Boolean);
+  const similarDbData = similarTmdbIds.length > 0
+    ? await prisma.content.findMany({
+        where: { tmdbId: { in: similarTmdbIds }, contentType: 'MOVIE' },
+        select: { tmdbId: true, wokeScore: true, reviewCount: true },
+      })
+    : [];
+  const similarDbMap = Object.fromEntries(similarDbData.map(c => [c.tmdbId, c]));
 
   // Fallback for poster
   const posterUrl = movie.poster_path
@@ -193,9 +213,38 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <div className="mt-8">
               <ReviewTabsWrapper id={dbContent.id} />
             </div>
-            {/* Placeholder for future: Similar movies carousel/grid */}
           </div>
         </div>
+        {/* Similar Movies Carousel */}
+        {similarMovies.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-4 text-blue-200">More Like This</h2>
+            <div className="flex gap-6 overflow-x-auto pb-2">
+              {similarMovies.map((m: any) => {
+                const genreNames = getGenreNames(m.genre_ids || [], 'movie');
+                const genres = (m.genre_ids || []).map((gid: number, idx: number) => ({ id: gid, name: genreNames[idx] || '' }));
+                const contentItem = {
+                  id: m.id?.toString() || '',
+                  tmdbId: m.id,
+                  title: m.title || 'Untitled',
+                  overview: m.overview || '',
+                  posterPath: m.poster_path,
+                  backdropPath: m.backdrop_path,
+                  releaseDate: m.release_date ? new Date(m.release_date) : undefined,
+                  contentType: 'MOVIE' as const,
+                  wokeScore: similarDbMap[m.id]?.wokeScore ?? 0,
+                  reviewCount: similarDbMap[m.id]?.reviewCount ?? 0,
+                  genres,
+                };
+                return (
+                  <div key={m.id} className="min-w-[200px] max-w-[220px]">
+                    <ClientContentCard content={contentItem} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
     </>
