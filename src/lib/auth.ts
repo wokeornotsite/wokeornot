@@ -73,10 +73,19 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }: { token: Record<string, unknown>; user?: { id?: string; role?: string } }) {
+    async jwt({ token, user, trigger, session: sessionUpdate }: { token: Record<string, unknown>; user?: { id?: string; role?: string; avatar?: string }; trigger?: string; session?: Record<string, unknown> }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        // Fetch avatar from DB on initial sign-in
+        if (user.id) {
+          const dbUser = await prisma.user.findUnique({ where: { id: user.id as string }, select: { avatar: true } });
+          token.avatar = dbUser?.avatar || '';
+        }
+      }
+      // Allow client-side session.update({ avatar }) to refresh the token
+      if (trigger === 'update' && sessionUpdate?.avatar !== undefined) {
+        token.avatar = sessionUpdate.avatar as string;
       }
       return token;
     },
@@ -85,6 +94,7 @@ export const authOptions: AuthOptions = {
         session.user = session.user || {};
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.avatar = (token.avatar as string) || '';
       }
       return session;
     }

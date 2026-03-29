@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useAvatar } from "./AvatarContext";
 import Link from "next/link";
 import DateClient from "./DateClient";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 // Types must match server
 export type Review = {
@@ -66,6 +66,7 @@ const builtInAvatars = [
 
 function ProfileClient({ user }: { user: UserProfileData }) {
   const { avatar, setAvatar } = useAvatar();
+  const { update: updateSession } = useSession();
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [activityFilter, setActivityFilter] = useState("");
@@ -223,6 +224,8 @@ function ProfileClient({ user }: { user: UserProfileData }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to set avatar');
+      // Refresh session so Navbar picks up the new avatar immediately
+      await updateSession({ avatar: src });
     } catch (err: any) {
       setAvatarError(err.message || 'Failed to set avatar');
     } finally {

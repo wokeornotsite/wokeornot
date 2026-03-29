@@ -287,10 +287,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!review || !user || review.userId !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const updated = await prisma.review.update({
+    await prisma.review.update({
       where: { id },
       data: { rating, text: safeText },
     });
+
+    // Recalculate wokeScore for the content
+    const contentId = review.contentId;
+    const allReviews = await prisma.review.findMany({ where: { contentId } });
+    const reviewCount = allReviews.length;
+    const wokeScore = reviewCount > 0
+      ? allReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviewCount
+      : 0;
+    await prisma.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
+
     return NextResponse.json({ message: 'Review updated successfully' });
   } catch (error: unknown) {
     let message = 'Failed to update review.';
