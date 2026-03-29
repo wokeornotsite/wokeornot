@@ -17,6 +17,7 @@ import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
+import { SocialShareButtons } from '@/components/ui/social-share-buttons';
 import ReviewSection from '@/components/review/review-section';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
 import CommentSection from '@/components/comment/comment-section';
@@ -31,7 +32,12 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
   const tmdbId = resolvedParams?.tmdbId;
   if (!tmdbId) return notFound();
   // Fetch movie details from TMDB (kids content is just a filtered set of movies)
-  const movie = await getMovieDetails(Number(tmdbId));
+  let movie;
+  try {
+    movie = await getMovieDetails(Number(tmdbId));
+  } catch {
+    return notFound();
+  }
   if (!movie) return notFound();
 
   // --- Automatic content creation ---
@@ -89,6 +95,19 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
     similarError = err?.message || 'Failed to load similar content.';
   }
 
+  // Pre-populate genre cache for similar movies
+  await fetchAndCacheGenres();
+
+  // Batch-fetch real woke scores for similar movies from DB
+  const similarTmdbIds = similarShows.map((s: any) => s.id).filter(Boolean);
+  const similarDbData = similarTmdbIds.length > 0
+    ? await prisma.content.findMany({
+        where: { tmdbId: { in: similarTmdbIds }, contentType: 'KIDS' },
+        select: { tmdbId: true, wokeScore: true, reviewCount: true },
+      })
+    : [];
+  const similarDbMap = Object.fromEntries(similarDbData.map(c => [c.tmdbId, c]));
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
       {/* Hero Section with Backdrop */}
@@ -130,6 +149,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
                 </span>
               )}
             </div>
+            <SocialShareButtons url={`https://www.wokeornot.net/kids/${tmdbId}`} title={movie.title} />
             <div className="flex items-center gap-4 text-base md:text-lg text-gray-200">
               <span>{movie.release_date?.slice(0,4)}</span>
               <span>&bull;</span>
@@ -208,6 +228,36 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
 
           </div>
         </div>
+        {/* Similar Movies Carousel */}
+        {similarShows.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-4 text-blue-200">Similar Movies</h2>
+            <div className="flex gap-6 overflow-x-auto pb-2">
+              {similarShows.map((show: any) => {
+                const genreNames = getGenreNames(show.genre_ids || [], 'movie');
+                const genres = (show.genre_ids || []).map((gid: number, idx: number) => ({ id: gid, name: genreNames[idx] || '' }));
+                const contentItem = {
+                  id: show.id?.toString() || '',
+                  tmdbId: show.id,
+                  title: show.title || 'Untitled',
+                  overview: show.overview || '',
+                  posterPath: show.poster_path,
+                  backdropPath: show.backdrop_path,
+                  releaseDate: show.release_date ? new Date(show.release_date) : undefined,
+                  contentType: 'KIDS',
+                  wokeScore: similarDbMap[show.id]?.wokeScore ?? 0,
+                  reviewCount: similarDbMap[show.id]?.reviewCount ?? 0,
+                  genres,
+                };
+                return (
+                  <div key={show.id} className="min-w-[200px] max-w-[220px]">
+                    <ClientContentCard content={contentItem} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
