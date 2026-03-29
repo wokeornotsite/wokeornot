@@ -10,17 +10,14 @@ const ITEMS_PER_PAGE = 20;
 export default function MoviesPage() {
   const [allMovies, setAllMovies] = useState<ContentItem[]>([]);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
   const [language, setLanguage] = useState('');
   const [wokeness, setWokeness] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [categoryTmdbIds, setCategoryTmdbIds] = useState<number[] | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState('wokeness-desc'); // wokeness-desc, wokeness-asc, title-asc, title-desc, date-desc, date-asc, reviews-desc
+  const [sortBy, setSortBy] = useState('wokeness-desc');
 
   useEffect(() => {
     async function fetchData() {
@@ -31,17 +28,14 @@ export default function MoviesPage() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
-        const [moviesRes, genresRes, catsRes] = await Promise.all([
+        const [moviesRes, genresRes] = await Promise.all([
           fetch(`/api/movies?${params.toString()}`),
           fetch('/api/genres?type=movie'),
-          fetch('/api/categories'),
         ]);
         const movies = await moviesRes.json();
         const genres = await genresRes.json();
-        const cats = await catsRes.json();
         setAllMovies(movies);
         setGenres(genres);
-        setCategories(Array.isArray(cats) ? cats : []);
       } catch {
         setError('Failed to load movies.');
       } finally {
@@ -51,52 +45,31 @@ export default function MoviesPage() {
     fetchData();
   }, [genre, year, language]);
 
-  // Fetch tmdbIds for selected woke category
-  useEffect(() => {
-    if (!categoryId) { setCategoryTmdbIds(null); return; }
-    fetch(`/api/categories/content?categoryId=${encodeURIComponent(categoryId)}&contentType=MOVIE`)
-      .then(r => r.json())
-      .then(data => setCategoryTmdbIds(Array.isArray(data) ? data : null))
-      .catch(() => setCategoryTmdbIds(null));
-  }, [categoryId]);
-
-  // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, year, language, wokeness, sortBy, categoryId]);
+  }, [genre, year, language, wokeness, sortBy]);
 
   const filteredMovies = allMovies.filter(movie => {
     const matchesWokeness = !wokeness ||
       (wokeness === 'low' && movie.wokeScore >= 1 && movie.wokeScore <= 3) ||
       (wokeness === 'medium' && movie.wokeScore >= 4 && movie.wokeScore <= 6) ||
       (wokeness === 'high' && movie.wokeScore >= 7 && movie.wokeScore <= 10);
-    const matchesCategory = !categoryTmdbIds || categoryTmdbIds.includes(movie.tmdbId);
-    return matchesWokeness && matchesCategory;
+    return matchesWokeness;
   });
 
-  // Sort filtered movies
   const sortedMovies = [...filteredMovies].sort((a, b) => {
     switch (sortBy) {
-      case 'wokeness-desc':
-        return (b.wokeScore || 0) - (a.wokeScore || 0);
-      case 'wokeness-asc':
-        return (a.wokeScore || 0) - (b.wokeScore || 0);
-      case 'title-asc':
-        return a.title.localeCompare(b.title);
-      case 'title-desc':
-        return b.title.localeCompare(a.title);
-      case 'date-desc':
-        return new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime();
-      case 'date-asc':
-        return new Date(a.releaseDate || 0).getTime() - new Date(b.releaseDate || 0).getTime();
-      case 'reviews-desc':
-        return (b.reviewCount || 0) - (a.reviewCount || 0);
-      default:
-        return 0;
+      case 'wokeness-desc': return (b.wokeScore || 0) - (a.wokeScore || 0);
+      case 'wokeness-asc': return (a.wokeScore || 0) - (b.wokeScore || 0);
+      case 'title-asc': return a.title.localeCompare(b.title);
+      case 'title-desc': return b.title.localeCompare(a.title);
+      case 'date-desc': return new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime();
+      case 'date-asc': return new Date(a.releaseDate || 0).getTime() - new Date(b.releaseDate || 0).getTime();
+      case 'reviews-desc': return (b.reviewCount || 0) - (a.reviewCount || 0);
+      default: return 0;
     }
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(sortedMovies.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedMovies = sortedMovies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -119,7 +92,7 @@ export default function MoviesPage() {
       {/* Filter Bar */}
       <div className="mb-8 max-w-7xl mx-auto px-4">
         <form className="bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-5 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 items-end">
             <div className="flex flex-col gap-1">
               <label htmlFor="genre" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Genre</label>
               <select
@@ -200,26 +173,12 @@ export default function MoviesPage() {
                 <option value="reviews-desc">Most Reviews</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="category" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Woke Reason</label>
-              <select
-                id="category"
-                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
-                value={categoryId}
-                onChange={e => setCategoryId(e.target.value)}
-              >
-                <option value="">All Reasons</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
             <div className="flex flex-col gap-1 justify-end">
               <label className="text-transparent text-xs select-none">Reset</label>
               <button
                 type="button"
                 className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-blue-500 text-white text-sm font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all"
-                onClick={() => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); setCategoryId(''); }}
+                onClick={() => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); }}
               >
                 Reset
               </button>

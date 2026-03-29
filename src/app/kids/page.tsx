@@ -10,13 +10,10 @@ const ITEMS_PER_PAGE = 20;
 export default function KidsPage() {
   const [allKids, setAllKids] = useState<ContentItem[]>([]);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
   const [language, setLanguage] = useState('');
   const [wokeness, setWokeness] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [categoryTmdbIds, setCategoryTmdbIds] = useState<number[] | null>(null);
   const [sortBy, setSortBy] = useState('wokeness-desc');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,17 +28,14 @@ export default function KidsPage() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
-        const [kidsRes, genresRes, catsRes] = await Promise.all([
+        const [kidsRes, genresRes] = await Promise.all([
           fetch(`/api/kids?${params.toString()}`),
           fetch('/api/genres?type=movie'),
-          fetch('/api/categories'),
         ]);
         const kids = await kidsRes.json();
         const genres = await genresRes.json();
-        const cats = await catsRes.json();
         setAllKids(kids);
         setGenres(genres);
-        setCategories(Array.isArray(cats) ? cats : []);
       } catch {
         setError('Failed to load kids content.');
       } finally {
@@ -51,26 +45,16 @@ export default function KidsPage() {
     fetchData();
   }, [genre, year, language]);
 
-  // Fetch tmdbIds for selected woke category
-  useEffect(() => {
-    if (!categoryId) { setCategoryTmdbIds(null); return; }
-    fetch(`/api/categories/content?categoryId=${encodeURIComponent(categoryId)}&contentType=KIDS`)
-      .then(r => r.json())
-      .then(data => setCategoryTmdbIds(Array.isArray(data) ? data : null))
-      .catch(() => setCategoryTmdbIds(null));
-  }, [categoryId]);
-
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, year, language, wokeness, sortBy, categoryId]);
+  }, [genre, year, language, wokeness, sortBy]);
 
   const filteredKidsContent = allKids.filter(content => {
     const matchesWokeness = !wokeness ||
       (wokeness === 'low' && content.wokeScore >= 1 && content.wokeScore <= 3) ||
       (wokeness === 'medium' && content.wokeScore >= 4 && content.wokeScore <= 6) ||
       (wokeness === 'high' && content.wokeScore >= 7 && content.wokeScore <= 10);
-    const matchesCategory = !categoryTmdbIds || categoryTmdbIds.includes(content.tmdbId);
-    return matchesWokeness && matchesCategory;
+    return matchesWokeness;
   });
 
   const sortedContent = [...filteredKidsContent].sort((a, b) => {
@@ -108,7 +92,7 @@ export default function KidsPage() {
       {/* Filter Bar */}
       <div className="mb-8 max-w-7xl mx-auto px-4">
         <form className="bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-5 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 items-end">
             <div className="flex flex-col gap-1">
               <label htmlFor="genre" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Genre</label>
               <select
@@ -189,26 +173,12 @@ export default function KidsPage() {
                 <option value="reviews-desc">Most Reviews</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="category" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Woke Reason</label>
-              <select
-                id="category"
-                className="w-full px-2 py-2 rounded-lg bg-[#181824] border border-blue-400/60 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400"
-                value={categoryId}
-                onChange={e => setCategoryId(e.target.value)}
-              >
-                <option value="">All Reasons</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
             <div className="flex flex-col gap-1 justify-end">
               <label className="text-transparent text-xs select-none">Reset</label>
               <button
                 type="button"
                 className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-blue-500 text-white text-sm font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all"
-                onClick={() => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); setCategoryId(''); }}
+                onClick={() => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); }}
               >
                 Reset
               </button>

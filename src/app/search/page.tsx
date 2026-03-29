@@ -35,23 +35,19 @@ async function searchContent(query: string, genre: string, year: string, wokenes
 
 export default function SearchPage() {
   const [genres, setGenres] = React.useState<{ id: number, name: string }[]>([]);
-  const [categories, setCategories] = React.useState<{ id: string, name: string }[]>([]);
 
   React.useEffect(() => {
     async function fetchFilters() {
       try {
-        const [movieRes, tvRes, catRes] = await Promise.all([
+        const [movieRes, tvRes] = await Promise.all([
           fetch('/api/genres?type=movie'),
           fetch('/api/genres?type=tv'),
-          fetch('/api/categories'),
         ]);
         const movieGenres = await movieRes.json();
         const tvGenres = await tvRes.json();
-        const cats = await catRes.json();
         const all = [...movieGenres, ...tvGenres];
         const deduped = Array.from(new Map(all.map((g: any) => [g.id, g])).values());
         setGenres([{ id: 0, name: 'All Genres' }, ...deduped]);
-        setCategories(Array.isArray(cats) ? cats : []);
       } catch {}
     }
     fetchFilters();
@@ -62,7 +58,6 @@ export default function SearchPage() {
   const [year, setYear] = useState('');
   const [wokeness, setWokeness] = useState('');
   const [mediaType, setMediaType] = useState('');
-  const [categoryId, setCategoryId] = useState('');
   const [results, setResults] = useState<ContentItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -73,9 +68,6 @@ export default function SearchPage() {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Category filter: tmdbIds that have been rated in the selected category
-  const [categoryTmdbIds, setCategoryTmdbIds] = useState<number[] | null>(null);
 
   // Fetch suggestions with debounce
   useEffect(() => {
@@ -111,25 +103,12 @@ export default function SearchPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch category tmdbIds when categoryId changes
-  useEffect(() => {
-    if (!categoryId) {
-      setCategoryTmdbIds(null);
-      return;
-    }
-    fetch(`/api/categories/content?categoryId=${encodeURIComponent(categoryId)}`)
-      .then(r => r.json())
-      .then(data => setCategoryTmdbIds(Array.isArray(data) ? data : null))
-      .catch(() => setCategoryTmdbIds(null));
-  }, [categoryId]);
-
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { id, value } = e.target;
     if (id === 'genre') setGenre(value);
     if (id === 'year') setYear(value);
     if (id === 'wokeness') setWokeness(value);
     if (id === 'mediaType') setMediaType(value);
-    if (id === 'category') setCategoryId(value);
   };
 
   // Instant search on filter change
@@ -187,12 +166,7 @@ export default function SearchPage() {
     }
   };
 
-  // Apply category filter client-side
-  const displayedResults = results === null ? null : categoryTmdbIds
-    ? results.filter(r => categoryTmdbIds.includes(r.tmdbId))
-    : results;
-
-  const showCategoryNotice = categoryId && results !== null && categoryTmdbIds !== null && displayedResults !== null && displayedResults.length < (results?.length ?? 0);
+  const displayedResults = results;
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
@@ -276,7 +250,7 @@ export default function SearchPage() {
               {loading ? 'Searching...' : 'Search'}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label htmlFor="genre" className="block text-sm font-semibold text-blue-200 mb-2">Genre</label>
               <select
@@ -318,20 +292,6 @@ export default function SearchPage() {
                 <option value="high">Very Woke (7-10)</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="category" className="block text-sm font-semibold text-blue-200 mb-2">Woke Reason</label>
-              <select
-                id="category"
-                className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-blue-400 text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner font-semibold"
-                value={categoryId}
-                onChange={handleFilterChange}
-              >
-                <option value="">All Reasons</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
       </form>
@@ -339,11 +299,6 @@ export default function SearchPage() {
       {/* Results Grid */}
       <section className="max-w-5xl mx-auto px-4">
         {error && <ErrorMessage message={error} />}
-        {showCategoryNotice && (
-          <p className="text-xs text-blue-300/70 text-center mb-4">
-            Showing only titles rated under this woke reason. Unrated titles are excluded.
-          </p>
-        )}
         {results === null && !loading && (
           <div className="text-center text-blue-200 py-8 text-xl">
             Enter a title above to search movies, shows, and more.
