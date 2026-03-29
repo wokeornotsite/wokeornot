@@ -206,13 +206,13 @@ export default function TVShowsPage() {
       </div>
 
       {/* Pagination */}
-      {filteredTVShows.length > 0 && (
+      {sortedShows.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 pb-12">
           <div className="mt-8 space-y-4">
             <PaginationInfo
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredTVShows.length}
+              totalItems={sortedShows.length}
               itemsPerPage={ITEMS_PER_PAGE}
               className="text-center"
             />

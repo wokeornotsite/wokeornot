@@ -89,7 +89,6 @@ export const Navbar = () => {
     { href: '/movies', label: 'Movies' },
     { href: '/tv-shows', label: 'TV Shows' },
     { href: '/kids', label: 'Kids' },
-    // Forum link removed as feature is not yet implemented
   ];
 
   return (

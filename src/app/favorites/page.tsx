@@ -13,6 +13,7 @@ export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sortBy, setSortBy] = useState('title-asc');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -39,8 +40,18 @@ export default function FavoritesPage() {
     }
   }
 
+  const sortedFavorites = [...favorites].sort((a, b) => {
+    switch (sortBy) {
+      case 'title-asc': return (a.title || '').localeCompare(b.title || '');
+      case 'title-desc': return (b.title || '').localeCompare(a.title || '');
+      case 'wokeness-desc': return (b.wokeScore || 0) - (a.wokeScore || 0);
+      case 'wokeness-asc': return (a.wokeScore || 0) - (b.wokeScore || 0);
+      default: return 0;
+    }
+  });
+
   // Convert favorites to ContentItem format
-  const contentItems: ContentItem[] = favorites.map((fav) => ({
+  const contentItems: ContentItem[] = sortedFavorites.map((fav) => ({
     id: fav.contentId,
     tmdbId: parseInt(fav.contentId),
     title: fav.title,
@@ -128,11 +139,27 @@ export default function FavoritesPage() {
         )}
 
         {favorites.length > 0 && (
+          <>
+          <div className="mb-6 flex items-center gap-3">
+            <label htmlFor="fav-sort" className="text-white font-bold text-sm">Sort by</label>
+            <select
+              id="fav-sort"
+              className="px-3 py-1.5 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+            >
+              <option value="title-asc">Title A–Z</option>
+              <option value="title-desc">Title Z–A</option>
+              <option value="wokeness-desc">Most Woke</option>
+              <option value="wokeness-asc">Least Woke</option>
+            </select>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {contentItems.map((item) => (
               <ClientContentCard key={`${item.contentType}-${item.id}`} content={item} />
             ))}
           </div>
+          </>
         )}
       </div>
     </div>
