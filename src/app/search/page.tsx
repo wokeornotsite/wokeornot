@@ -1,8 +1,17 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
+
+interface Suggestion {
+  tmdbId: number;
+  title: string;
+  year: string;
+  type: 'movie' | 'tv';
+  posterPath: string | null;
+}
 
 async function searchContent(query: string, genre: string, year: string, wokeness: string, mediaType: string): Promise<ContentItem[]> {
   if (!query) return [];
@@ -24,40 +33,103 @@ async function searchContent(query: string, genre: string, year: string, wokenes
   }
 }
 
-
 export default function SearchPage() {
   const [genres, setGenres] = React.useState<{ id: number, name: string }[]>([]);
+  const [categories, setCategories] = React.useState<{ id: string, name: string }[]>([]);
+
   React.useEffect(() => {
-    async function fetchGenres() {
+    async function fetchFilters() {
       try {
-        const movieRes = await fetch('/api/genres?type=movie');
-        const tvRes = await fetch('/api/genres?type=tv');
+        const [movieRes, tvRes, catRes] = await Promise.all([
+          fetch('/api/genres?type=movie'),
+          fetch('/api/genres?type=tv'),
+          fetch('/api/categories'),
+        ]);
         const movieGenres = await movieRes.json();
         const tvGenres = await tvRes.json();
-        // Merge and dedupe
+        const cats = await catRes.json();
         const all = [...movieGenres, ...tvGenres];
-        const deduped = Array.from(new Map(all.map(g => [g.id, g])).values());
+        const deduped = Array.from(new Map(all.map((g: any) => [g.id, g])).values());
         setGenres([{ id: 0, name: 'All Genres' }, ...deduped]);
+        setCategories(Array.isArray(cats) ? cats : []);
       } catch {}
     }
-    fetchGenres();
+    fetchFilters();
   }, []);
+
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
   const [wokeness, setWokeness] = useState('');
   const [mediaType, setMediaType] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [results, setResults] = useState<ContentItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Unified filter change handler
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Category filter: tmdbIds that have been rated in the selected category
+  const [categoryTmdbIds, setCategoryTmdbIds] = useState<number[] | null>(null);
+
+  // Fetch suggestions with debounce
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search/suggestions?query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+        setShowSuggestions((data.suggestions || []).length > 0);
+        setHighlightedIndex(-1);
+      } catch {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  // Close suggestions on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch category tmdbIds when categoryId changes
+  useEffect(() => {
+    if (!categoryId) {
+      setCategoryTmdbIds(null);
+      return;
+    }
+    fetch(`/api/categories/content?categoryId=${encodeURIComponent(categoryId)}`)
+      .then(r => r.json())
+      .then(data => setCategoryTmdbIds(Array.isArray(data) ? data : null))
+      .catch(() => setCategoryTmdbIds(null));
+  }, [categoryId]);
+
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { id, value } = e.target;
     if (id === 'genre') setGenre(value);
     if (id === 'year') setYear(value);
     if (id === 'wokeness') setWokeness(value);
     if (id === 'mediaType') setMediaType(value);
+    if (id === 'category') setCategoryId(value);
   };
 
   // Instant search on filter change
@@ -72,25 +144,55 @@ export default function SearchPage() {
     }
   }, [genre, year, wokeness, mediaType]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const runSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery) return;
     setLoading(true);
     setError('');
+    setShowSuggestions(false);
     try {
-      const res = await searchContent(query, genre, year, wokeness, mediaType);
+      const res = await searchContent(searchQuery, genre, year, wokeness, mediaType);
       setResults(res);
     } catch (err: any) {
-      let message = 'Failed to fetch results.';
-      if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
-        message = err.message;
-      }
-      setError(message);
-      // eslint-disable-next-line no-console
-      console.error('TMDb Search Error:', err);
+      setError(err?.message || 'Failed to fetch results.');
     } finally {
       setLoading(false);
     }
+  }, [genre, year, wokeness, mediaType]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await runSearch(query);
   };
+
+  const handleSuggestionSelect = (suggestion: Suggestion) => {
+    setQuery(suggestion.title);
+    setShowSuggestions(false);
+    runSearch(suggestion.title);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(i => Math.max(i - 1, -1));
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(suggestions[highlightedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+    }
+  };
+
+  // Apply category filter client-side
+  const displayedResults = results === null ? null : categoryTmdbIds
+    ? results.filter(r => categoryTmdbIds.includes(r.tmdbId))
+    : results;
+
+  const showCategoryNotice = categoryId && results !== null && categoryTmdbIds !== null && displayedResults !== null && displayedResults.length < (results?.length ?? 0);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
@@ -106,14 +208,53 @@ export default function SearchPage() {
       <form onSubmit={handleSearch} className="mb-12 max-w-5xl mx-auto px-4">
         <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-8 flex flex-col gap-6">
           <div className="flex flex-col md:flex-row gap-4 items-center">
-            <input
-              type="text"
-              placeholder="Search for a title..."
-              className="flex-1 px-5 py-3 rounded-xl bg-gray-900/70 border border-blue-400 text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner text-lg font-semibold"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              aria-label="Search for a title"
-            />
+            {/* Search input with autocomplete */}
+            <div className="flex-1 relative" ref={containerRef}>
+              <input
+                type="text"
+                placeholder="Search for a title..."
+                className="w-full px-5 py-3 rounded-xl bg-gray-900/70 border border-blue-400 text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner text-lg font-semibold"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                aria-label="Search for a title"
+                autoComplete="off"
+              />
+              {/* Suggestions dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full mt-1 bg-[#1a1a2e] border border-blue-500/40 rounded-xl shadow-2xl z-50 overflow-hidden">
+                  {suggestions.map((s, idx) => (
+                    <li
+                      key={`${s.type}-${s.tmdbId}`}
+                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${idx === highlightedIndex ? 'bg-blue-800/60' : 'hover:bg-white/10'}`}
+                      onMouseDown={() => handleSuggestionSelect(s)}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                    >
+                      {s.posterPath ? (
+                        <Image
+                          src={`https://image.tmdb.org/t/p/w92${s.posterPath}`}
+                          alt={s.title}
+                          width={32}
+                          height={48}
+                          className="rounded object-cover flex-shrink-0"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-8 h-12 rounded bg-gray-700 flex-shrink-0" />
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-white font-semibold text-sm truncate">{s.title}</span>
+                        <span className="text-gray-400 text-xs">{s.year}</span>
+                      </div>
+                      <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${s.type === 'movie' ? 'bg-blue-700/60 text-blue-200' : 'bg-purple-700/60 text-purple-200'}`}>
+                        {s.type === 'movie' ? 'Movie' : 'TV'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <select
               id="mediaType"
               className="px-3 py-2 rounded-lg bg-gray-900/70 border border-blue-400 text-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner font-semibold"
@@ -135,7 +276,7 @@ export default function SearchPage() {
               {loading ? 'Searching...' : 'Search'}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <label htmlFor="genre" className="block text-sm font-semibold text-blue-200 mb-2">Genre</label>
               <select
@@ -177,6 +318,20 @@ export default function SearchPage() {
                 <option value="high">Very Woke (7-10)</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="category" className="block text-sm font-semibold text-blue-200 mb-2">Woke Reason</label>
+              <select
+                id="category"
+                className="w-full px-3 py-2 rounded-lg bg-gray-900/70 border border-blue-400 text-white placeholder-white/80 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all duration-200 shadow-inner font-semibold"
+                value={categoryId}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Reasons</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </form>
@@ -184,12 +339,17 @@ export default function SearchPage() {
       {/* Results Grid */}
       <section className="max-w-5xl mx-auto px-4">
         {error && <ErrorMessage message={error} />}
+        {showCategoryNotice && (
+          <p className="text-xs text-blue-300/70 text-center mb-4">
+            Showing only titles rated under this woke reason. Unrated titles are excluded.
+          </p>
+        )}
         {results === null && !loading && (
           <div className="text-center text-blue-200 py-8 text-xl">
             Enter a title above to search movies, shows, and more.
           </div>
         )}
-        {results && results.length === 0 && !loading && (
+        {displayedResults && displayedResults.length === 0 && !loading && (
           <div className="text-center text-blue-200 py-8 text-xl">No results found. Try a different search.</div>
         )}
         {loading && (
@@ -206,9 +366,9 @@ export default function SearchPage() {
             ))}
           </div>
         )}
-        {!loading && results && results.length > 0 && (
+        {!loading && displayedResults && displayedResults.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-8">
-            {results.map(item => (
+            {displayedResults.map(item => (
               <ClientContentCard key={item.id} content={item} />
             ))}
           </div>

@@ -10,6 +10,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Environmental Agenda': <FaLeaf className="text-green-400" />,
 };
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { getTVShowDetails, getTVCredits, getSimilarTVShows } from '@/lib/tmdb';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
@@ -22,6 +23,34 @@ import { notFound } from 'next/navigation';
 // Import ContentType enum directly from Prisma client
 import { prisma } from '@/lib/prisma';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
+
+export async function generateMetadata({ params }: { params: Promise<{ tmdbId: string }> }): Promise<Metadata> {
+  const { tmdbId } = await params;
+  let tvShow;
+  try {
+    tvShow = await getTVShowDetails(Number(tmdbId));
+  } catch {
+    return {};
+  }
+  if (!tvShow) return {};
+  const description = (tvShow.overview || '').slice(0, 160);
+  const imageUrl = tvShow.backdrop_path
+    ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
+    : tvShow.poster_path
+    ? `https://image.tmdb.org/t/p/w500${tvShow.poster_path}`
+    : null;
+  return {
+    title: `${tvShow.name} | WokeOrNot`,
+    description,
+    openGraph: {
+      title: `${tvShow.name} | WokeOrNot`,
+      description,
+      type: 'video.tv_show',
+      ...(imageUrl ? { images: [{ url: imageUrl }] } : {}),
+    },
+    twitter: { card: 'summary_large_image' },
+  };
+}
 
 export default async function TvShowDetailPage({ params }: { params: { tmdbId: string } }) {
   // Next.js 15: params may be a promise, so await if needed

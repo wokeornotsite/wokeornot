@@ -12,6 +12,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { getMovieDetails, getMovieCredits, getSimilarMovies, getMovieGenres } from '@/lib/tmdb';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
@@ -26,6 +27,34 @@ import { notFound } from 'next/navigation';
 
 import { prisma } from '@/lib/prisma';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
+
+export async function generateMetadata({ params }: { params: Promise<{ tmdbId: string }> }): Promise<Metadata> {
+  const { tmdbId } = await params;
+  let movie;
+  try {
+    movie = await getMovieDetails(Number(tmdbId));
+  } catch {
+    return {};
+  }
+  if (!movie) return {};
+  const description = (movie.overview || '').slice(0, 160);
+  const imageUrl = movie.backdrop_path
+    ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
+    : movie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+    : null;
+  return {
+    title: `${movie.title} | WokeOrNot`,
+    description,
+    openGraph: {
+      title: `${movie.title} | WokeOrNot`,
+      description,
+      type: 'video.movie',
+      ...(imageUrl ? { images: [{ url: imageUrl }] } : {}),
+    },
+    twitter: { card: 'summary_large_image' },
+  };
+}
 
 export default async function KidsContentDetailPage({ params }: { params: { tmdbId: string } }) {
   const resolvedParams = await params;

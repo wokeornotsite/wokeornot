@@ -10,10 +10,13 @@ const ITEMS_PER_PAGE = 20;
 export default function KidsPage() {
   const [allKids, setAllKids] = useState<ContentItem[]>([]);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
   const [language, setLanguage] = useState('');
   const [wokeness, setWokeness] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [categoryTmdbIds, setCategoryTmdbIds] = useState<number[] | null>(null);
   const [sortBy, setSortBy] = useState('wokeness-desc');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,14 +31,17 @@ export default function KidsPage() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
-        const [kidsRes, genresRes] = await Promise.all([
+        const [kidsRes, genresRes, catsRes] = await Promise.all([
           fetch(`/api/kids?${params.toString()}`),
           fetch('/api/genres?type=movie'),
+          fetch('/api/categories'),
         ]);
         const kids = await kidsRes.json();
         const genres = await genresRes.json();
+        const cats = await catsRes.json();
         setAllKids(kids);
         setGenres(genres);
+        setCategories(Array.isArray(cats) ? cats : []);
       } catch {
         setError('Failed to load kids content.');
       } finally {
@@ -45,16 +51,26 @@ export default function KidsPage() {
     fetchData();
   }, [genre, year, language]);
 
+  // Fetch tmdbIds for selected woke category
+  useEffect(() => {
+    if (!categoryId) { setCategoryTmdbIds(null); return; }
+    fetch(`/api/categories/content?categoryId=${encodeURIComponent(categoryId)}&contentType=KIDS`)
+      .then(r => r.json())
+      .then(data => setCategoryTmdbIds(Array.isArray(data) ? data : null))
+      .catch(() => setCategoryTmdbIds(null));
+  }, [categoryId]);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [genre, year, language, wokeness, sortBy]);
+  }, [genre, year, language, wokeness, sortBy, categoryId]);
 
   const filteredKidsContent = allKids.filter(content => {
     const matchesWokeness = !wokeness ||
       (wokeness === 'low' && content.wokeScore >= 1 && content.wokeScore <= 3) ||
       (wokeness === 'medium' && content.wokeScore >= 4 && content.wokeScore <= 6) ||
       (wokeness === 'high' && content.wokeScore >= 7 && content.wokeScore <= 10);
-    return matchesWokeness;
+    const matchesCategory = !categoryTmdbIds || categoryTmdbIds.includes(content.tmdbId);
+    return matchesWokeness && matchesCategory;
   });
 
   const sortedContent = [...filteredKidsContent].sort((a, b) => {
@@ -162,10 +178,22 @@ export default function KidsPage() {
             <option value="date-asc">Oldest First</option>
             <option value="reviews-desc">Most Reviews</option>
           </select>
+          <label htmlFor="category" className="text-white font-bold text-base mr-1">Woke Reason</label>
+          <select
+            id="category"
+            className="min-w-[140px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+            value={categoryId}
+            onChange={e => setCategoryId(e.target.value)}
+          >
+            <option value="">All Reasons</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
           <button
             type="button"
             className="ml-2 px-3 py-1 rounded-md bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
-            onClick={() => { setGenre(''); setYear(''); setWokeness(''); setSortBy('wokeness-desc'); }}
+            onClick={() => { setGenre(''); setYear(''); setWokeness(''); setSortBy('wokeness-desc'); setCategoryId(''); }}
           >
             Reset Filters
           </button>
