@@ -107,7 +107,7 @@ export default function KidsPage() {
 
       {/* Elegant Filter Bar */}
       <div className="mb-8 max-w-5xl mx-auto px-2">
-        <form className="flex flex-col md:flex-row items-center gap-2 md:gap-4 bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-4 py-3">
+        <form className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-4 py-3">
           <label htmlFor="genre" className="text-white font-bold text-base mr-1">Genre</label>
           <select
             id="genre"
