@@ -1,4 +1,5 @@
 import React from 'react';
+import { prisma } from '@/lib/prisma';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
@@ -11,18 +12,51 @@ export default async function RecentlyRatedSection() {
   let items: any[] = [];
 
   try {
-    const res = await fetch(
-      `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/recently-rated`,
-      { next: { revalidate: 120 } }
-    );
-    if (res.ok) {
-      items = await res.json();
+    // Fetch last 100 non-hidden reviews ordered by most recent
+    const recentReviews = await prisma.review.findMany({
+      where: { isHidden: false },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { contentId: true },
+    });
+
+    // Deduplicate by contentId, keep first occurrence (most recent review per item)
+    const seen = new Set<string>();
+    const uniqueContentIds: string[] = [];
+    for (const r of recentReviews) {
+      if (!seen.has(r.contentId)) {
+        seen.add(r.contentId);
+        uniqueContentIds.push(r.contentId);
+        if (uniqueContentIds.length === 10) break;
+      }
+    }
+
+    if (uniqueContentIds.length > 0) {
+      const contents = await prisma.content.findMany({
+        where: { id: { in: uniqueContentIds } },
+        select: {
+          id: true,
+          tmdbId: true,
+          title: true,
+          overview: true,
+          posterPath: true,
+          backdropPath: true,
+          releaseDate: true,
+          contentType: true,
+          wokeScore: true,
+          reviewCount: true,
+        },
+      });
+
+      // Re-sort to match review recency order
+      const contentMap = Object.fromEntries(contents.map(c => [c.id, c]));
+      items = uniqueContentIds.map(id => contentMap[id]).filter(Boolean);
     }
   } catch {
-    // Silently skip if unavailable
+    // Silently skip on error
   }
 
-  if (!items || items.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <section className="py-12 bg-[#0f0f1a]">
