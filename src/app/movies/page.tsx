@@ -109,7 +109,7 @@ export default function MoviesPage() {
       {/* Elegant Filter Bar */}
       <div className="mb-8 max-w-5xl mx-auto px-2">
         <form className="flex flex-col md:flex-row items-center gap-2 md:gap-4 bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-4 py-3">
-          <label htmlFor="genre" className="sr-only">Genre</label>
+          <label htmlFor="genre" className="text-white font-bold text-base mr-1">Genre</label>
           <select
             id="genre"
             className="min-w-[120px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -121,7 +121,7 @@ export default function MoviesPage() {
               <option key={genre.id} value={genre.id}>{genre.name}</option>
             ))}
           </select>
-          <label htmlFor="year" className="sr-only">Year</label>
+          <label htmlFor="year" className="text-white font-bold text-base mr-1">Year</label>
           <select
             id="year"
             className="min-w-[100px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -152,7 +152,7 @@ export default function MoviesPage() {
             <option value="ru">Russian</option>
             <option value="it">Italian</option>
           </select>
-          <label htmlFor="wokeness" className="sr-only">Wokeness</label>
+          <label htmlFor="wokeness" className="text-white font-bold text-base mr-1">Wokeness</label>
           <select
             id="wokeness"
             className="min-w-[120px] px-2 py-1 rounded-md bg-[#181824] border border-blue-400 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -182,7 +182,7 @@ export default function MoviesPage() {
           <button
             type="button"
             className="ml-2 px-3 py-1 rounded-md bg-gradient-to-r from-pink-500 to-blue-500 text-white text-xs font-bold shadow hover:from-blue-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
-            onClick={() => { setGenre(''); setYear(''); setWokeness(''); }}
+            onClick={() => { setGenre(''); setYear(''); setWokeness(''); setSortBy('wokeness-desc'); }}
           >
             Reset Filters
           </button>
