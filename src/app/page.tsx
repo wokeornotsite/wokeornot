@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
+import RecentlyRatedSection from "@/components/ui/recently-rated-section";
+
 // Lazy load TrendingSection for better initial page load
 const TrendingSection = dynamic(() => import("@/components/ui/trending-section"), {
   loading: () => (
@@ -83,6 +85,9 @@ export default function Home() {
 
       {/* Trending Section - Compact Carousels */}
       <TrendingSection />
+
+      {/* Recently Rated by the Community */}
+      <RecentlyRatedSection />
 
       {/* How It Works Section */}
       <section className="py-16 bg-gradient-to-b from-[#0f0f1a] to-[#131328]">
