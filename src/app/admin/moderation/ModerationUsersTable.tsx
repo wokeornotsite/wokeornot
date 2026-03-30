@@ -200,7 +200,7 @@ export default function ModerationUsersTable() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'email', headerName: 'Email', flex: 2 },
+    { field: 'email', headerName: 'Email', flex: 2, minWidth: 200 },
     {
       field: 'role',
       headerName: 'Role',
@@ -211,17 +211,17 @@ export default function ModerationUsersTable() {
         return <Chip label={params.value} size="small" sx={{ background: `${c}20`, color: c, fontWeight: 700, fontSize: '0.72rem' }} />;
       },
     },
-    { field: 'warnCount', headerName: 'Warnings', width: 110 },
+    { field: 'warnCount', headerName: 'Warns', width: 80 },
     {
       field: 'createdAt',
       headerName: 'Joined',
-      width: 120,
+      width: 110,
       valueFormatter: (value: any) => value ? new Date(value).toLocaleDateString() : '—',
     },
     {
       field: 'isBanned',
       headerName: 'Status',
-      width: 130,
+      width: 120,
       renderCell: (params: any) => {
         if (params.row.isBanned) {
           return (

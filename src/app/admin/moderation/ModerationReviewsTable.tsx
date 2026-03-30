@@ -110,6 +110,7 @@ export default function ModerationReviewsTable() {
       field: 'user',
       headerName: 'User',
       flex: 1,
+      minWidth: 160,
       valueGetter: (_value: any, row: any) => row?.user?.email || row?.guestName || '',
       renderCell: (params: any) => {
         const email = params.row?.user?.email || params.row?.guestName;
@@ -123,7 +124,8 @@ export default function ModerationReviewsTable() {
     {
       field: 'contentTitle',
       headerName: 'Content',
-      flex: 1,
+      flex: 1.5,
+      minWidth: 180,
       valueGetter: (_value: any, row: any) => row?.content?.title || '',
       renderCell: (params: any) => {
         const title = params.row?.content?.title;
@@ -139,22 +141,30 @@ export default function ModerationReviewsTable() {
     },
     {
       field: 'text',
-      headerName: 'Review',
+      headerName: 'Review Text',
       flex: 2,
+      minWidth: 160,
       renderCell: (params: any) => (
-        <Tooltip title={params.value || ''} arrow placement="top">
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
-            {params.value || '—'}
+        <Tooltip title={params.value || 'No text review'} arrow placement="top">
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', color: params.value ? '#e2e8f0' : '#6b7280', fontStyle: params.value ? 'normal' : 'italic' }}>
+            {params.value || 'No text review'}
           </span>
         </Tooltip>
       ),
     },
-    { field: 'rating', headerName: 'Rating', width: 110, sortable: true },
-    { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (_value: any, row: any) => (row?.createdAt ? new Date(row.createdAt) : null), sortable: true },
+    { field: 'rating', headerName: 'Rating', width: 80, sortable: true },
+    {
+      field: 'createdAt',
+      headerName: 'Date',
+      width: 160,
+      type: 'dateTime',
+      valueGetter: (_value: any, row: any) => (row?.createdAt ? new Date(row.createdAt) : null),
+      sortable: true,
+    },
     {
       field: 'isHidden',
       headerName: 'Status',
-      width: 110,
+      width: 100,
       renderCell: (params: any) =>
         params.row.isHidden
           ? <Chip label="Hidden" color="error" size="small" />
@@ -164,7 +174,7 @@ export default function ModerationReviewsTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 110,
+      width: 90,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
         params.row.isHidden
           ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />

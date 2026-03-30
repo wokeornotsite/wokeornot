@@ -18,7 +18,7 @@ export default function ContentMoviesTable() {
   const dq = useDebouncedValue(q, 300);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [bulkDeleteDialog, setBulkDeleteDialog] = React.useState(false);
-  const [rowSelectionModel, setRowSelectionModel] = React.useState<GridRowSelectionModel>([]);
+  const [rowSelectionModel, setRowSelectionModel] = React.useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   // Initialize from URL
@@ -72,7 +72,7 @@ export default function ContentMoviesTable() {
   }
 
   async function confirmBulkDelete() {
-    const ids = rowSelectionModel as string[];
+    const ids = Array.from(rowSelectionModel.ids || []) as string[];
     if (!ids.length) return;
     try {
       await fetch('/api/admin/movies', {
@@ -86,7 +86,7 @@ export default function ContentMoviesTable() {
         body: JSON.stringify({ action: 'BULK_DELETE_CONTENT', targetType: 'Movie', details: `Deleted ${ids.length} items` }),
       });
       setSnackbar({ open: true, message: `${ids.length} item${ids.length > 1 ? 's' : ''} deleted` });
-      setRowSelectionModel([]);
+      setRowSelectionModel({ type: 'include', ids: new Set<string>() });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error deleting content' });
@@ -157,7 +157,7 @@ export default function ContentMoviesTable() {
             <MenuItem value="KIDS">KIDS</MenuItem>
           </Select>
         </FormControl>
-        {rowSelectionModel.length > 0 && (
+        {(rowSelectionModel.ids?.size ?? 0) > 0 && (
           <Button
             variant="contained"
             color="error"
@@ -166,7 +166,7 @@ export default function ContentMoviesTable() {
             onClick={() => setBulkDeleteDialog(true)}
             sx={{ ml: 'auto' }}
           >
-            Delete Selected ({rowSelectionModel.length})
+            Delete Selected ({rowSelectionModel.ids?.size ?? 0})
           </Button>
         )}
       </Box>
@@ -213,8 +213,8 @@ export default function ContentMoviesTable() {
           background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{ background: '#232336', padding: 24, borderRadius: 8, color: '#fff', minWidth: 340 }}>
-            <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete {rowSelectionModel.length} Items</h2>
-            <p>Permanently delete <strong>{rowSelectionModel.length} selected item{rowSelectionModel.length > 1 ? 's' : ''}</strong>? All associated reviews and comments will also be removed. This cannot be undone.</p>
+            <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete {rowSelectionModel.ids?.size ?? 0} Items</h2>
+            <p>Permanently delete <strong>{rowSelectionModel.ids?.size ?? 0} selected item{(rowSelectionModel.ids?.size ?? 0) > 1 ? 's' : ''}</strong>? All associated reviews and comments will also be removed. This cannot be undone.</p>
             <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setBulkDeleteDialog(false)} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
               <button onClick={confirmBulkDelete} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete All</button>
