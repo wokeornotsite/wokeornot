@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { Typography, Box } from '@mui/material';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';

@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, MenuItem, Select, InputLabel, FormControl, Alert } from '@mui/material';
+import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { useAuditLog } from './useAuditLog';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,11 +12,38 @@ const ACTION_LABELS: Record<string, string> = {
   WARN_USER: 'Warned User',
   DELETE_USER: 'Deleted User',
   PROMOTE_ADMIN: 'Promoted to Admin',
+  PROMOTE_MODERATOR: 'Promoted to Moderator',
+  DEMOTE_USER: 'Demoted to User',
   DELETE_REVIEW: 'Deleted Review',
   HIDE_REVIEW: 'Hid Review',
   UNHIDE_REVIEW: 'Unhid Review',
   DELETE_MOVIE: 'Deleted Content',
+  BULK_DELETE_CONTENT: 'Bulk Deleted Content',
   DELETE_FORUM_THREAD: 'Deleted Forum Thread',
+};
+
+// Color per action (red = destructive, green = restorative, amber = warn, blue = role change)
+const ACTION_COLORS: Record<string, string> = {
+  BAN_USER: '#ef4444',
+  DELETE_USER: '#ef4444',
+  DELETE_REVIEW: '#ef4444',
+  DELETE_MOVIE: '#ef4444',
+  BULK_DELETE_CONTENT: '#ef4444',
+  DELETE_FORUM_THREAD: '#ef4444',
+  HIDE_REVIEW: '#f97316',
+  WARN_USER: '#fbbf24',
+  UNBAN_USER: '#22c55e',
+  UNHIDE_REVIEW: '#22c55e',
+  PROMOTE_ADMIN: '#38bdf8',
+  PROMOTE_MODERATOR: '#a78bfa',
+  DEMOTE_USER: '#9ca3af',
+};
+
+const TARGET_TYPE_COLORS: Record<string, string> = {
+  User: '#38bdf8',
+  Review: '#a78bfa',
+  Movie: '#e879f9',
+  ForumThread: '#fbbf24',
 };
 
 const ACTION_OPTIONS = Object.keys(ACTION_LABELS);
@@ -62,39 +89,53 @@ export default function AuditLogTable() {
     {
       field: 'createdAt',
       headerName: 'Timestamp',
-      width: 180,
-      valueFormatter: (params: any) =>
-        params.value ? new Date(params.value).toLocaleString() : '—',
+      width: 175,
+      valueFormatter: (value: any) => value ? new Date(value).toLocaleString() : '—',
     },
     {
       field: 'admin',
       headerName: 'Admin',
       flex: 1,
-      valueGetter: (params: any) => params?.row?.admin?.email || '—',
+      valueGetter: (_value: any, row: any) => row?.admin?.email || '—',
     },
     {
       field: 'action',
       headerName: 'Action',
-      width: 180,
-      valueFormatter: (params: any) => ACTION_LABELS[params.value] || params.value || '—',
+      width: 195,
+      renderCell: (params: any) => {
+        const label = ACTION_LABELS[params.value] || params.value || '—';
+        const color = ACTION_COLORS[params.value] || '#9ca3af';
+        return (
+          <Chip
+            label={label}
+            size="small"
+            sx={{ background: `${color}22`, color, fontWeight: 700, fontSize: '0.72rem', border: `1px solid ${color}44` }}
+          />
+        );
+      },
     },
     {
       field: 'targetType',
-      headerName: 'Target Type',
-      width: 130,
-    },
-    {
-      field: 'targetId',
-      headerName: 'Target ID',
-      width: 150,
-      valueFormatter: (params: any) =>
-        params.value ? `${String(params.value).slice(0, 12)}…` : '—',
+      headerName: 'Type',
+      width: 110,
+      renderCell: (params: any) => {
+        const color = TARGET_TYPE_COLORS[params.value] || '#9ca3af';
+        return params.value
+          ? <Chip label={params.value} size="small" sx={{ background: `${color}18`, color, fontWeight: 600, fontSize: '0.7rem' }} />
+          : <span style={{ color: '#9ca3af' }}>—</span>;
+      },
     },
     {
       field: 'details',
       headerName: 'Details',
       flex: 2,
-      valueFormatter: (params: any) => params.value || '—',
+      valueFormatter: (value: any) => value || '—',
+    },
+    {
+      field: 'targetId',
+      headerName: 'Target ID',
+      width: 130,
+      valueFormatter: (value: any) => value ? `${String(value).slice(0, 10)}…` : '—',
     },
   ];
 
@@ -105,7 +146,7 @@ export default function AuditLogTable() {
           Failed to load audit log. Please try again.
         </Alert>
       )}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel id="action-label" sx={{ color: '#fff' }}>Action</InputLabel>
           <Select
@@ -121,7 +162,7 @@ export default function AuditLogTable() {
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel id="target-type-label" sx={{ color: '#fff' }}>Target Type</InputLabel>
           <Select
             labelId="target-type-label"
@@ -156,25 +197,10 @@ export default function AuditLogTable() {
           background: '#101014',
           borderRadius: 2,
           boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': {
-            color: '#fff',
-            background: '#191927',
-            borderBottom: '1px solid #232336',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            background: '#232336',
-            color: '#fbbf24',
-            fontWeight: 700,
-            borderBottom: '2px solid #fbbf24',
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            color: '#fbbf24',
-            fontWeight: 700,
-          },
-          '& .MuiDataGrid-row': {
-            transition: 'background 0.2s',
-            '&:hover': { backgroundColor: '#37376b', color: '#fff' },
-          },
+          '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
+          '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
+          '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
+          '& .MuiDataGrid-row': { transition: 'background 0.2s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
           '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
           '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
           '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },

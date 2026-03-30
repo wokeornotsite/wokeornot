@@ -201,13 +201,22 @@ export default function ModerationUsersTable() {
 
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 2 },
-    { field: 'role', headerName: 'Role', width: 110 },
+    {
+      field: 'role',
+      headerName: 'Role',
+      width: 130,
+      renderCell: (params: any) => {
+        const roleColor: Record<string, string> = { ADMIN: '#ef4444', MODERATOR: '#a78bfa', USER: '#38bdf8' };
+        const c = roleColor[params.value] || '#9ca3af';
+        return <Chip label={params.value} size="small" sx={{ background: `${c}20`, color: c, fontWeight: 700, fontSize: '0.72rem' }} />;
+      },
+    },
     { field: 'warnCount', headerName: 'Warnings', width: 110 },
     {
       field: 'createdAt',
       headerName: 'Joined',
       width: 120,
-      valueFormatter: (params: any) => params.value ? new Date(params.value).toLocaleDateString() : '—',
+      valueFormatter: (value: any) => value ? new Date(value).toLocaleDateString() : '—',
     },
     {
       field: 'isBanned',
@@ -228,7 +237,7 @@ export default function ModerationUsersTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 240,
+      width: 160,
       getActions: (params) => {
         const actions = [
           params.row.isBanned

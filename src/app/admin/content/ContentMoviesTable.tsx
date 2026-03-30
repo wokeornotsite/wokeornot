@@ -102,7 +102,7 @@ export default function ContentMoviesTable() {
       field: 'wokeScore',
       headerName: 'Woke Score',
       width: 120,
-      valueFormatter: (params: any) => params.value != null ? `${Number(params.value).toFixed(1)}/10` : '—',
+      valueFormatter: (value: any) => value != null ? `${Number(value).toFixed(1)}/10` : '—',
     },
     { field: 'reviewCount', headerName: 'Reviews', width: 100 },
     {

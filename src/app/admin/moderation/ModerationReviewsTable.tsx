@@ -106,8 +106,37 @@ export default function ModerationReviewsTable() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'user', headerName: 'User', flex: 1, valueGetter: (params: any) => (params?.row?.user?.email) || params?.row?.guestName || '' },
-    { field: 'contentTitle', headerName: 'Content', flex: 1, valueGetter: (params: any) => params?.row?.content?.title || '' },
+    {
+      field: 'user',
+      headerName: 'User',
+      flex: 1,
+      valueGetter: (_value: any, row: any) => row?.user?.email || row?.guestName || '',
+      renderCell: (params: any) => {
+        const email = params.row?.user?.email || params.row?.guestName;
+        return (
+          <span style={{ color: params.row?.user?.email ? '#a78bfa' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
+            {email || 'Anonymous'}
+          </span>
+        );
+      },
+    },
+    {
+      field: 'contentTitle',
+      headerName: 'Content',
+      flex: 1,
+      valueGetter: (_value: any, row: any) => row?.content?.title || '',
+      renderCell: (params: any) => {
+        const title = params.row?.content?.title;
+        const type = params.row?.content?.contentType;
+        const typeColor: Record<string, string> = { MOVIE: '#e879f9', TV_SHOW: '#38bdf8', KIDS: '#a78bfa' };
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', overflow: 'hidden' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0' }}>{title || '—'}</span>
+            {type && <span style={{ fontSize: 10, fontWeight: 700, color: typeColor[type] || '#9ca3af', background: `${typeColor[type] || '#9ca3af'}18`, borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{type}</span>}
+          </span>
+        );
+      },
+    },
     {
       field: 'text',
       headerName: 'Review',
@@ -121,7 +150,7 @@ export default function ModerationReviewsTable() {
       ),
     },
     { field: 'rating', headerName: 'Rating', width: 110, sortable: true },
-    { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (params: any) => (params?.row?.createdAt ? new Date(params.row.createdAt) : null), sortable: true },
+    { field: 'createdAt', headerName: 'Date', width: 180, type: 'dateTime', valueGetter: (_value: any, row: any) => (row?.createdAt ? new Date(row.createdAt) : null), sortable: true },
     {
       field: 'isHidden',
       headerName: 'Status',
@@ -135,12 +164,12 @@ export default function ModerationReviewsTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 130,
+      width: 110,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
         params.row.isHidden
-          ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} />
-          : <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} />,
-        <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} />,
+          ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
+          : <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
+        <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} showInMenu={false} />,
       ],
     },
   ];
