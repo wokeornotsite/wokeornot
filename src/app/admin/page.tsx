@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 import RecentReviewsTable from '@/components/admin/RecentReviewsTable';
+import RecentSignupsTable from '@/components/admin/RecentSignupsTable';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 
 export default async function AdminDashboardPage() {
@@ -12,10 +13,20 @@ export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   
   // Fetch dashboard stats
-  const userCount = await prisma.user.count();
-  const reviewCount = await prisma.review.count();
-  const contentCount = await prisma.content.count();
-  const avgRating = await prisma.review.aggregate({ _avg: { rating: true } });
+  const [userCount, reviewCount, contentCount, avgRating, bannedUserCount, hiddenReviewCount, rawSignups] = await Promise.all([
+    prisma.user.count(),
+    prisma.review.count(),
+    prisma.content.count(),
+    prisma.review.aggregate({ _avg: { rating: true } }),
+    prisma.user.count({ where: { isBanned: true } }),
+    prisma.review.count({ where: { isHidden: true } }),
+    prisma.user.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, email: true, role: true, createdAt: true },
+    }),
+  ]);
+  const recentSignups = rawSignups.map(u => ({ ...u, createdAt: u.createdAt.toISOString() }));
   
   // Fetch recent reviews for the dashboard
   // Avoid including relations directly to prevent ObjectId coercion errors on malformed contentId
@@ -72,14 +83,35 @@ export default async function AdminDashboardPage() {
       </Typography>
       
       {/* Dashboard Stats */}
-      <AdminDashboardStats 
+      <AdminDashboardStats
         userCount={userCount}
         reviewCount={reviewCount}
         contentCount={contentCount}
         avgRating={avgRating._avg.rating || 0}
+        bannedUserCount={bannedUserCount}
+        hiddenReviewCount={hiddenReviewCount}
       />
       
       <Box mt={4} mb={2}>
+        <Typography variant="h5" component="h2" style={{ fontWeight: 700, color: '#38bdf8' }}>
+          Recent Signups
+        </Typography>
+        <Typography variant="body2" style={{ color: '#a78bfa', marginBottom: 16 }}>
+          The newest users who joined the platform
+        </Typography>
+      </Box>
+
+      <Paper elevation={3} sx={{
+        background: 'rgba(24,25,36,0.95)',
+        borderRadius: 2,
+        border: '1px solid rgba(56,189,248,0.15)',
+        overflow: 'hidden',
+        mb: 4,
+      }}>
+        <RecentSignupsTable users={recentSignups} />
+      </Paper>
+
+      <Box mt={2} mb={2}>
         <Typography variant="h5" component="h2" style={{ fontWeight: 700, color: '#e879f9' }}>
           Recent Reviews
         </Typography>
@@ -87,10 +119,10 @@ export default async function AdminDashboardPage() {
           The latest ratings and reviews from users
         </Typography>
       </Box>
-      
+
       {/* Recent Reviews Table */}
-      <Paper elevation={3} sx={{ 
-        background: 'rgba(24,25,36,0.95)', 
+      <Paper elevation={3} sx={{
+        background: 'rgba(24,25,36,0.95)',
         borderRadius: 2,
         border: '1px solid rgba(56,189,248,0.15)',
         overflow: 'hidden'

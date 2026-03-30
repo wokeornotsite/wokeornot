@@ -79,9 +79,26 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Top content queries (not date-range dependent)
+    const [topReviewed, topWoke] = await Promise.all([
+      prisma.content.findMany({
+        orderBy: { reviewCount: 'desc' },
+        take: 10,
+        select: { id: true, title: true, contentType: true, reviewCount: true, wokeScore: true },
+      }),
+      prisma.content.findMany({
+        where: { reviewCount: { gt: 0 } },
+        orderBy: { wokeScore: 'desc' },
+        take: 10,
+        select: { id: true, title: true, contentType: true, reviewCount: true, wokeScore: true },
+      }),
+    ]);
+
     return NextResponse.json({
       userData,
       reviewData,
+      topReviewed,
+      topWoke,
     });
   } catch (error) {
     console.error('Analytics error:', error);

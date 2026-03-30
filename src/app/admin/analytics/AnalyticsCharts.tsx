@@ -36,6 +36,8 @@ export default function AnalyticsCharts() {
 
   const userData: any[] = analytics?.userData || [];
   const reviewData: any[] = analytics?.reviewData || [];
+  const topReviewed: any[] = analytics?.topReviewed || [];
+  const topWoke: any[] = analytics?.topWoke || [];
 
   const totalSignups = userData.reduce((sum, d) => sum + (d.signups || 0), 0);
   const totalReviews = reviewData.reduce((sum, d) => sum + (d.reviews || 0), 0);
@@ -121,6 +123,51 @@ export default function AnalyticsCharts() {
           <Line yAxisId="right" type="monotone" dataKey="avgRating" stroke="#e879f9" strokeWidth={2} />
         </BarChart>
       </ResponsiveContainer>
+
+      {/* Top Content Lists */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, mt: 4 }}>
+        {/* Top 10 Most Reviewed */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: '#38bdf8', fontWeight: 700 }}>Top 10 Most Reviewed</Typography>
+          {topReviewed.length === 0 ? (
+            <Typography variant="body2" sx={{ color: '#9ca3af' }}>No data yet</Typography>
+          ) : (
+            topReviewed.map((item: any, idx: number) => (
+              <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75, py: 0.5, px: 1, borderRadius: 1, background: 'rgba(56,189,248,0.05)', '&:hover': { background: 'rgba(56,189,248,0.1)' } }}>
+                <Box sx={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#38bdf820', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.65rem' }}>{idx + 1}</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{item.title}</Typography>
+                <Box sx={{ px: 0.75, py: 0.25, borderRadius: 0.75, background: '#38bdf815', flexShrink: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#38bdf8', fontWeight: 600, fontSize: '0.65rem' }}>{item.contentType}</Typography>
+                </Box>
+                <Typography variant="caption" sx={{ color: '#9ca3af', fontWeight: 700, flexShrink: 0, minWidth: 40, textAlign: 'right' }}>{item.reviewCount} rev</Typography>
+              </Box>
+            ))
+          )}
+        </Box>
+
+        {/* Top 10 Most Woke */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: '#e879f9', fontWeight: 700 }}>Top 10 Most Woke</Typography>
+          {topWoke.length === 0 ? (
+            <Typography variant="body2" sx={{ color: '#9ca3af' }}>No data yet</Typography>
+          ) : (
+            topWoke.map((item: any, idx: number) => (
+              <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75, py: 0.5, px: 1, borderRadius: 1, background: 'rgba(232,121,249,0.05)', '&:hover': { background: 'rgba(232,121,249,0.1)' } }}>
+                <Box sx={{ minWidth: 22, height: 22, borderRadius: '50%', background: '#e879f920', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#e879f9', fontWeight: 700, fontSize: '0.65rem' }}>{idx + 1}</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{item.title}</Typography>
+                <Box sx={{ px: 0.75, py: 0.25, borderRadius: 0.75, background: '#e879f915', flexShrink: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#e879f9', fontWeight: 600, fontSize: '0.65rem' }}>{item.contentType}</Typography>
+                </Box>
+                <Typography variant="caption" sx={{ color: '#9ca3af', fontWeight: 700, flexShrink: 0, minWidth: 40, textAlign: 'right' }}>{Number(item.wokeScore).toFixed(1)}/10</Typography>
+              </Box>
+            ))
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }

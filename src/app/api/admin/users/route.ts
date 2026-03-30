@@ -45,6 +45,8 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
+    const existing = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -66,6 +68,14 @@ export async function PATCH(req: NextRequest) {
       warnCount?: number; // or set absolute value
     };
     if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+
+    if (typeof role !== 'undefined' && !['USER', 'MODERATOR', 'ADMIN'].includes(role)) {
+      return NextResponse.json({ error: `Invalid role: "${role}". Must be USER, MODERATOR, or ADMIN.` }, { status: 400 });
+    }
+
+    // Verify user exists
+    const existingUser = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const data: any = {};
     if (typeof role !== 'undefined') data.role = role;

@@ -14,7 +14,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 export default function ModerationReviewsTable() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 5 });
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [contentType, setContentType] = React.useState<string>('');
@@ -24,12 +24,12 @@ export default function ModerationReviewsTable() {
   React.useEffect(() => {
     const qp = new URLSearchParams(searchParams as any);
     const page = parseInt(qp.get('page') || '0', 10);
-    const pageSize = parseInt(qp.get('pageSize') || '5', 10);
+    const pageSize = parseInt(qp.get('pageSize') || '10', 10);
     const q0 = qp.get('q') || '';
     const ct0 = qp.get('contentType') || '';
     const sortBy0 = qp.get('sortBy');
     const sortOrder0 = (qp.get('sortOrder') as 'asc' | 'desc') || undefined;
-    setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 5 : pageSize });
+    setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 10 : pageSize });
     setQ(q0);
     setContentType(ct0);
     if (sortBy0 && sortOrder0) setSortModel([{ field: sortBy0, sort: sortOrder0 } as any]);
@@ -40,7 +40,7 @@ export default function ModerationReviewsTable() {
   React.useEffect(() => {
     const qp = new URLSearchParams();
     if (paginationModel.page) qp.set('page', String(paginationModel.page));
-    if (paginationModel.pageSize !== 5) qp.set('pageSize', String(paginationModel.pageSize));
+    if (paginationModel.pageSize !== 10) qp.set('pageSize', String(paginationModel.pageSize));
     if (dq) qp.set('q', dq);
     if (contentType) qp.set('contentType', contentType);
     const sf = sortModel[0]?.field;
@@ -199,7 +199,7 @@ export default function ModerationReviewsTable() {
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         onSortModelChange={(model) => setSortModel(model)}
-        pageSizeOptions={[5, 10, 20]}
+        pageSizeOptions={[10, 20, 50]}
         autoHeight={false}
         disableRowSelectionOnClick
         sx={{

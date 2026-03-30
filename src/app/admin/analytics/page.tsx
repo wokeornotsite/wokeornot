@@ -14,12 +14,11 @@ export default function AnalyticsPage() {
         Site metrics: user signups, active users, review counts, average ratings, and trends.
       </Typography>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 2, background: 'rgba(56,189,248,0.07)' }}>
             <AnalyticsCharts />
           </Paper>
         </Grid>
-        {/* More widgets can be added here */}
       </Grid>
     </Box>
   );

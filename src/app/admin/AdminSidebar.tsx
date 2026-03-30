@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import styles from './admin.module.css';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
 import ReviewsIcon from '@mui/icons-material/RateReview';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -15,17 +14,36 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import HistoryIcon from '@mui/icons-material/History';
 import ForumIcon from '@mui/icons-material/Forum';
-import { Button, Drawer, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Button, Drawer, Divider, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 
-const navLinks = [
-  { href: '/admin', icon: <DashboardIcon />, label: 'Dashboard', exact: true },
-  { href: '/admin/moderation', icon: <ReviewsIcon />, label: 'Moderation', exact: false },
-  { href: '/admin/users', icon: <PeopleIcon />, label: 'Users', exact: false },
-  { href: '/admin/content', icon: <ManageSearchIcon />, label: 'Content', exact: false },
-  { href: '/admin/analytics', icon: <BarChartIcon />, label: 'Analytics', exact: false },
-  { href: '/admin/audit-log', icon: <HistoryIcon />, label: 'Audit Log', exact: false },
-  { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false },
-  { href: '/admin/maintenance', icon: <BuildIcon />, label: 'Maintenance', exact: false },
+const navGroups = [
+  {
+    groupLabel: null,
+    links: [
+      { href: '/admin', icon: <DashboardIcon />, label: 'Dashboard', exact: true },
+    ],
+  },
+  {
+    groupLabel: 'Moderation',
+    links: [
+      { href: '/admin/moderation', icon: <ReviewsIcon />, label: 'Moderation', exact: false },
+      { href: '/admin/content', icon: <ManageSearchIcon />, label: 'Content', exact: false },
+      { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false },
+    ],
+  },
+  {
+    groupLabel: 'Insights',
+    links: [
+      { href: '/admin/analytics', icon: <BarChartIcon />, label: 'Analytics', exact: false },
+      { href: '/admin/audit-log', icon: <HistoryIcon />, label: 'Audit Log', exact: false },
+    ],
+  },
+  {
+    groupLabel: 'System',
+    links: [
+      { href: '/admin/maintenance', icon: <BuildIcon />, label: 'Maintenance', exact: false },
+    ],
+  },
 ];
 
 export default function AdminSidebar() {
@@ -51,22 +69,38 @@ export default function AdminSidebar() {
     <>
       <div className={styles.adminLogo}>WokeOrNot Admin</div>
       <nav style={{ flex: 1 }}>
-        <ul className={styles.adminNavList}>
-          {navLinks.map((link) => {
-            const active = isActive(link.href, link.exact);
-            return (
-              <li key={link.href}>
-                <Link 
-                  href={link.href} 
-                  className={`${styles.adminNavLink} ${active ? styles.adminNavLinkActive : ''}`}
-                  onClick={() => isMobile && setMobileOpen(false)}
-                >
-                  {link.icon}
-                  <span>{link.label}</span>
-                </Link>
-              </li>
-            );
-          })}
+        <ul className={styles.adminNavList} style={{ padding: 0, margin: 0 }}>
+          {navGroups.map((group, gi) => (
+            <React.Fragment key={gi}>
+              {gi > 0 && (
+                <>
+                  <Divider sx={{ borderColor: '#38bdf822', my: 1 }} />
+                  {group.groupLabel && (
+                    <li style={{ listStyle: 'none' }}>
+                      <Typography variant="caption" sx={{ color: '#38bdf866', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', px: 1.5, display: 'block', mb: 0.5, mt: 0.5 }}>
+                        {group.groupLabel}
+                      </Typography>
+                    </li>
+                  )}
+                </>
+              )}
+              {group.links.map((link) => {
+                const active = isActive(link.href, link.exact);
+                return (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={`${styles.adminNavLink} ${active ? styles.adminNavLinkActive : ''}`}
+                      onClick={() => isMobile && setMobileOpen(false)}
+                    >
+                      {link.icon}
+                      <span>{link.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </React.Fragment>
+          ))}
         </ul>
       </nav>
       <Button

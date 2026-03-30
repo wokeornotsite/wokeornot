@@ -1,8 +1,9 @@
 "use client";
 import React from 'react';
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { useMovies } from './useMovies';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -16,6 +17,8 @@ export default function ContentMoviesTable() {
   const [contentType, setContentType] = React.useState('');
   const dq = useDebouncedValue(q, 300);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [bulkDeleteDialog, setBulkDeleteDialog] = React.useState(false);
+  const [rowSelectionModel, setRowSelectionModel] = React.useState<GridRowSelectionModel>([]);
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   // Initialize from URL
@@ -68,6 +71,29 @@ export default function ContentMoviesTable() {
     setDeleteDialog({ open: false, row: null });
   }
 
+  async function confirmBulkDelete() {
+    const ids = rowSelectionModel as string[];
+    if (!ids.length) return;
+    try {
+      await fetch('/api/admin/movies', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'BULK_DELETE_CONTENT', targetType: 'Movie', details: `Deleted ${ids.length} items` }),
+      });
+      setSnackbar({ open: true, message: `${ids.length} item${ids.length > 1 ? 's' : ''} deleted` });
+      setRowSelectionModel([]);
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error deleting content' });
+    }
+    setBulkDeleteDialog(false);
+  }
+
   const columns: GridColDef[] = [
     { field: 'title', headerName: 'Title', flex: 2 },
     { field: 'year', headerName: 'Year', width: 90 },
@@ -107,7 +133,7 @@ export default function ContentMoviesTable() {
 
   return (
     <Box sx={{ width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 2, p: 2, mb: 3 }}>
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           value={q}
@@ -131,6 +157,18 @@ export default function ContentMoviesTable() {
             <MenuItem value="KIDS">KIDS</MenuItem>
           </Select>
         </FormControl>
+        {rowSelectionModel.length > 0 && (
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            startIcon={<DeleteSweepIcon />}
+            onClick={() => setBulkDeleteDialog(true)}
+            sx={{ ml: 'auto' }}
+          >
+            Delete Selected ({rowSelectionModel.length})
+          </Button>
+        )}
       </Box>
       <DataGrid
         rows={movies}
@@ -141,7 +179,10 @@ export default function ContentMoviesTable() {
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[10, 25, 50]}
         loading={isLoading}
-        disableRowSelectionOnClick
+        checkboxSelection
+        rowSelectionModel={rowSelectionModel}
+        onRowSelectionModelChange={(newModel) => setRowSelectionModel(newModel)}
+        disableRowSelectionOnClick={false}
         autoHeight
         sx={gridSx}
       />
@@ -162,6 +203,21 @@ export default function ContentMoviesTable() {
             <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setDeleteDialog({ open: false, row: null })} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
               <button onClick={confirmDelete} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {bulkDeleteDialog && (
+        <div style={{
+          position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ background: '#232336', padding: 24, borderRadius: 8, color: '#fff', minWidth: 340 }}>
+            <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Delete {rowSelectionModel.length} Items</h2>
+            <p>Permanently delete <strong>{rowSelectionModel.length} selected item{rowSelectionModel.length > 1 ? 's' : ''}</strong>? All associated reviews and comments will also be removed. This cannot be undone.</p>
+            <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'flex-end' }}>
+              <button onClick={() => setBulkDeleteDialog(false)} style={{ padding: '8px 18px', borderRadius: 6, background: '#a78bfa', color: '#232336', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmBulkDelete} style={{ padding: '8px 18px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Delete All</button>
             </div>
           </div>
         </div>

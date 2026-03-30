@@ -19,6 +19,7 @@ export default function ModerationUsersTable() {
   const [banDialog, setBanDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [banReason, setBanReason] = React.useState('');
   const [promoteDialog, setPromoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [moderatorDialog, setModeratorDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [demoteDialog, setDemoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
@@ -132,6 +133,28 @@ export default function ModerationUsersTable() {
     }
   }
 
+  async function confirmModerator() {
+    const row = moderatorDialog.row;
+    if (!row) return;
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, role: 'MODERATOR' }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'PROMOTE_MODERATOR', targetId: row.id, targetType: 'User', details: row.email }),
+      });
+      setSnackbar({ open: true, message: 'User promoted to moderator' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error promoting user to moderator' });
+    }
+    setModeratorDialog({ open: false, row: null });
+  }
+
   async function confirmDemote() {
     const row = demoteDialog.row;
     if (!row) return;
@@ -219,6 +242,16 @@ export default function ModerationUsersTable() {
               icon={<span style={{ fontWeight: 700, color: '#38bdf8' }}>A</span>}
               label="Promote to Admin"
               onClick={() => setPromoteDialog({ open: true, row: params.row })}
+              showInMenu
+            />
+          );
+        }
+        if (params.row.role === 'USER') {
+          actions.push(
+            <GridActionsCellItem
+              icon={<span style={{ fontWeight: 700, color: '#a78bfa' }}>M</span>}
+              label="Make Moderator"
+              onClick={() => setModeratorDialog({ open: true, row: params.row })}
               showInMenu
             />
           );
@@ -389,6 +422,18 @@ export default function ModerationUsersTable() {
         <DialogActions>
           <Button onClick={() => setPromoteDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={confirmPromote} variant="contained" sx={{ background: '#38bdf8' }}>Promote</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Make Moderator dialog */}
+      <Dialog open={moderatorDialog.open} onClose={() => setModeratorDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Make Moderator</DialogTitle>
+        <DialogContent>
+          <p>Promote <strong>{moderatorDialog.row?.email}</strong> to Moderator? They will be able to moderate reviews and content.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModeratorDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmModerator} variant="contained" sx={{ background: '#a78bfa' }}>Make Moderator</Button>
         </DialogActions>
       </Dialog>
 

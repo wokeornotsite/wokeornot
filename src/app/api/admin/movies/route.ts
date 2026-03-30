@@ -80,21 +80,26 @@ export async function DELETE(req: NextRequest) {
   if ('error' in auth) return auth.error;
 
   try {
-    const { id } = await req.json();
-    
-    if (!id) {
+    const body = await req.json();
+
+    // Support both single { id } and bulk { ids: [...] }
+    const objectIdHex = /^[a-f\d]{24}$/i;
+    const ids: string[] = body.ids ?? (body.id ? [body.id] : []);
+    const validIds = ids.filter((id: string) => objectIdHex.test(id));
+
+    if (validIds.length === 0) {
       return NextResponse.json(
-        { error: 'Content ID required' },
+        { error: 'At least one valid content ID required' },
         { status: 400 }
       );
     }
 
-    // Delete the content (cascade will handle reviews, comments, etc.)
-    await prisma.content.delete({
-      where: { id },
+    // Delete the content items (cascade handles reviews, comments, etc.)
+    await prisma.content.deleteMany({
+      where: { id: { in: validIds } },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: validIds.length });
   } catch (error) {
     console.error('Failed to delete content:', error);
     return NextResponse.json(

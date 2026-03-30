@@ -7,12 +7,16 @@ import PeopleIcon from '@mui/icons-material/People';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import MovieIcon from '@mui/icons-material/Movie';
 import StarIcon from '@mui/icons-material/Star';
+import BlockIcon from '@mui/icons-material/Block';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 interface AdminDashboardStatsProps {
   userCount: number;
   reviewCount: number;
   contentCount: number;
   avgRating: number;
+  bannedUserCount: number;
+  hiddenReviewCount: number;
 }
 
 export default function AdminDashboardStats({
@@ -20,6 +24,8 @@ export default function AdminDashboardStats({
   reviewCount,
   contentCount,
   avgRating,
+  bannedUserCount,
+  hiddenReviewCount,
 }: AdminDashboardStatsProps) {
   const stats = [
     {
@@ -50,12 +56,26 @@ export default function AdminDashboardStats({
       color: 'rgba(245, 158, 11, 0.15)',
       textColor: '#f59e0b',
     },
+    {
+      title: 'Banned Users',
+      value: bannedUserCount,
+      icon: <BlockIcon sx={{ fontSize: 40, color: '#ef4444' }} />,
+      color: 'rgba(239, 68, 68, 0.12)',
+      textColor: '#ef4444',
+    },
+    {
+      title: 'Hidden Reviews',
+      value: hiddenReviewCount,
+      icon: <VisibilityOffIcon sx={{ fontSize: 40, color: '#9ca3af' }} />,
+      color: 'rgba(156, 163, 175, 0.12)',
+      textColor: '#9ca3af',
+    },
   ];
 
   return (
     <Grid container spacing={3}>
       {stats.map((stat, index) => (
-        <Grid key={index} item xs={12} sm={6} md={3}>
+        <Grid key={index} item xs={12} sm={6} md={4}>
           <Paper
             elevation={2}
             sx={{
