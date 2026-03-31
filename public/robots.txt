@@ -1,6 +1,0 @@
-# robots.txt for wokeornot.net
-User-agent: *
-Disallow: /admin/
-Disallow: /login/
-Disallow: /search?
-Sitemap: https://www.wokeornot.net/sitemap.xml
