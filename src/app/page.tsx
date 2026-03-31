@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
+export const revalidate = 60; // Regenerate at most once per minute so Recently Rated stays fresh
+
 import RecentlyRatedSection from "@/components/ui/recently-rated-section";
 
 // Lazy load TrendingSection for better initial page load
