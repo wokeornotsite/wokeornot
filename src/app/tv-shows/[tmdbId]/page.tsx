@@ -33,7 +33,11 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     return {};
   }
   if (!tvShow) return {};
-  const description = (tvShow.overview || '').slice(0, 160);
+  const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'TV_SHOW' } });
+  const wokeScore = dbContent?.wokeScore;
+  const year = tvShow.first_air_date ? ` (${tvShow.first_air_date.slice(0, 4)})` : '';
+  const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
+  const description = `${tvShow.name}${year}${ratingPart} ${tvShow.overview || ''}`.trim().slice(0, 160);
   const imageUrl = tvShow.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
     : tvShow.poster_path
@@ -42,6 +46,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   return {
     title: `${tvShow.name} | WokeOrNot`,
     description,
+    alternates: { canonical: `https://wokeornot.net/tv-shows/${tmdbId}` },
     openGraph: {
       title: `${tvShow.name} | WokeOrNot`,
       description,
@@ -123,9 +128,36 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
     : [];
   const similarDbMap = Object.fromEntries(similarDbData.map(c => [c.tmdbId, c]));
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TVSeries',
+    name: tvShow.name,
+    description: tvShow.overview || undefined,
+    image: tvShow.poster_path ? `https://image.tmdb.org/t/p/w500${tvShow.poster_path}` : undefined,
+    ...(tvShow.first_air_date ? { datePublished: tvShow.first_air_date } : {}),
+    ...(reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: Number(wokeScore).toFixed(1),
+        bestRating: '10',
+        worstRating: '1',
+        ratingCount: String(reviewCount),
+      },
+    } : {}),
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'TV Shows', item: 'https://wokeornot.net/tv-shows' },
+        { '@type': 'ListItem', position: 2, name: tvShow.name },
+      ],
+    },
+  };
+
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
-      {/* Hero Section with Backdrop */}
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
+        {/* Hero Section with Backdrop */}
       <div className="relative h-64 md:h-96 w-full overflow-hidden flex items-end justify-center">
         {tvShow.backdrop_path && (
           <Image
@@ -277,5 +309,6 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
         </div>
       </div>
     </div>
+    </>
   );
 }

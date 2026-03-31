@@ -34,7 +34,11 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     return {};
   }
   if (!movie) return {};
-  const description = (movie.overview || '').slice(0, 160);
+  const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'MOVIE' } });
+  const wokeScore = dbContent?.wokeScore;
+  const year = movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : '';
+  const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
+  const description = `${movie.title}${year}${ratingPart} ${movie.overview || ''}`.trim().slice(0, 160);
   const imageUrl = movie.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : movie.poster_path
@@ -43,6 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   return {
     title: `${movie.title} | WokeOrNot`,
     description,
+    alternates: { canonical: `https://wokeornot.net/movies/${tmdbId}` },
     openGraph: {
       title: `${movie.title} | WokeOrNot`,
       description,
@@ -119,8 +124,34 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
     : '/images/placeholder.png';
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Movie',
+    name: movie.title,
+    description: movie.overview || undefined,
+    image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : undefined,
+    ...(movie.release_date ? { datePublished: movie.release_date } : {}),
+    ...(reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: Number(wokeScore).toFixed(1),
+        bestRating: '10',
+        worstRating: '1',
+        ratingCount: String(reviewCount),
+      },
+    } : {}),
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Movies', item: 'https://wokeornot.net/movies' },
+        { '@type': 'ListItem', position: 2, name: movie.title },
+      ],
+    },
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
       {/* Hero Section with Backdrop */}
       <div className="relative h-64 md:h-96 w-full overflow-hidden flex items-end justify-center">
