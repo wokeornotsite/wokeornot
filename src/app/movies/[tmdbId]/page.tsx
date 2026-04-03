@@ -13,7 +13,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { getMovieDetails, getSimilarMovies, getMovieCredits, getMovieWatchProviders, getMovieVideos } from '@/lib/tmdb';
+import { getMovieDetails, getSimilarMovies, getMovieCredits, getMovieWatchProviders } from '@/lib/tmdb';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { CastCarousel } from '@/components/ui/cast-carousel';
 import { WatchProviders } from '@/components/ui/watch-providers';
@@ -111,15 +111,13 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = dbContent?.reviewCount ?? 0;
 
-  // Fetch credits, watch providers, and videos in parallel (non-critical)
+  // Fetch credits and watch providers in parallel (non-critical)
   let cast: { id: number; name: string; character: string; profile_path: string | null }[] = [];
   let watchProviders: { flatrate?: any[]; rent?: any[]; buy?: any[] } = {};
-  let video: { key: string; name: string } | null = null;
   try {
-    const [creditsData, providersData, videoData] = await Promise.all([
+    const [creditsData, providersData] = await Promise.all([
       getMovieCredits(Number(tmdbId)),
       getMovieWatchProviders(Number(tmdbId)),
-      getMovieVideos(Number(tmdbId)),
     ]);
     cast = (creditsData?.cast || []).slice(0, 10).map((c: any) => ({
       id: c.id,
@@ -128,7 +126,6 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
       profile_path: c.profile_path ?? null,
     }));
     watchProviders = providersData || {};
-    video = videoData;
   } catch { /* non-critical */ }
 
   // Fetch similar movies
@@ -304,22 +301,6 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             {cast.length > 0 && <CastCarousel cast={cast} />}
             {/* Watch Providers */}
             <WatchProviders providers={watchProviders} />
-            {/* Trailer */}
-            {video && (
-              <div className="mt-6">
-                <h3 className="text-lg font-bold text-blue-200 mb-3">Trailer</h3>
-                <div className="rounded-xl overflow-hidden shadow-lg border border-white/10">
-                  <iframe
-                    width="100%"
-                    style={{ aspectRatio: '16/9', borderRadius: '12px', display: 'block' }}
-                    src={`https://www.youtube.com/embed/${video.key}`}
-                    title={video.name}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-            )}
             {/* Review Tabs: Submit Review / User Reviews */}
             <div className="mt-8">
               <ReviewTabsWrapper id={dbContent.id} />
