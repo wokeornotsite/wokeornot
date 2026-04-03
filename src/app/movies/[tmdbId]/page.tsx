@@ -15,7 +15,6 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getMovieDetails, getSimilarMovies, getMovieCredits, getMovieWatchProviders } from '@/lib/tmdb';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { CastCarousel } from '@/components/ui/cast-carousel';
 import { WatchProviders } from '@/components/ui/watch-providers';
 import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
@@ -290,6 +289,42 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
               ))}
             </div>
             <div className="mt-2 text-xs text-gray-400">{reviewCount} Reviews</div>
+            {/* Cast - compact sidebar list */}
+            {cast.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <h4 className="text-xs font-bold text-blue-300 mb-2 tracking-wide uppercase">Top Cast</h4>
+                <div className="flex flex-col gap-2">
+                  {cast.slice(0, 6).map((c) => (
+                    <div key={c.id} className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-[#1a1a2e] border border-white/10 overflow-hidden flex-shrink-0">
+                        {c.profile_path ? (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/w92${c.profile_path}`}
+                            alt={c.name}
+                            width={28}
+                            height={28}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">{c.name[0]}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-white truncate">{c.name}</div>
+                        <div className="text-[10px] text-gray-400 truncate">{c.character}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Where to Watch - compact sidebar */}
+            {(watchProviders.flatrate?.length || watchProviders.rent?.length || watchProviders.buy?.length) ? (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <WatchProviders providers={watchProviders} />
+              </div>
+            ) : null}
           </div>
           {/* Main Content */}
           <div className="flex-1 w-full">
@@ -297,12 +332,8 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {movie.overview}
             </div>
-            {/* Cast */}
-            {cast.length > 0 && <CastCarousel cast={cast} />}
-            {/* Watch Providers */}
-            <WatchProviders providers={watchProviders} />
             {/* Review Tabs: Submit Review / User Reviews */}
-            <div className="mt-8">
+            <div className="mt-6">
               <ReviewTabsWrapper id={dbContent.id} />
             </div>
           </div>
