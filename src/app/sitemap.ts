@@ -1,6 +1,10 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic so Vercel doesn't try to pre-render and cache this as an ISR page
+// (the full content list easily exceeds the 19MB ISR size limit)
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://wokeornot.net';
 
@@ -19,7 +23,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let contentPages: MetadataRoute.Sitemap = [];
   try {
+    // Only include content that has been rated — keeps the sitemap lean
+    // and ensures search engines only index pages with real community data
     const contents = await prisma.content.findMany({
+      where: { reviewCount: { gt: 0 } },
       select: { tmdbId: true, contentType: true, updatedAt: true },
     });
     contentPages = contents.map((c) => {
