@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { parseJson, schemas } from '@/lib/validation';
 import { error } from '@/lib/http';
+import { createNotification } from '@/lib/notifications';
+import { checkHelpfulBadge } from '@/lib/badges';
 
 // Need to run prisma generate after schema changes
 // This is a temporary type until Prisma generates the proper types
@@ -97,6 +99,30 @@ export async function POST(
           reviewId: reviewId
         }
       });
+
+      if (reaction === 'like' && review.userId) { checkHelpfulBadge(review.userId).catch(() => {}); }
+
+      // Notify review author if it's not the current user
+      if (review.userId && review.userId !== user.id) {
+        const content = await prisma.content.findUnique({
+          where: { id: review.contentId },
+          select: { tmdbId: true, contentType: true },
+        });
+        if (content) {
+          const linkPrefix =
+            content.contentType === 'TV_SHOW'
+              ? '/tv-shows'
+              : content.contentType === 'KIDS'
+              ? '/kids'
+              : '/movies';
+          await createNotification({
+            userId: review.userId,
+            type: 'REVIEW_REACTION',
+            message: 'Someone liked your review',
+            link: `${linkPrefix}/${content.tmdbId}`,
+          });
+        }
+      }
     }
 
     // Get updated counts

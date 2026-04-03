@@ -25,6 +25,7 @@ model User {
   isBanned      Boolean   @default(false)
   banReason     String?
   warnCount     Int       @default(0)
+  bio           String?
 
   // Relations
   accounts      Account[]
@@ -34,6 +35,8 @@ model User {
   auditLogs     AuditLog[]
   reviewReactions ReviewReaction[]
   favorites     Favorite[]
+  notifications Notification[]
+  badges        UserBadge[]
 
   @@map("users")
 }
@@ -52,6 +55,7 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@index([expires])
   @@map("verification_tokens")
 }
 
@@ -178,6 +182,7 @@ model Review {
   rating      Int             @default(0) // 1-10 scale
   text        String?
   isHidden    Boolean         @default(false)
+  ipHash      String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -189,6 +194,7 @@ model Review {
 
   @@index([contentId])
   @@index([userId])
+  @@index([isHidden])
   @@map("reviews")
 }
 
@@ -244,6 +250,7 @@ model Comment {
   @@index([contentId])
   @@index([parentId])
   @@index([userId])
+  @@index([isDeleted])
   @@map("comments")
 }
 
@@ -295,6 +302,22 @@ model Favorite {
   @@map("favorites")
 }
 
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  type      String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 // Forum threads for general discussion
 model ForumThread {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -303,6 +326,33 @@ model ForumThread {
   userId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
   @@map("forum_threads")
+}
+
+model Badge {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  key         String      @unique
+  name        String
+  description String
+  icon        String
+  createdAt   DateTime    @default(now())
+
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  badgeId   String   @db.ObjectId
+  earnedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
 }

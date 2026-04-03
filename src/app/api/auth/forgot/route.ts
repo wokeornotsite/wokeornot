@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
+import { getPasswordResetEmailHtml } from '@/lib/email-templates';
 
 export async function POST(req: NextRequest) {
   const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'auth_forgot' });
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     const { email } = await parseJson(req, schemas.authForgot);
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      const res = NextResponse.json({ error: 'No user with that email.' }, { status: 404 });
+      const res = NextResponse.json({ message: 'If an account with that email exists, you will receive a reset link.' });
       setRateLimitHeaders(res, rl);
       return res;
     }
@@ -43,11 +44,13 @@ export async function POST(req: NextRequest) {
     }
 
     const transporter = nodemailer.createTransport(transportConfig);
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Reset your password',
-      text: `Click the link to reset your password: ${process.env.NEXTAUTH_URL}/reset?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,
+      text: `Click the link to reset your password: ${resetUrl}`,
+      html: getPasswordResetEmailHtml(resetUrl, user.name || undefined),
     });
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);

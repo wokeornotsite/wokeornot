@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 import { error as httpError } from '@/lib/http';
+import { getVerificationEmailHtml } from '@/lib/email-templates';
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,11 +65,13 @@ export async function POST(req: NextRequest) {
     }
 
     const transporter = nodemailer.createTransport(transportConfig);
+    const verificationUrl = `${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Verify your email',
-      text: `Click the link to verify your email: ${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`,
+      text: `Click the link to verify your email: ${verificationUrl}`,
+      html: getVerificationEmailHtml(verificationUrl, name || undefined),
     });
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);

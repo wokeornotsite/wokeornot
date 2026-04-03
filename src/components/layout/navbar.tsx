@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Search } from 'lucide-react';
 import styles from './navbar.module.css';
+import { NotificationBell } from './notification-bell';
 import type { Session } from 'next-auth';
 
 function UserDropdownMenu({ session }: { session: Session | null }) {
@@ -117,6 +118,7 @@ export const Navbar = () => {
           <Link href="/search" className="text-gray-400 hover:text-primary p-2 rounded-full transition-colors duration-200">
             <Search className="h-5 w-5" />
           </Link>
+          {session && <NotificationBell />}
           {session ? (
             <UserDropdownMenu session={session} />
           ) : (

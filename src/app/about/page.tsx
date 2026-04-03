@@ -1,6 +1,57 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us | WokeOrNot',
+  description: 'Learn about WokeOrNot — the community-driven platform for rating and reviewing the wokeness of movies, TV shows, and kids content.',
+  alternates: { canonical: 'https://wokeornot.net/about' },
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What is WokeOrNot?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'WokeOrNot is a community-driven platform where users rate and review movies, TV shows, and kids content based on their perceived level of progressive social and political messaging, using a 1–10 wokeness scale.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does the wokeness rating work?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Users submit a score from 1 (not woke) to 10 (very woke) along with optional category tags and a written review. The community average is displayed as a color-coded bar — green for low, yellow for moderate, and red for high wokeness.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is WokeOrNot free to use?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes, WokeOrNot is completely free. You can browse ratings and read reviews without an account.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I rate content anonymously?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. You can submit a review as a guest without creating an account, simply by providing a display name with your review.',
+      },
+    },
+  ],
+};
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824] py-16 px-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8">
         <h1 className="text-4xl font-bold text-white mb-6">About WokeOrNot</h1>
         <div className="prose prose-invert max-w-none text-blue-100">

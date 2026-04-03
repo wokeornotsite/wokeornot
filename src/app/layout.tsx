@@ -63,6 +63,15 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  manifest: '/manifest.json',
+  themeColor: '#8b5cf6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    apple: '/icons/icon.svg',
+  },
 };
 
 

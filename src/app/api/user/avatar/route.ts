@@ -2,44 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import path from 'path';
-import fs from 'fs/promises';
 
-export const runtime = 'nodejs';
+const ALLOWED_AVATARS = [
+  '/avatars/avatar1.png',
+  '/avatars/avatar1.svg',
+  '/avatars/avatar10.svg',
+  '/avatars/avatar11.svg',
+  '/avatars/avatar12.svg',
+  '/avatars/avatar2.png',
+  '/avatars/avatar2.svg',
+  '/avatars/avatar3.svg',
+  '/avatars/avatar4.svg',
+  '/avatars/avatar5.svg',
+  '/avatars/avatar6.svg',
+  '/avatars/avatar7.svg',
+  '/avatars/avatar8.svg',
+  '/avatars/avatar9.svg',
+  '/avatars/default.png',
+];
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { avatar } = await req.json();
+  if (!avatar || !ALLOWED_AVATARS.includes(avatar)) {
+    return NextResponse.json({ error: 'Invalid avatar selection' }, { status: 400 });
   }
 
-  const formData = await req.formData();
-  const file = formData.get('avatar') as File | null;
-  if (!file) {
-    return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
-  }
-
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-  if (!allowedTypes.includes(file.type)) {
-    return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, { status: 400 });
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split('.').pop() || 'png';
-  const filename = `${session.user.email.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}.${ext}`;
-  const uploadDir = path.join(process.cwd(), 'public', 'avatars');
-  await fs.mkdir(uploadDir, { recursive: true });
-  const filePath = path.join(uploadDir, filename);
-  await fs.writeFile(filePath, buffer);
-
-  const imageUrl = `/avatars/${filename}`;
-  await prisma.user.update({
-    where: { email: session.user.email },
-    data: { image: imageUrl },
+  const updated = await prisma.user.update({
+    where: { id: session.user.id },
+    data: { avatar },
   });
 
-  return NextResponse.json({ image: imageUrl });
+  return NextResponse.json({ avatar: updated.avatar });
 }

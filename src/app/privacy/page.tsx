@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | WokeOrNot',
+  description: 'Read the WokeOrNot Privacy Policy to understand how we collect, use, and protect your personal information when you use our platform.',
+  alternates: { canonical: 'https://wokeornot.net/privacy' },
+};
+
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824] py-16 px-4">

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
+import { checkReviewBadges } from '@/lib/badges';
 
 // GET handler
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -146,7 +148,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       setRateLimitHeaders(res, rl);
       return res;
     }
-    const { rating, text, categoryIds, guestName } = await parseJson(req, schemas.reviewCreate);
+    const body = await parseJson(req, schemas.reviewCreate);
+    const { rating, text, categoryIds, guestName } = body;
+
+    // Honeypot check — bots that fill the hidden field get a fake success response
+    if (body.honeypot) {
+      return NextResponse.json({ message: 'Review submitted' });
+    }
+
+    // Timing check — submissions faster than 3 seconds are likely automated
+    if (body.formLoadedAt && Date.now() - body.formLoadedAt < 3000) {
+      return NextResponse.json({ error: 'Please take your time reviewing' }, { status: 400 });
+    }
+
     const safeText = text ? sanitizeHTML(text) : '';
     const session = await getServerSession(authOptions);
     const resolvedParams = await params;
@@ -177,6 +191,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: 'You have already reviewed this content' }, { status: 400 });
       }
     }
+    // Hash the IP address for guest review spam tracking (privacy-preserving)
+    let ipHash: string | undefined;
+    if (!userId) {
+      const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
+      ipHash = crypto.createHash('sha256').update(ip).digest('hex');
+    }
+
     // Create the review
     const review = await prisma.review.create({
       data: {
@@ -184,6 +205,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         text: safeText,
         userId,
         guestName: userId ? undefined : ((guestName && guestName.trim()) ? guestName.trim() : 'Anonymous'),
+        ipHash: userId ? undefined : ipHash,
         contentId,
         categories: {
           create: categoryIds?.map((catId: string) => ({
@@ -196,6 +218,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         categories: { include: { category: true } },
       },
     });
+    if (userId) { checkReviewBadges(userId).catch(() => {}); }
+
     // Update category scores for this content
     const reviewCategories = await prisma.reviewCategory.findMany({
       where: { reviewId: review.id },

@@ -10,8 +10,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { oldPassword, newPassword } = await req.json();
-  if (!newPassword || newPassword.length < 6) {
-    return NextResponse.json({ error: 'Password too short' }, { status: 400 });
+  if (!newPassword || newPassword.length < 8) {
+    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+  }
+  if (!/[A-Z]/.test(newPassword)) {
+    return NextResponse.json({ error: 'Password must contain at least one uppercase letter' }, { status: 400 });
+  }
+  if (!/[0-9]/.test(newPassword)) {
+    return NextResponse.json({ error: 'Password must contain at least one number' }, { status: 400 });
   }
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   if (!user || !user.password) {

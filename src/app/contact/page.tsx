@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact Us | WokeOrNot',
+  description: 'Get in touch with the WokeOrNot team. We welcome questions, feedback, partnership inquiries, and content reports.',
+  alternates: { canonical: 'https://wokeornot.net/contact' },
+};
+
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824] py-16 px-4">

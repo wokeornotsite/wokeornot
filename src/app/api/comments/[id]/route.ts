@@ -4,6 +4,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { createNotification } from '@/lib/notifications';
+import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
+import { error as httpError } from '@/lib/http';
+import { checkCommentBadges } from '@/lib/badges';
 
  
 // @ts-expect-error Next.js does not export type for context
@@ -40,6 +44,12 @@ export async function GET(req: NextRequest, context) {
 // @ts-expect-error Next.js does not export type for context
 export async function POST(req: NextRequest, context) {
   try {
+    const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'comment_submit' });
+    if (!rl.allowed && !rl.shadowed) {
+      const res = httpError(429, 'Too Many Requests', 'RATE_LIMITED');
+      setRateLimitHeaders(res, rl);
+      return res;
+    }
     const session = await getServerSession(authOptions);
     if (!session || typeof session !== 'object' || !('user' in session) || !session.user || typeof session.user !== 'object' || !('email' in session.user) || !('expires' in session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -69,6 +79,41 @@ export async function POST(req: NextRequest, context) {
         user: { select: { id: true, name: true, image: true } },
       },
     });
+
+    checkCommentBadges(dbUser.id).catch(() => {});
+
+    // Notify parent comment author if this is a reply
+    if (parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { userId: true, contentId: true },
+      });
+      if (parentComment && parentComment.userId !== dbUser.id) {
+        let link: string | undefined;
+        if (parentComment.contentId) {
+          const content = await prisma.content.findUnique({
+            where: { id: parentComment.contentId },
+            select: { tmdbId: true, contentType: true },
+          });
+          if (content) {
+            const linkPrefix =
+              content.contentType === 'TV_SHOW'
+                ? '/tv-shows'
+                : content.contentType === 'KIDS'
+                ? '/kids'
+                : '/movies';
+            link = `${linkPrefix}/${content.tmdbId}`;
+          }
+        }
+        await createNotification({
+          userId: parentComment.userId,
+          type: 'COMMENT_REPLY',
+          message: 'Someone replied to your comment',
+          link,
+        });
+      }
+    }
+
     return NextResponse.json(comment);
   } catch (error: unknown) {
     let message = 'Failed to submit comment.';

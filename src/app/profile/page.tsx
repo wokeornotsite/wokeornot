@@ -21,6 +21,7 @@ export default async function ProfilePage() {
     emailVerified: Date | null;
     image: string | null;
     avatar: string | null;
+    bio: string | null;
     password: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -63,6 +64,7 @@ export default async function ProfilePage() {
         email: user.email || '',
         avatar: user.avatar || '',
         image: user.image || '',
+        bio: user.bio || '',
         createdAt: user.createdAt.toISOString(),
         reviewCount: user.reviews.length,
         reviews,

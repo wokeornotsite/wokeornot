@@ -43,6 +43,7 @@ export type UserProfileData = {
   email: string;
   avatar?: string;
   image?: string;
+  bio?: string;
   createdAt?: string;
   reviewCount?: number;
   reviews: Review[];
@@ -72,12 +73,16 @@ function ProfileClient({ user }: { user: UserProfileData }) {
   const [activityFilter, setActivityFilter] = useState("");
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  const [bio, setBio] = useState(user.bio || "");
   const [nameLoading, setNameLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [bioError, setBioError] = useState("");
   const [nameSuccess, setNameSuccess] = useState("");
   const [emailSuccess, setEmailSuccess] = useState("");
+  const [bioSuccess, setBioSuccess] = useState("");
 
   // Review editing state
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
@@ -208,6 +213,28 @@ function ProfileClient({ user }: { user: UserProfileData }) {
       setEmailError(err.message || "Failed to change email");
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  // Bio change handler
+  const handleBioChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBioLoading(true);
+    setBioError("");
+    setBioSuccess("");
+    try {
+      const res = await fetch("/api/user/bio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update bio");
+      setBioSuccess("Bio updated successfully!");
+    } catch (err: any) {
+      setBioError(err.message || "Failed to update bio");
+    } finally {
+      setBioLoading(false);
     }
   };
 
@@ -349,6 +376,36 @@ function ProfileClient({ user }: { user: UserProfileData }) {
               </button>
               {emailError && <p className="text-red-400 text-xs">{emailError}</p>}
               {emailSuccess && <p className="text-green-400 text-xs">{emailSuccess}</p>}
+            </form>
+
+            <div className="border-t border-white/10" />
+
+            {/* Bio form */}
+            <form onSubmit={handleBioChange} className="space-y-2">
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">Bio</label>
+              <div className="relative">
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  disabled={bioLoading}
+                  maxLength={300}
+                  rows={3}
+                  placeholder="Tell the community about yourself…"
+                  className="w-full bg-[#0f0f1a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50 resize-none"
+                />
+                <span className={`absolute bottom-2 right-2 text-xs ${bio.length >= 280 ? 'text-yellow-400' : 'text-gray-500'}`}>
+                  {bio.length}/300
+                </span>
+              </div>
+              <button
+                type="submit"
+                disabled={bioLoading}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+              >
+                {bioLoading ? 'Saving…' : 'Update Bio'}
+              </button>
+              {bioError && <p className="text-red-400 text-xs">{bioError}</p>}
+              {bioSuccess && <p className="text-green-400 text-xs">{bioSuccess}</p>}
             </form>
 
             <div className="border-t border-white/10" />

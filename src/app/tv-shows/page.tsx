@@ -79,8 +79,21 @@ export default function TVShowsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wokeornot.net' },
+      { '@type': 'ListItem', position: 2, name: 'TV Shows', item: 'https://wokeornot.net/tv-shows' },
+    ],
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Hero */}
       <section className="bg-[#1a1a2e] border-b border-white/10">
         <div className="max-w-5xl mx-auto px-6 py-10 text-center">

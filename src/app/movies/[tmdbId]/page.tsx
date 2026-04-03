@@ -13,7 +13,10 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { getMovieDetails, getSimilarMovies } from '@/lib/tmdb';
+import { getMovieDetails, getSimilarMovies, getMovieCredits, getMovieWatchProviders, getMovieVideos } from '@/lib/tmdb';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { CastCarousel } from '@/components/ui/cast-carousel';
+import { WatchProviders } from '@/components/ui/watch-providers';
 import { fetchAndCacheGenres, getGenreNames } from '@/lib/genre-map';
 import { WokenessBar } from '@/components/ui/wokeness-bar';
 import { SocialShareButtons } from '@/components/ui/social-share-buttons';
@@ -39,11 +42,18 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   const year = movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : '';
   const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
   const description = `${movie.title}${year}${ratingPart} ${movie.overview || ''}`.trim().slice(0, 160);
-  const imageUrl = movie.backdrop_path
+  const fallbackImageUrl = movie.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : movie.poster_path
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
     : null;
+  const ogImageUrl =
+    `https://wokeornot.net/api/og?title=${encodeURIComponent(movie.title)}&type=movie` +
+    (wokeScore ? `&score=${Number(wokeScore).toFixed(1)}` : '');
+  const ogImages = [
+    { url: ogImageUrl, width: 1200, height: 630, alt: `${movie.title} woke score` },
+    ...(fallbackImageUrl ? [{ url: fallbackImageUrl }] : []),
+  ];
   return {
     title: `${movie.title} | WokeOrNot`,
     description,
@@ -52,9 +62,9 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
       title: `${movie.title} | WokeOrNot`,
       description,
       type: 'video.movie',
-      ...(imageUrl ? { images: [{ url: imageUrl }] } : {}),
+      images: ogImages,
     },
-    twitter: { card: 'summary_large_image' },
+    twitter: { card: 'summary_large_image', images: [ogImageUrl] },
   };
 }
 
@@ -100,6 +110,26 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
 
   const wokeScore = dbContent?.wokeScore ?? 0;
   const reviewCount = dbContent?.reviewCount ?? 0;
+
+  // Fetch credits, watch providers, and videos in parallel (non-critical)
+  let cast: { id: number; name: string; character: string; profile_path: string | null }[] = [];
+  let watchProviders: { flatrate?: any[]; rent?: any[]; buy?: any[] } = {};
+  let video: { key: string; name: string } | null = null;
+  try {
+    const [creditsData, providersData, videoData] = await Promise.all([
+      getMovieCredits(Number(tmdbId)),
+      getMovieWatchProviders(Number(tmdbId)),
+      getMovieVideos(Number(tmdbId)),
+    ]);
+    cast = (creditsData?.cast || []).slice(0, 10).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      character: c.character,
+      profile_path: c.profile_path ?? null,
+    }));
+    watchProviders = providersData || {};
+    video = videoData;
+  } catch { /* non-critical */ }
 
   // Fetch similar movies
   let similarMovies: any[] = [];
@@ -216,6 +246,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
       </div>
       {/* Info Panel & Main Content */}
       <div className="max-w-5xl mx-auto px-4 py-10">
+        <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Movies', href: '/movies' }, { label: movie.title }]} />
         <div className="flex flex-col md:flex-row gap-10 items-start">
           {/* Info Card */}
           <div className="w-full md:w-80 bg-[#232946] rounded-2xl shadow-lg border border-white/10 p-6 flex flex-col gap-4">
@@ -269,6 +300,26 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {movie.overview}
             </div>
+            {/* Cast */}
+            {cast.length > 0 && <CastCarousel cast={cast} />}
+            {/* Watch Providers */}
+            <WatchProviders providers={watchProviders} />
+            {/* Trailer */}
+            {video && (
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-blue-200 mb-3">Trailer</h3>
+                <div className="rounded-xl overflow-hidden shadow-lg border border-white/10">
+                  <iframe
+                    width="100%"
+                    style={{ aspectRatio: '16/9', borderRadius: '12px', display: 'block' }}
+                    src={`https://www.youtube.com/embed/${video.key}`}
+                    title={video.name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
             {/* Review Tabs: Submit Review / User Reviews */}
             <div className="mt-8">
               <ReviewTabsWrapper id={dbContent.id} />

@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { formatDisplayDateTime } from '@/lib/date-utils';
 
 interface Category {
@@ -13,6 +14,7 @@ interface Category {
 
 interface Review {
   id: string;
+  userId?: string | null;
   user?: { name?: string; avatar?: string; image?: string };
   guestName?: string;
   rating: number;
@@ -113,7 +115,16 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
                 {(review.user?.name || review.guestName)?.[0]?.toUpperCase() || 'A'}
               </span>
             )}
-            <span className="font-medium text-white text-base truncate max-w-[120px]">{review.user?.name || review.guestName || 'Anonymous'}</span>
+            {review.userId ? (
+              <Link
+                href={`/users/${review.userId}`}
+                className="font-medium text-white text-base truncate max-w-[120px] hover:text-purple-300 transition-colors"
+              >
+                {review.user?.name || 'Anonymous'}
+              </Link>
+            ) : (
+              <span className="font-medium text-white text-base truncate max-w-[120px]">{review.guestName || 'Anonymous'}</span>
+            )}
             <span className="bg-yellow-900/40 text-yellow-300 text-xs font-semibold rounded-full px-2 py-0.5 ml-2">
               {review.rating}/10
             </span>

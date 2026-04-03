@@ -4,6 +4,20 @@ import { TMDBMovie, TMDBTVShow, TMDBGenre, TMDBResponse } from '@/types';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
+const tmdbCache = new Map<string, { data: unknown; expiresAt: number }>();
+const TMDB_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function getCached<T>(key: string): T | null {
+  const entry = tmdbCache.get(key);
+  if (entry && Date.now() < entry.expiresAt) return entry.data as T;
+  tmdbCache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: unknown): void {
+  tmdbCache.set(key, { data, expiresAt: Date.now() + TMDB_CACHE_TTL });
+}
+
 // Create axios instance for TMDB API
 const tmdbApi = axios.create({
   baseURL: TMDB_BASE_URL,
@@ -30,37 +44,61 @@ export const getPopularTVShows = async (page = 1): Promise<TMDBResponse<TMDBTVSh
 
 // Get movie details
 export const getMovieDetails = async (id: number) => {
+  const cacheKey = 'movieDetails:' + id;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/movie/${id}`);
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get TV show details
 export const getTVShowDetails = async (id: number) => {
+  const cacheKey = 'tvShowDetails:' + id;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/tv/${id}`);
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get TV show credits (cast and crew)
 export const getTVCredits = async (id: number) => {
+  const cacheKey = 'tvCredits:' + id;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/tv/${id}/credits`);
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get movie credits (cast and crew)
 export const getMovieCredits = async (id: number) => {
+  const cacheKey = 'movieCredits:' + id;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/movie/${id}/credits`);
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get similar TV shows
 export const getSimilarTVShows = async (id: number, page = 1) => {
+  const cacheKey = 'similarTVShows:' + id + ':' + page;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/tv/${id}/similar`, { params: { page } });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get similar movies
 export const getSimilarMovies = async (id: number, page = 1) => {
+  const cacheKey = 'similarMovies:' + id + ':' + page;
+  const cached = getCached<unknown>(cacheKey);
+  if (cached) return cached;
   const response = await tmdbApi.get(`/movie/${id}/similar`, { params: { page } });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
@@ -133,4 +171,105 @@ export const getKidsContent = async (page = 1): Promise<TMDBResponse<TMDBMovie>>
 export const getImageUrl = (path: string | null, size = 'w500'): string => {
   if (!path) return '/images/placeholder.png';
   return `https://image.tmdb.org/t/p/${size}${path}`;
+};
+
+// Watch provider item type
+export interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+export interface WatchProviders {
+  flatrate?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+}
+
+// Video item type
+export interface TMDBVideo {
+  key: string;
+  name: string;
+}
+
+// Get movie watch providers (US region)
+export const getMovieWatchProviders = async (tmdbId: number): Promise<WatchProviders> => {
+  const cacheKey = 'movieWatchProviders:' + tmdbId;
+  const cached = getCached<WatchProviders>(cacheKey);
+  if (cached) return cached;
+  try {
+    const response = await tmdbApi.get(`/movie/${tmdbId}/watch/providers`);
+    const usData = response.data?.results?.US;
+    if (!usData) return {};
+    const result: WatchProviders = {
+      flatrate: usData.flatrate || [],
+      rent: usData.rent || [],
+      buy: usData.buy || [],
+    };
+    setCache(cacheKey, result);
+    return result;
+  } catch {
+    return {};
+  }
+};
+
+// Get TV show watch providers (US region)
+export const getTVWatchProviders = async (tmdbId: number): Promise<WatchProviders> => {
+  const cacheKey = 'tvWatchProviders:' + tmdbId;
+  const cached = getCached<WatchProviders>(cacheKey);
+  if (cached) return cached;
+  try {
+    const response = await tmdbApi.get(`/tv/${tmdbId}/watch/providers`);
+    const usData = response.data?.results?.US;
+    if (!usData) return {};
+    const result: WatchProviders = {
+      flatrate: usData.flatrate || [],
+      rent: usData.rent || [],
+      buy: usData.buy || [],
+    };
+    setCache(cacheKey, result);
+    return result;
+  } catch {
+    return {};
+  }
+};
+
+// Get movie trailer (first YouTube trailer)
+export const getMovieVideos = async (tmdbId: number): Promise<TMDBVideo | null> => {
+  const cacheKey = 'movieVideos:' + tmdbId;
+  const cached = getCached<TMDBVideo | null>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+  try {
+    const response = await tmdbApi.get(`/movie/${tmdbId}/videos`);
+    const videos: any[] = response.data?.results || [];
+    const trailer = videos.find(
+      (v) => v.site === 'YouTube' && v.type === 'Trailer'
+    ) || videos.find((v) => v.site === 'YouTube') || null;
+    if (!trailer) return null;
+    const result: TMDBVideo = { key: trailer.key, name: trailer.name };
+    setCache(cacheKey, result);
+    return result;
+  } catch {
+    return null;
+  }
+};
+
+// Get TV show trailer (first YouTube trailer)
+export const getTVVideos = async (tmdbId: number): Promise<TMDBVideo | null> => {
+  const cacheKey = 'tvVideos:' + tmdbId;
+  const cached = getCached<TMDBVideo | null>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+  try {
+    const response = await tmdbApi.get(`/tv/${tmdbId}/videos`);
+    const videos: any[] = response.data?.results || [];
+    const trailer = videos.find(
+      (v) => v.site === 'YouTube' && v.type === 'Trailer'
+    ) || videos.find((v) => v.site === 'YouTube') || null;
+    if (!trailer) return null;
+    const result: TMDBVideo = { key: trailer.key, name: trailer.name };
+    setCache(cacheKey, result);
+    return result;
+  } catch {
+    return null;
+  }
 };

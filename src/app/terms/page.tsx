@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | WokeOrNot',
+  description: 'Review the WokeOrNot Terms of Service — the rules and guidelines governing your use of our community rating platform.',
+  alternates: { canonical: 'https://wokeornot.net/terms' },
+};
+
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181824] via-[#232946] to-[#181824] py-16 px-4">

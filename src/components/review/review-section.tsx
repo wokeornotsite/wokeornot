@@ -32,6 +32,8 @@ export default function ReviewSection({ id }: { id: string }) {
   const [categoryCounts, setCategoryCounts] = useState<{ [id: string]: number }>({});
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const formLoadedAt = useRef(Date.now());
+  const [honeypot, setHoneypot] = useState('');
   const getTooltip = (i: number) => (i === 0 ? 'Not woke at all' : i === 9 ? 'Very Woke' : '');
 
   // Auto-dismiss success message after 4 seconds
@@ -94,7 +96,7 @@ export default function ReviewSection({ id }: { id: string }) {
     }
     try {
       const trimmedName = guestName.trim();
-      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined) });
+      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined), honeypot, formLoadedAt: formLoadedAt.current });
       setRating(0);
       setText('');
       setSelectedCategories([]);
@@ -150,6 +152,16 @@ export default function ReviewSection({ id }: { id: string }) {
         </div>
       )}
       <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-[#1a1a2e]/60 border-2 border-blue-400/20 shadow-lg rounded-2xl p-8 text-white relative z-10">
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={e => setHoneypot(e.target.value)}
+          style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+          aria-hidden="true"
+          tabIndex={-1}
+          autoComplete="off"
+        />
         {!session && (
           <div>
             <label className="block text-base font-bold mb-2 text-blue-100">Your Name <span className='font-normal'>(optional)</span></label>
