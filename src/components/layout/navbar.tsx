@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { Search } from 'lucide-react';
 import styles from './navbar.module.css';
@@ -83,7 +84,11 @@ function UserDropdownMenu({ session }: { session: Session | null }) {
 
 export const Navbar = () => {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -105,7 +110,7 @@ export const Navbar = () => {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-6">
           {navLinks.map(link => (
-            <Link key={link.href} href={link.href} className={styles.link}>
+            <Link key={link.href} href={link.href} className={`${styles.link} ${isActive(link.href) ? styles.active : ''}`}>
               {link.label}
             </Link>
           ))}
@@ -154,7 +159,7 @@ export const Navbar = () => {
           </button>
           <div className="mt-16">
             {navLinks.map(link => (
-              <Link key={link.href} href={link.href} className={styles.mobileMenuLink} onClick={() => setMobileOpen(false)}>
+              <Link key={link.href} href={link.href} className={`${styles.mobileMenuLink} ${isActive(link.href) ? styles.active : ''}`} onClick={() => setMobileOpen(false)}>
                 {link.label}
               </Link>
             ))}

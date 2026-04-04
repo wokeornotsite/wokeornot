@@ -21,6 +21,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
   if (loading || !content) return <SkeletonCard />;
   const contentType = (content.contentType ?? 'kids').toLowerCase();
   const contentUrl = `/${contentType === 'tv_show' ? 'tv-shows' : contentType === 'movie' ? 'movies' : 'kids'}/${content.tmdbId}`;
+  const contentTypeLabel = contentType === 'movie' ? 'Movie' : contentType === 'tv_show' ? 'TV Show' : 'Kids';
 
   return (
     <Link href={contentUrl}>
@@ -51,6 +52,12 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
             unoptimized
             onError={() => setImgError(true)}
           />
+          {/* Content Type Badge */}
+          <div className="absolute bottom-2 left-2 z-10">
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-sm">
+              {contentTypeLabel}
+            </span>
+          </div>
           <div className="absolute top-2 right-2">
             <div className={`px-3 py-1 rounded-full font-bold text-base shadow-xl flex items-center gap-2 ${getWokenessBadgeColor(content.wokeScore)}`}
                  style={{ border: '2px solid #fff', background: getWokenessBadgeBg(content.wokeScore) }}>

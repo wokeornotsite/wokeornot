@@ -1,23 +1,42 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Pagination, PaginationInfo } from '@/components/ui/pagination';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const ITEMS_PER_PAGE = 20;
 
-export default function MoviesPage() {
+function MoviesPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [allMovies, setAllMovies] = useState<ContentItem[]>([]);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
-  const [genre, setGenre] = useState('');
-  const [year, setYear] = useState('');
-  const [language, setLanguage] = useState('');
-  const [wokeness, setWokeness] = useState('');
+  const [genre, setGenre] = useState(() => searchParams.get('genre') || '');
+  const [year, setYear] = useState(() => searchParams.get('year') || '');
+  const [language, setLanguage] = useState(() => searchParams.get('language') || 'en');
+  const [wokeness, setWokeness] = useState(() => searchParams.get('wokeness') || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState('wokeness-desc');
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page')) || 1);
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'wokeness-desc');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Sync filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (genre) params.set('genre', genre);
+    if (year) params.set('year', year);
+    if (language && language !== 'en') params.set('language', language);
+    if (wokeness) params.set('wokeness', wokeness);
+    if (sortBy !== 'wokeness-desc') params.set('sort', sortBy);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    const query = params.toString();
+    router.replace(pathname + (query ? `?${query}` : ''), { scroll: false });
+  }, [genre, year, language, wokeness, sortBy, currentPage, pathname, router]);
 
   useEffect(() => {
     async function fetchData() {
@@ -105,7 +124,24 @@ export default function MoviesPage() {
       {/* Filter Bar */}
       <div className="mb-8 max-w-7xl mx-auto px-4">
         <form className="bg-[#232946]/80 border border-blue-600/30 rounded-xl shadow-lg px-5 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 items-end">
+          {/* Mobile filter toggle */}
+          <div className="flex items-center justify-between md:hidden mb-2">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(o => !o)}
+              className="flex items-center gap-2 text-blue-300 font-semibold text-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
+              Filters
+              {[genre, year, wokeness].filter(Boolean).length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-pink-500 text-white font-bold">
+                  {[genre, year, wokeness].filter(Boolean).length}
+                </span>
+              )}
+            </button>
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-blue-300 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 items-end md:grid ${filtersOpen ? 'grid' : 'hidden md:grid'}`}>
             <div className="flex flex-col gap-1">
               <label htmlFor="genre" className="text-blue-300 text-xs font-semibold uppercase tracking-wide">Genre</label>
               <select
@@ -215,7 +251,12 @@ export default function MoviesPage() {
         ) : (
           <>
             {filteredMovies.length === 0 ? (
-              <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
+              <EmptyState
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>}
+                title="No movies found"
+                description="Try adjusting your filters or reset to see all movies."
+                actions={[{ label: 'Reset Filters', onClick: () => { setGenre(''); setYear(''); setLanguage(''); setWokeness(''); setSortBy('wokeness-desc'); } }]}
+              />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {paginatedMovies.map(movie => (
@@ -245,5 +286,13 @@ export default function MoviesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MoviesPage() {
+  return (
+    <Suspense>
+      <MoviesPageInner />
+    </Suspense>
   );
 }

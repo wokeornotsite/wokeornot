@@ -12,6 +12,7 @@ interface Category {
 
 interface Review {
   id: string;
+  userId?: string | null;
   user?: { name?: string };
   rating: number;
   text?: string;
@@ -35,6 +36,9 @@ export default function ReviewSection({ id }: { id: string }) {
   const formLoadedAt = useRef(Date.now());
   const [honeypot, setHoneypot] = useState('');
   const getTooltip = (i: number) => (i === 0 ? 'Not woke at all' : i === 9 ? 'Very Woke' : '');
+  const userExistingReview = session?.user
+    ? reviews.find(r => r.userId === (session.user as any).id)
+    : null;
 
   // Auto-dismiss success message after 4 seconds
   useEffect(() => {
@@ -141,6 +145,12 @@ export default function ReviewSection({ id }: { id: string }) {
         Submit Your Review
       </h2>
       <div className="w-16 h-1 mx-auto mb-8 rounded-full bg-blue-400/40"></div>
+      {userExistingReview && (
+        <div className="mb-4 p-4 rounded-xl bg-purple-900/40 border border-purple-500/50 text-purple-200 text-center flex flex-col items-center gap-1">
+          <span className="font-semibold text-base">You rated this {userExistingReview.rating}/10</span>
+          <span className="text-sm text-purple-300">You've already submitted a review for this title.</span>
+        </div>
+      )}
       {success && (
         <div className="mb-4 p-3 rounded-lg bg-green-900/40 border border-green-500 text-green-300 font-semibold text-center">
           {success}

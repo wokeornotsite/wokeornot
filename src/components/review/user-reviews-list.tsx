@@ -2,7 +2,9 @@
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { formatDisplayDateTime } from '@/lib/date-utils';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Category {
   id: string;
@@ -27,9 +29,16 @@ interface Review {
 }
 
 export default function UserReviewsList({ reviews: initialReviews, sortBy = 'helpful' }: { reviews: Review[]; sortBy?: 'helpful' | 'newest' }) {
+  const { data: session } = useSession();
+  const currentUserId = (session?.user as any)?.id;
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [actionError, setActionError] = useState<string>("");
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editText, setEditText] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   const sortedReviews = useMemo(() => {
     const arr = [...reviews];
@@ -85,9 +94,48 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
     }
   };
 
+  const startEdit = (review: Review) => {
+    setEditingId(review.id);
+    setEditRating(review.rating);
+    setEditText(review.text || '');
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditError('');
+  };
+
+  const saveEdit = async (reviewId: string) => {
+    if (!editRating) { setEditError('Please select a rating.'); return; }
+    setEditLoading(true);
+    setEditError('');
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: editRating, text: editText }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as any).error || 'Failed to update review');
+      }
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, rating: editRating, text: editText } : r));
+      setEditingId(null);
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update review');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   if (!reviews.length) {
     return (
-      <div className="text-blue-300 italic text-center py-6">No reviews yet. Be the first to share your thoughts!</div>
+      <EmptyState
+        icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>}
+        title="No reviews yet"
+        description="Be the first to rate this title and share your thoughts!"
+      />
     );
   }
   return (
@@ -150,9 +198,9 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
               {review.text}
             </div>
           )}
-          {/* Like/Dislike Buttons */}
+          {/* Like/Dislike Buttons + Edit */}
           <div className="flex items-center space-x-4 mt-3">
-            <button 
+            <button
               onClick={() => handleReviewReaction(review.id, 'like')}
               disabled={pendingId === review.id}
               className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'like' ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'} transition-colors text-sm disabled:opacity-50`}
@@ -162,8 +210,8 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
               </svg>
               <span>{review.likes || 0}</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => handleReviewReaction(review.id, 'dislike')}
               disabled={pendingId === review.id}
               className={`flex items-center space-x-1 px-2 py-1 rounded ${review.userReaction === 'dislike' ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'} transition-colors text-sm disabled:opacity-50`}
@@ -173,7 +221,62 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
               </svg>
               <span>{review.dislikes || 0}</span>
             </button>
+
+            {currentUserId && review.userId === currentUserId && editingId !== review.id && (
+              <button
+                onClick={() => startEdit(review)}
+                className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-xs text-blue-300 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Edit
+              </button>
+            )}
           </div>
+
+          {/* Inline Edit Form */}
+          {editingId === review.id && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-blue-300 font-semibold">New rating:</span>
+                <div className="flex gap-0.5">
+                  {[...Array(10)].map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setEditRating(i + 1)}
+                      className="text-lg leading-none transition-transform hover:scale-110"
+                      style={{ color: i < editRating ? '#facc15' : '#4b5563' }}
+                      aria-label={`Rate ${i + 1}`}
+                    >★</button>
+                  ))}
+                </div>
+                <span className="text-xs text-blue-300">{editRating > 0 ? `${editRating}/10` : ''}</span>
+              </div>
+              <textarea
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                rows={3}
+                placeholder="Update your review text (optional)"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-[#181824] border border-blue-400/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+              />
+              {editError && <p className="text-red-400 text-xs mt-1">{editError}</p>}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => saveEdit(review.id)}
+                  disabled={editLoading}
+                  className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {editLoading ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-white/10 text-gray-300 hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </li>
       ))}
     </ul>
