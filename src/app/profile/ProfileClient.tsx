@@ -492,7 +492,7 @@ function ProfileClient({ user }: { user: UserProfileData }) {
                       <div className="flex-1 min-w-0">
                         {review.content ? (
                           <Link
-                            href={`/${review.content.contentType.toLowerCase()}/${review.content.tmdbId}`}
+                            href={`/${{ MOVIE: 'movies', TV_SHOW: 'tv-shows', KIDS: 'kids' }[review.content.contentType] ?? 'movies'}/${review.content.tmdbId}`}
                             className="text-indigo-300 hover:text-indigo-200 font-medium text-sm truncate block transition-colors"
                           >
                             {review.content.title}
