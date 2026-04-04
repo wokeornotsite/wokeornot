@@ -43,6 +43,7 @@ export const schemas = {
   reviewUpdate: z.object({
     rating: z.number().min(0).max(10).optional(),
     text: z.string().max(5000).optional(),
+    categoryIds: z.array(z.string()).max(20).optional(),
   }),
   commentCreate: z.object({
     text: z.string().trim().min(1).max(5000),

@@ -302,7 +302,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const { rating, text } = await parseJson(req, schemas.reviewUpdate);
+    const { rating, text, categoryIds } = await parseJson(req, schemas.reviewUpdate);
     const safeText = typeof text === 'string' ? sanitizeHTML(text) : undefined;
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -316,8 +316,68 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data: { rating, text: safeText },
     });
 
-    // Recalculate wokeScore for the content
     const contentId = review.contentId;
+
+    // Replace categories if provided
+    if (categoryIds !== undefined) {
+      await prisma.reviewCategory.deleteMany({ where: { reviewId: id } });
+      if (categoryIds.length > 0) {
+        await prisma.reviewCategory.createMany({
+          data: categoryIds.map((catId: string) => ({ reviewId: id, categoryId: catId })),
+        });
+      }
+
+      // Recalculate CategoryScore from scratch for this content
+      const allReviewsWithCategories = await prisma.review.findMany({
+        where: { contentId },
+        include: { categories: true },
+      });
+
+      // Build per-category count + score aggregates
+      const categoryAggregates: Record<string, { count: number; score: number }> = {};
+      for (const r of allReviewsWithCategories) {
+        for (const rc of r.categories) {
+          if (!categoryAggregates[rc.categoryId]) {
+            categoryAggregates[rc.categoryId] = { count: 0, score: 0 };
+          }
+          categoryAggregates[rc.categoryId].count += 1;
+          categoryAggregates[rc.categoryId].score += r.rating;
+        }
+      }
+
+      const totalScore = Object.values(categoryAggregates).reduce((sum, v) => sum + v.score, 0);
+
+      // Upsert each category score
+      await Promise.all(
+        Object.entries(categoryAggregates).map(([categoryId, { count, score }]) =>
+          prisma.categoryScore.upsert({
+            where: { contentId_categoryId: { contentId, categoryId } },
+            update: {
+              count,
+              score,
+              percentage: totalScore > 0 ? (score / totalScore) * 100 : 0,
+            },
+            create: {
+              contentId,
+              categoryId,
+              count,
+              score,
+              percentage: totalScore > 0 ? (score / totalScore) * 100 : 0,
+            },
+          })
+        )
+      );
+
+      // Delete CategoryScore records for categories no longer referenced
+      await prisma.categoryScore.deleteMany({
+        where: {
+          contentId,
+          categoryId: { notIn: Object.keys(categoryAggregates) },
+        },
+      });
+    }
+
+    // Recalculate wokeScore for the content
     const allReviews = await prisma.review.findMany({ where: { contentId } });
     const reviewCount = allReviews.length;
     const wokeScore = reviewCount > 0

@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -8,10 +8,17 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 interface Category {
   id: string;
+  categoryId?: string;
   name: string;
   category?: {
+    id?: string;
     name: string;
   };
+}
+
+interface AvailableCategory {
+  id: string;
+  name: string;
 }
 
 interface Review {
@@ -37,8 +44,14 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRating, setEditRating] = useState(0);
   const [editText, setEditText] = useState('');
+  const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const [allCategories, setAllCategories] = useState<AvailableCategory[]>([]);
+
+  useEffect(() => {
+    fetch('/api/categories').then(r => r.json()).then(setAllCategories).catch(() => {});
+  }, []);
 
   const sortedReviews = useMemo(() => {
     const arr = [...reviews];
@@ -98,6 +111,9 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
     setEditingId(review.id);
     setEditRating(review.rating);
     setEditText(review.text || '');
+    setEditCategories(
+      (review.categories || []).map(c => c.categoryId || c.category?.id || '').filter(Boolean)
+    );
     setEditError('');
   };
 
@@ -114,13 +130,18 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
       const res = await fetch(`/api/reviews/${reviewId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: editRating, text: editText }),
+        body: JSON.stringify({ rating: editRating, text: editText, categoryIds: editCategories }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error((data as any).error || 'Failed to update review');
       }
-      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, rating: editRating, text: editText } : r));
+      // Update review in local state, including new category display
+      const updatedCategories = editCategories.map(id => {
+        const cat = allCategories.find(c => c.id === id);
+        return { id, name: cat?.name || id };
+      });
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, rating: editRating, text: editText, categories: updatedCategories } : r));
       setEditingId(null);
     } catch (err: any) {
       setEditError(err.message || 'Failed to update review');
@@ -259,6 +280,30 @@ export default function UserReviewsList({ reviews: initialReviews, sortBy = 'hel
                 placeholder="Update your review text (optional)"
                 className="w-full px-3 py-2 text-sm rounded-lg bg-[#181824] border border-blue-400/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
               />
+              {allCategories.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-blue-300 font-semibold mb-1">Woke Categories</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allCategories.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setEditCategories(prev =>
+                          prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id]
+                        )}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                          editCategories.includes(cat.id)
+                            ? 'bg-blue-600 text-white border-blue-700'
+                            : 'bg-transparent text-blue-300 border-blue-400/50 hover:bg-blue-800/30'
+                        }`}
+                        aria-pressed={editCategories.includes(cat.id)}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {editError && <p className="text-red-400 text-xs mt-1">{editError}</p>}
               <div className="flex gap-2 mt-2">
                 <button

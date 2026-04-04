@@ -22,6 +22,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
   const contentType = (content.contentType ?? 'kids').toLowerCase();
   const contentUrl = `/${contentType === 'tv_show' ? 'tv-shows' : contentType === 'movie' ? 'movies' : 'kids'}/${content.tmdbId}`;
   const contentTypeLabel = contentType === 'movie' ? 'Movie' : contentType === 'tv_show' ? 'TV Show' : 'Kids';
+  const contentTypeBadgeColor = contentType === 'movie' ? 'bg-blue-600' : contentType === 'tv_show' ? 'bg-purple-600' : 'bg-orange-500';
 
   return (
     <Link href={contentUrl}>
@@ -54,7 +55,7 @@ export const ClientContentCard: React.FC<ContentCardProps> = ({ content, loading
           />
           {/* Content Type Badge */}
           <div className="absolute bottom-2 left-2 z-10">
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-sm">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-md ${contentTypeBadgeColor}`}>
               {contentTypeLabel}
             </span>
           </div>
