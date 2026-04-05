@@ -3,22 +3,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const categories = [
+  'LGBTQ+ Themes',
   'Transgender Themes',
-  'Gay Marriage',
-  'Race Swapping',
-  'Feminist Agenda',
-  'LGBT Representation',
-  'Gender Nonconformity',
-  'Allyship',
-  'Diversity Casting',
-  'Intersectionality',
-  'Equity Over Merit',
-  'Gender Swapping',
-  'Political',
-  'Queer Representation',
-  'Drag',
-  'Environmental Agenda',
+  'Gender Identity',
+  'Feminist Themes',
   'Anti-Patriarchy',
+  'Race Swapping',
+  'Diversity Casting',
+  'Race & Ethnicity',
+  'Social Justice',
+  'Political Content',
+  'Environmental Messaging',
+  'Religion',
   'Other',
 ];
 
