@@ -6,12 +6,16 @@ export function useAuditLog(params?: {
   pageSize?: number;
   action?: string;
   targetType?: string;
+  startDate?: string;
+  endDate?: string;
 }) {
   const query = new URLSearchParams();
   if (params?.page !== undefined) query.set('page', String(params.page));
   if (params?.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
   if (params?.action) query.set('action', params.action);
   if (params?.targetType) query.set('targetType', params.targetType);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
 
   const key = `/api/admin/auditlog${query.toString() ? `?${query.toString()}` : ''}`;
   const { data, error, mutate, isLoading } = useSWR(key, fetcher);

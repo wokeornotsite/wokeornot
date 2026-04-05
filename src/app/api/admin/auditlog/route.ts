@@ -79,10 +79,15 @@ export async function GET(req: NextRequest) {
     const action = searchParams.get('action') || '';
     const targetType = searchParams.get('targetType') || '';
 
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     // Build where clause
     const where: any = {};
     if (action) where.action = action;
     if (targetType) where.targetType = targetType;
+    if (startDate) where.createdAt = { ...where.createdAt, gte: new Date(startDate) };
+    if (endDate) where.createdAt = { ...where.createdAt, lte: new Date(endDate + 'T23:59:59Z') };
 
     const [data, total] = await Promise.all([
       prisma.auditLog.findMany({

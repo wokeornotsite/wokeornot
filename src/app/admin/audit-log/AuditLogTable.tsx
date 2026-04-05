@@ -1,10 +1,11 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip } from '@mui/material';
+import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Button } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { useAuditLog } from './useAuditLog';
 import { useRouter, useSearchParams } from 'next/navigation';
+import DownloadIcon from '@mui/icons-material/Download';
 
 const ACTION_LABELS: Record<string, string> = {
   BAN_USER: 'Banned User',
@@ -55,6 +56,8 @@ export default function AuditLogTable() {
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 25 });
   const [action, setAction] = React.useState('');
   const [targetType, setTargetType] = React.useState('');
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   // Initialize from URL
@@ -83,7 +86,29 @@ export default function AuditLogTable() {
     pageSize: paginationModel.pageSize,
     action: action || undefined,
     targetType: targetType || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
   });
+
+  function exportCSV() {
+    const header = ['Timestamp', 'Admin', 'Action', 'Type', 'Details', 'TargetID'];
+    const csvRows = rows.map((r: any) => [
+      r.createdAt ? new Date(r.createdAt).toLocaleString() : '',
+      r.admin?.email || '',
+      r.action || '',
+      r.targetType || '',
+      r.details || '',
+      r.targetId || '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    const csvContent = [header.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const columns: GridColDef[] = [
     {
@@ -146,7 +171,7 @@ export default function AuditLogTable() {
           Failed to load audit log. Please try again.
         </Alert>
       )}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel id="action-label" sx={{ color: '#fff' }}>Action</InputLabel>
           <Select
@@ -177,6 +202,29 @@ export default function AuditLogTable() {
             ))}
           </Select>
         </FormControl>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => { setStartDate(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          style={{ background: '#232336', color: '#fff', border: '1px solid #37376b', borderRadius: 6, padding: '6px 10px', fontSize: 14, colorScheme: 'dark' }}
+          title="Start date"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => { setEndDate(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          style={{ background: '#232336', color: '#fff', border: '1px solid #37376b', borderRadius: 6, padding: '6px 10px', fontSize: 14, colorScheme: 'dark' }}
+          title="End date"
+        />
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon />}
+          onClick={exportCSV}
+          sx={{ color: '#38bdf8', borderColor: '#38bdf8', textTransform: 'none', ml: 'auto' }}
+        >
+          Export CSV
+        </Button>
       </Box>
       <DataGrid
         rows={rows}

@@ -1,16 +1,18 @@
 "use client";
 import React from 'react';
-import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel, GridRowSelectionModel } from '@mui/x-data-grid';
 import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import DeleteIcon from '@mui/icons-material/Delete';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 
 import { useUsers } from './useUsers';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
+import UserActivityDialog from './UserActivityDialog';
 
 export default function ModerationUsersTable() {
   const router = useRouter();
@@ -25,6 +27,8 @@ export default function ModerationUsersTable() {
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [role, setRole] = React.useState<string>('');
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [activityDialog, setActivityDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
   const dq = useDebouncedValue(q, 300);
 
   // Initialize from URL
@@ -211,7 +215,17 @@ export default function ModerationUsersTable() {
         return <Chip label={params.value} size="small" sx={{ background: `${c}20`, color: c, fontWeight: 700, fontSize: '0.72rem' }} />;
       },
     },
-    { field: 'warnCount', headerName: 'Warns', width: 80 },
+    {
+      field: 'warnCount',
+      headerName: 'Warns',
+      width: 90,
+      renderCell: (params: any) => {
+        const count = params.value ?? 0;
+        if (count >= 3) return <Chip label={count} size="small" sx={{ background: '#ef444422', color: '#ef4444', fontWeight: 700 }} />;
+        if (count === 2) return <Chip label={count} size="small" sx={{ background: '#fbbf2422', color: '#fbbf24', fontWeight: 700 }} />;
+        return <span style={{ color: '#9ca3af' }}>{count}</span>;
+      },
+    },
     {
       field: 'createdAt',
       headerName: 'Joined',
@@ -240,6 +254,7 @@ export default function ModerationUsersTable() {
       width: 160,
       getActions: (params) => {
         const actions = [
+          <GridActionsCellItem icon={<InfoIcon sx={{ color: '#38bdf8' }} />} label="View Activity" onClick={() => setActivityDialog({ open: true, userId: params.row.id })} />,
           params.row.isBanned
             ? <GridActionsCellItem icon={<BlockIcon color="success" />} label="Unban" onClick={() => handleUnban(params.row)} />
             : <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => { setBanReason(''); setBanDialog({ open: true, row: params.row }); }} />,
@@ -352,7 +367,8 @@ export default function ModerationUsersTable() {
         onSortModelChange={(model) => setSortModel(model)}
         pageSizeOptions={[10, 20, 50]}
         autoHeight={false}
-        disableRowSelectionOnClick
+        checkboxSelection
+        onRowSelectionModelChange={(model: GridRowSelectionModel) => setSelectedIds(model as string[])}
         sx={{
           fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
           fontSize: 16,
@@ -469,6 +485,72 @@ export default function ModerationUsersTable() {
           <Button onClick={confirmDemote} variant="contained" color="error">Demote</Button>
         </DialogActions>
       </Dialog>
+
+      {/* User Activity Dialog */}
+      <UserActivityDialog
+        open={activityDialog.open}
+        userId={activityDialog.userId}
+        onClose={() => setActivityDialog({ open: false, userId: null })}
+      />
+
+      {/* Bulk floating action bar */}
+      {selectedIds.length > 0 && (
+        <Box sx={{
+          position: 'fixed',
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: 2,
+          alignItems: 'center',
+          background: '#232336',
+          border: '1px solid #37376b',
+          borderRadius: 3,
+          px: 3,
+          py: 1.5,
+          boxShadow: '0 8px 32px #0008',
+          zIndex: 1400,
+        }}>
+          <span style={{ color: '#9ca3af', fontSize: 14 }}>{selectedIds.length} selected</span>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            sx={{ fontWeight: 700, textTransform: 'none' }}
+            onClick={async () => {
+              if (!window.confirm(`Ban ${selectedIds.length} users?`)) return;
+              await fetch('/api/admin/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedIds, action: 'ban' }),
+              });
+              setSnackbar({ open: true, message: `Banned ${selectedIds.length} users` });
+              setSelectedIds([]);
+              mutate();
+            }}
+          >
+            Ban Selected ({selectedIds.length})
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ background: '#fbbf24', '&:hover': { background: '#d97706' }, fontWeight: 700, textTransform: 'none', color: '#000' }}
+            onClick={async () => {
+              if (!window.confirm(`Warn ${selectedIds.length} users?`)) return;
+              await fetch('/api/admin/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedIds, action: 'warn' }),
+              });
+              setSnackbar({ open: true, message: `Warned ${selectedIds.length} users` });
+              setSelectedIds([]);
+              mutate();
+            }}
+          >
+            Warn Selected ({selectedIds.length})
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }

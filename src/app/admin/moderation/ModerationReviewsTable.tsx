@@ -5,6 +5,7 @@ import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip,
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import EditIcon from '@mui/icons-material/Edit';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -64,6 +65,31 @@ export default function ModerationReviewsTable() {
   });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; reviewId: string | null }>({ open: false, reviewId: null });
+  const [editDialog, setEditDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [editText, setEditText] = React.useState('');
+
+  async function handleSaveEdit() {
+    const row = editDialog.row;
+    if (!row) return;
+    try {
+      await fetch('/api/admin/reviews', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, text: editText }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'EDIT_REVIEW', targetId: row.id, targetType: 'Review', details: `Edited review text` }),
+      });
+      setSnackbar({ open: true, message: 'Review updated' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error updating review' });
+    }
+    setEditDialog({ open: false, row: null });
+    setEditText('');
+  }
 
   async function handleToggleHide(row: any) {
     const nextHidden = !row.isHidden;
@@ -174,8 +200,9 @@ export default function ModerationReviewsTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 90,
+      width: 120,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
+        <GridActionsCellItem icon={<EditIcon sx={{ color: '#38bdf8' }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
         params.row.isHidden
           ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
           : <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
@@ -299,6 +326,31 @@ export default function ModerationReviewsTable() {
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, reviewId: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={() => handleDelete(deleteDialog.reviewId!)} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Review dialog */}
+      <Dialog open={editDialog.open} onClose={() => { setEditDialog({ open: false, row: null }); setEditText(''); }} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 480 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#38bdf8' }}>Edit Review Text</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={4}
+            maxRows={10}
+            size="small"
+            label="Review text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            InputProps={{ sx: { color: '#fff' } }}
+            InputLabelProps={{ sx: { color: '#9ca3af' } }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setEditDialog({ open: false, row: null }); setEditText(''); }} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" sx={{ background: '#38bdf8', color: '#000' }}>Save</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -9,8 +9,45 @@ export async function GET(req: NextRequest) {
   if ('error' in auth) return auth.error;
 
   try {
-    // Optional limit param for faster scans
     const { searchParams } = new URL(req.url);
+    const scanType = searchParams.get('scanType');
+
+    // Duplicate reviews scan
+    if (scanType === 'duplicates') {
+      // Fetch all reviews with userId and contentId
+      const allReviews = await prisma.review.findMany({
+        select: { id: true, userId: true, contentId: true },
+        orderBy: { createdAt: 'asc' }, // keep the oldest
+      });
+
+      // Group by userId+contentId
+      const groups = new Map<string, string[]>();
+      for (const r of allReviews) {
+        const key = `${r.userId ?? '__guest'}::${r.contentId ?? '__none'}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(r.id);
+      }
+
+      // Find groups with duplicates (more than 1 review)
+      const duplicateGroups: string[][] = [];
+      for (const ids of groups.values()) {
+        if (ids.length > 1) duplicateGroups.push(ids);
+      }
+
+      // Collect IDs to delete (all but the first in each group)
+      const toDeleteIds: string[] = [];
+      for (const ids of duplicateGroups) {
+        toDeleteIds.push(...ids.slice(1));
+      }
+
+      return NextResponse.json({
+        duplicateGroupCount: duplicateGroups.length,
+        toDeleteCount: toDeleteIds.length,
+        ids: toDeleteIds,
+      });
+    }
+
+    // Optional limit param for faster scans
     const limit = Number(searchParams.get('limit') || '0');
 
     const batchSize = 1000;

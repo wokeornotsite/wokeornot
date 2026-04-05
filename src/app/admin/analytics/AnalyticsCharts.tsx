@@ -3,6 +3,7 @@ import React from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { Typography, Box, ToggleButtonGroup, ToggleButton, Card, CardContent, CircularProgress, Button } from '@mui/material';
 import { useAnalytics } from './useAnalytics';
+import DownloadIcon from '@mui/icons-material/Download';
 
 const RANGE_OPTIONS = [
   { label: '7d', value: 7 },
@@ -12,8 +13,16 @@ const RANGE_OPTIONS = [
 ];
 
 export default function AnalyticsCharts() {
-  const [days, setDays] = React.useState(30);
-  const { analytics, isLoading, error, mutate } = useAnalytics(days);
+  const [days, setDays] = React.useState<number | null>(30);
+  const [useCustom, setUseCustom] = React.useState(false);
+  const [customStart, setCustomStart] = React.useState('');
+  const [customEnd, setCustomEnd] = React.useState('');
+
+  const { analytics, isLoading, error, mutate } = useAnalytics(
+    useCustom ? undefined : (days ?? 30),
+    useCustom && customStart && customEnd ? customStart : undefined,
+    useCustom && customStart && customEnd ? customEnd : undefined,
+  );
 
   if (isLoading) {
     return (
@@ -34,6 +43,20 @@ export default function AnalyticsCharts() {
     );
   }
 
+  function downloadCSV(data: any[], filename: string, columns: { key: string; label: string }[]) {
+    const header = columns.map(c => c.label).join(',');
+    const csvRows = data.map(row =>
+      columns.map(c => `"${String(row[c.key] ?? '').replace(/"/g, '""')}"`).join(',')
+    );
+    const blob = new Blob([[header, ...csvRows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   const userData: any[] = analytics?.userData || [];
   const reviewData: any[] = analytics?.reviewData || [];
   const topReviewed: any[] = analytics?.topReviewed || [];
@@ -50,11 +73,14 @@ export default function AnalyticsCharts() {
   return (
     <Box>
       {/* Date range selector */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
         <ToggleButtonGroup
-          value={days}
+          value={useCustom ? 'custom' : days}
           exclusive
-          onChange={(_, val) => { if (val) setDays(val); }}
+          onChange={(_, val) => {
+            if (val === 'custom') { setUseCustom(true); }
+            else if (val) { setUseCustom(false); setDays(val); }
+          }}
           size="small"
           sx={{
             '& .MuiToggleButton-root': { color: '#9ca3af', borderColor: '#37376b' },
@@ -64,7 +90,25 @@ export default function AnalyticsCharts() {
           {RANGE_OPTIONS.map(opt => (
             <ToggleButton key={opt.value} value={opt.value}>{opt.label}</ToggleButton>
           ))}
+          <ToggleButton value="custom">Custom</ToggleButton>
         </ToggleButtonGroup>
+        {useCustom && (
+          <>
+            <input
+              type="date"
+              value={customStart}
+              onChange={e => setCustomStart(e.target.value)}
+              style={{ background: '#232336', color: '#fff', border: '1px solid #37376b', borderRadius: 6, padding: '6px 10px', fontSize: 14, colorScheme: 'dark' }}
+            />
+            <span style={{ color: '#9ca3af' }}>to</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={e => setCustomEnd(e.target.value)}
+              style={{ background: '#232336', color: '#fff', border: '1px solid #37376b', borderRadius: 6, padding: '6px 10px', fontSize: 14, colorScheme: 'dark' }}
+            />
+          </>
+        )}
       </Box>
 
       {/* Stat cards */}
@@ -98,7 +142,20 @@ export default function AnalyticsCharts() {
       </Box>
 
       {/* Charts */}
-      <Typography variant="subtitle2" sx={{ mb: 1, color: '#38bdf8' }}>User Signups (Last {days} Days)</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ color: '#38bdf8' }}>
+          User Signups {useCustom && customStart && customEnd ? `(${customStart} to ${customEnd})` : `(Last ${days} Days)`}
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={() => downloadCSV(userData, 'signups.csv', [{ key: 'date', label: 'Date' }, { key: 'signups', label: 'Signups' }])}
+          sx={{ color: '#38bdf8', borderColor: '#38bdf8', textTransform: 'none', fontSize: 12 }}
+        >
+          Download CSV
+        </Button>
+      </Box>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={userData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -110,7 +167,18 @@ export default function AnalyticsCharts() {
         </LineChart>
       </ResponsiveContainer>
 
-      <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, color: '#a78bfa' }}>Reviews & Average Rating</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ color: '#a78bfa' }}>Reviews & Average Rating</Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={() => downloadCSV(reviewData, 'reviews.csv', [{ key: 'date', label: 'Date' }, { key: 'reviews', label: 'Reviews' }, { key: 'avgRating', label: 'Avg Rating' }])}
+          sx={{ color: '#a78bfa', borderColor: '#a78bfa', textTransform: 'none', fontSize: 12 }}
+        >
+          Download CSV
+        </Button>
+      </Box>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={reviewData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />

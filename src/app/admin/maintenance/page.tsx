@@ -22,12 +22,23 @@ interface ScanResult {
   ids: string[];
 }
 
+interface DuplicateScanResult {
+  duplicateGroupCount: number;
+  toDeleteCount: number;
+  ids: string[];
+}
+
 export default function AdminMaintenancePage() {
   const { enqueueSnackbar } = useSnackbar();
   const [limit, setLimit] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Duplicate review scan state
+  const [dupLoading, setDupLoading] = useState(false);
+  const [dupResult, setDupResult] = useState<DuplicateScanResult | null>(null);
+  const [dupDeleting, setDupDeleting] = useState(false);
 
   const scan = async () => {
     try {
@@ -71,6 +82,49 @@ export default function AdminMaintenancePage() {
       enqueueSnackbar('Failed to delete reviews', { variant: 'error' });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const scanDuplicates = async () => {
+    try {
+      setDupLoading(true);
+      setDupResult(null);
+      const res = await fetch('/api/admin/reviews/maintenance?scanType=duplicates');
+      if (!res.ok) throw new Error('Scan failed');
+      const data = await res.json();
+      setDupResult(data);
+      enqueueSnackbar('Duplicate scan complete', { variant: 'success' });
+    } catch {
+      enqueueSnackbar('Failed to scan for duplicates', { variant: 'error' });
+    } finally {
+      setDupLoading(false);
+    }
+  };
+
+  const purgeDuplicates = async () => {
+    if (!dupResult || !dupResult.ids.length) {
+      enqueueSnackbar('No duplicates found to delete', { variant: 'info' });
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm(`Permanently delete ${dupResult.ids.length} duplicate reviews (keeping one per user/content pair)? This cannot be undone.`);
+      if (!ok) return;
+    }
+    try {
+      setDupDeleting(true);
+      const res = await fetch('/api/admin/reviews/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: dupResult.ids }),
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      const data = await res.json();
+      enqueueSnackbar(`Deleted ${data.deleted} duplicate reviews`, { variant: 'success' });
+      setDupResult(null);
+    } catch {
+      enqueueSnackbar('Failed to delete duplicate reviews', { variant: 'error' });
+    } finally {
+      setDupDeleting(false);
     }
   };
 
@@ -215,6 +269,54 @@ export default function AdminMaintenancePage() {
           {deleting ? 'Deleting…' : `Delete ${result?.ids.length || 0} Bad Reviews`}
         </Button>
       </Paper>
+
+      {/* Duplicate Reviews Scan */}
+      <Paper sx={{ p: 3, mt: 4, background: 'rgba(24,25,36,0.97)', border: '1px solid #232336', borderRadius: 2 }}>
+        <Typography variant="h6" sx={{ color: '#fbbf24', fontWeight: 700, mb: 0.5 }}>Duplicate Reviews Scan</Typography>
+        <Typography variant="body2" sx={{ color: '#9ca3af', mb: 2 }}>
+          Finds cases where the same user has submitted more than one review for the same piece of content. One review per user/content pair will be kept; extras will be flagged for deletion.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={scanDuplicates}
+          disabled={dupLoading}
+          startIcon={dupLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <SearchIcon />}
+          sx={{ background: '#fbbf24', color: '#000', '&:hover': { background: '#d97706' }, minWidth: 140 }}
+        >
+          {dupLoading ? 'Scanning…' : 'Run Scan'}
+        </Button>
+      </Paper>
+
+      {dupResult && (
+        <Paper sx={{ p: 3, mt: 2, background: 'rgba(24,25,36,0.97)', border: '1px solid #232336', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ color: '#38bdf8', fontWeight: 700, mb: 2 }}>Duplicate Scan Results</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 3 }}>
+            {[
+              { label: 'Duplicate Groups', value: dupResult.duplicateGroupCount, color: dupResult.duplicateGroupCount > 0 ? '#fbbf24' : '#22c55e' },
+              { label: 'Reviews to Delete', value: dupResult.toDeleteCount, color: dupResult.toDeleteCount > 0 ? '#ef4444' : '#22c55e' },
+            ].map(card => (
+              <Paper key={card.label} elevation={0} sx={{ p: 2, background: `${card.color}12`, border: `1px solid ${card.color}33`, borderRadius: 2 }}>
+                <Typography variant="h4" sx={{ color: card.color, fontWeight: 800 }}>{card.value}</Typography>
+                <Typography variant="body2" sx={{ color: '#9ca3af', mt: 0.5 }}>{card.label}</Typography>
+              </Paper>
+            ))}
+          </Box>
+          {dupResult.toDeleteCount === 0 ? (
+            <Alert severity="success" sx={{ mb: 2 }}>No duplicate reviews found.</Alert>
+          ) : (
+            <Button
+              variant="contained"
+              color="error"
+              onClick={purgeDuplicates}
+              disabled={dupDeleting || !dupResult.ids.length}
+              startIcon={dupDeleting ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <DeleteForeverIcon />}
+              sx={{ minWidth: 220 }}
+            >
+              {dupDeleting ? 'Deleting…' : `Delete ${dupResult.ids.length} Duplicate Reviews`}
+            </Button>
+          )}
+        </Paper>
+      )}
     </Box>
   );
 }

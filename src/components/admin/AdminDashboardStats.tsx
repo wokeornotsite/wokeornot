@@ -17,6 +17,8 @@ interface AdminDashboardStatsProps {
   avgRating: number;
   bannedUserCount: number;
   hiddenReviewCount: number;
+  weeklyUsers?: number;
+  weeklyReviews?: number;
 }
 
 export default function AdminDashboardStats({
@@ -26,6 +28,8 @@ export default function AdminDashboardStats({
   avgRating,
   bannedUserCount,
   hiddenReviewCount,
+  weeklyUsers,
+  weeklyReviews,
 }: AdminDashboardStatsProps) {
   const stats = [
     {
@@ -34,6 +38,7 @@ export default function AdminDashboardStats({
       icon: <PeopleIcon sx={{ fontSize: 40, color: '#38bdf8' }} />,
       color: 'rgba(56, 189, 248, 0.15)',
       textColor: '#38bdf8',
+      trend: weeklyUsers !== undefined ? weeklyUsers : undefined,
     },
     {
       title: 'Total Reviews',
@@ -41,6 +46,7 @@ export default function AdminDashboardStats({
       icon: <RateReviewIcon sx={{ fontSize: 40, color: '#a78bfa' }} />,
       color: 'rgba(167, 139, 250, 0.15)',
       textColor: '#a78bfa',
+      trend: weeklyReviews !== undefined ? weeklyReviews : undefined,
     },
     {
       title: 'Content Items',
@@ -48,6 +54,7 @@ export default function AdminDashboardStats({
       icon: <MovieIcon sx={{ fontSize: 40, color: '#e879f9' }} />,
       color: 'rgba(232, 121, 249, 0.15)',
       textColor: '#e879f9',
+      trend: undefined,
     },
     {
       title: 'Avg Rating',
@@ -55,6 +62,7 @@ export default function AdminDashboardStats({
       icon: <StarIcon sx={{ fontSize: 40, color: '#f59e0b' }} />,
       color: 'rgba(245, 158, 11, 0.15)',
       textColor: '#f59e0b',
+      trend: undefined,
     },
     {
       title: 'Banned Users',
@@ -62,6 +70,7 @@ export default function AdminDashboardStats({
       icon: <BlockIcon sx={{ fontSize: 40, color: '#ef4444' }} />,
       color: 'rgba(239, 68, 68, 0.12)',
       textColor: '#ef4444',
+      trend: undefined,
     },
     {
       title: 'Hidden Reviews',
@@ -69,6 +78,7 @@ export default function AdminDashboardStats({
       icon: <VisibilityOffIcon sx={{ fontSize: 40, color: '#9ca3af' }} />,
       color: 'rgba(156, 163, 175, 0.12)',
       textColor: '#9ca3af',
+      trend: undefined,
     },
   ];
 
@@ -99,6 +109,11 @@ export default function AdminDashboardStats({
                 <Typography variant="body2" sx={{ color: 'white', opacity: 0.8, mt: 1 }}>
                   {stat.title}
                 </Typography>
+                {stat.trend !== undefined && (
+                  <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600, mt: 0.5, display: 'block' }}>
+                    +{stat.trend} this week
+                  </Typography>
+                )}
               </Box>
               <Box>{stat.icon}</Box>
             </Box>

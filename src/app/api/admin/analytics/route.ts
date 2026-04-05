@@ -8,35 +8,35 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const rawDays = Number(searchParams.get('days') || '30');
-    const days = [7, 14, 30, 90].includes(rawDays) ? rawDays : 30;
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - days);
+    let rangeStart: Date;
+    let rangeEnd: Date;
+    let isCustomRange = false;
 
-    // Fetch users created in the last 30 days
+    if (startDateParam && endDateParam) {
+      rangeStart = new Date(startDateParam);
+      rangeEnd = new Date(endDateParam + 'T23:59:59Z');
+      isCustomRange = true;
+    } else {
+      const rawDays = Number(searchParams.get('days') || '30');
+      const days = [7, 14, 30, 90].includes(rawDays) ? rawDays : 30;
+      rangeEnd = new Date();
+      rangeStart = new Date();
+      rangeStart.setDate(rangeStart.getDate() - days);
+    }
+
+    // Fetch users in range
     const users = await prisma.user.findMany({
-      where: {
-        createdAt: {
-          gte: thirtyDaysAgo,
-        },
-      },
-      select: {
-        createdAt: true,
-      },
+      where: { createdAt: { gte: rangeStart, lte: rangeEnd } },
+      select: { createdAt: true },
     });
 
-    // Fetch reviews created in the last 30 days
+    // Fetch reviews in range
     const reviews = await prisma.review.findMany({
-      where: {
-        createdAt: {
-          gte: thirtyDaysAgo,
-        },
-      },
-      select: {
-        createdAt: true,
-        rating: true,
-      },
+      where: { createdAt: { gte: rangeStart, lte: rangeEnd } },
+      select: { createdAt: true, rating: true },
     });
 
     // Group users by date
@@ -50,27 +50,23 @@ export async function GET(req: NextRequest) {
     const reviewsByDate: { [key: string]: { count: number; totalRating: number } } = {};
     reviews.forEach(review => {
       const date = new Date(review.createdAt).toISOString().split('T')[0];
-      if (!reviewsByDate[date]) {
-        reviewsByDate[date] = { count: 0, totalRating: 0 };
-      }
+      if (!reviewsByDate[date]) reviewsByDate[date] = { count: 0, totalRating: 0 };
       reviewsByDate[date].count++;
       reviewsByDate[date].totalRating += review.rating;
     });
 
-    // Generate last 30 days array
+    // Generate date array spanning the range
     const userData = [];
     const reviewData = [];
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const totalDays = Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / msPerDay) + 1;
+
+    for (let i = 0; i < totalDays; i++) {
+      const date = new Date(rangeStart.getTime() + i * msPerDay);
       const dateStr = date.toISOString().split('T')[0];
-      
-      userData.push({
-        date: dateStr,
-        signups: usersByDate[dateStr] || 0,
-      });
-      
+
+      userData.push({ date: dateStr, signups: usersByDate[dateStr] || 0 });
+
       const reviewInfo = reviewsByDate[dateStr];
       reviewData.push({
         date: dateStr,
