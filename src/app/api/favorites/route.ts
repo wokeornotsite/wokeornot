@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 // GET: Fetch user's favorites
 export async function GET(req: NextRequest) {
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    try { getPostHogClient().capture({ distinctId: user.id, event: 'favorite_added', properties: { content_id: String(contentId), content_type: contentType, title } }); } catch {}
     return NextResponse.json({ favorite }, { status: 201 });
   } catch (error) {
     console.error('Error adding favorite:', error);
@@ -133,6 +135,7 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
+    try { getPostHogClient().capture({ distinctId: user.id, event: 'favorite_removed', properties: { content_id: contentId, content_type: contentType } }); } catch {}
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error removing favorite:', error);

@@ -33,6 +33,8 @@
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "notistack": "^3.0.2",
+    "posthog-js": "^1.364.7",
+    "posthog-node": "^5.28.11",
     "prisma": "^6.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

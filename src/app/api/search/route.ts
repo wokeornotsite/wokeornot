@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { searchMovies, searchTVShows } from '@/lib/tmdb';
 import type { TMDBMovie, TMDBTVShow, ContentItem } from '@/types';
 import { prisma } from '@/lib/prisma';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query') || '';
   const genre = searchParams.get('genre') || '';
@@ -109,6 +113,22 @@ export async function GET(req: NextRequest) {
     
     // Sort by release date descending
     results = results.sort((a, b) => (b.releaseDate?.getTime() || 0) - (a.releaseDate?.getTime() || 0));
+    const searchUserId = (session?.user as { id?: string } | undefined)?.id;
+    try {
+      getPostHogClient().capture({
+        distinctId: searchUserId ?? 'anonymous',
+        event: 'content_searched',
+        properties: {
+          query,
+          media_type: mediaType || 'all',
+          genre_filter: genre || undefined,
+          year_filter: year || undefined,
+          wokeness_filter: wokeness || undefined,
+          result_count: results.length,
+          ...(!searchUserId && { $process_person_profile: false }),
+        },
+      });
+    } catch {}
     return NextResponse.json({ results });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Search failed.' }, { status: 500 });

@@ -7,6 +7,7 @@ import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { checkReviewBadges } from '@/lib/badges';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 // GET handler
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -219,6 +220,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
     if (userId) { checkReviewBadges(userId).catch(() => {}); }
+    try { getPostHogClient().capture({ distinctId: userId ?? `guest-${ipHash}`, event: 'review_submitted', properties: { content_id: contentId, rating, category_count: categoryIds?.length ?? 0, is_guest: !userId } }); } catch {}
 
     // Update category scores for this content
     const reviewCategories = await prisma.reviewCategory.findMany({
@@ -385,6 +387,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       : 0;
     await prisma.content.update({ where: { id: contentId }, data: { wokeScore, reviewCount } });
 
+    try { getPostHogClient().capture({ distinctId: user.id, event: 'review_updated', properties: { review_id: id, content_id: review.contentId, rating } }); } catch {}
     return NextResponse.json({ message: 'Review updated successfully' });
   } catch (error: unknown) {
     let message = 'Failed to update review.';

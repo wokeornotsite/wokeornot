@@ -5,6 +5,7 @@ import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
 import { getWelcomeEmailHtml } from '@/lib/email-templates';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
   const rl = rateLimitCheck(req as any, { limit: 20, windowMs: 60_000, route: 'auth_verify_get' });
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
   const verifiedUser = await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
   await prisma.verificationToken.deleteMany({ where: { identifier: email } });
+  try { getPostHogClient().capture({ distinctId: verifiedUser.id, event: 'email_verified', properties: { email } }); } catch {}
   // Fire-and-forget welcome email
   (async () => {
     try {
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
     }
     const verifiedUserPost = await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
     await prisma.verificationToken.deleteMany({ where: { identifier: email } });
+    try { getPostHogClient().capture({ distinctId: verifiedUserPost.id, event: 'email_verified', properties: { email } }); } catch {}
     // Fire-and-forget welcome email
     (async () => {
       try {

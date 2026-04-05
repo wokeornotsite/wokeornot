@@ -7,6 +7,7 @@ import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
 import { error as httpError } from '@/lib/http';
 import { getVerificationEmailHtml } from '@/lib/email-templates';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +74,11 @@ export async function POST(req: NextRequest) {
       text: `Click the link to verify your email: ${verificationUrl}`,
       html: getVerificationEmailHtml(verificationUrl, name || undefined),
     });
+    try {
+      const posthog = getPostHogClient();
+      posthog.capture({ distinctId: user.id, event: 'user_registered', properties: { email, name: safeName || undefined, method: 'credentials' } });
+      posthog.identify({ distinctId: user.id, properties: { email, name: safeName || undefined } });
+    } catch {}
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);
     return res;

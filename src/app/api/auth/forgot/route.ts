@@ -6,6 +6,7 @@ import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
 import { getPasswordResetEmailHtml } from '@/lib/email-templates';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function POST(req: NextRequest) {
   const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'auth_forgot' });
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       text: `Click the link to reset your password: ${resetUrl}`,
       html: getPasswordResetEmailHtml(resetUrl, user.name || undefined),
     });
+    try { getPostHogClient().capture({ distinctId: user.id, event: 'password_reset_requested', properties: { email } }); } catch {}
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);
     return res;

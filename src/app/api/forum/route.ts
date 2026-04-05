@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { sanitizeHTML } from '@/lib/validation';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
       },
     });
+    try { getPostHogClient().capture({ distinctId: user.id, event: 'forum_thread_created', properties: { thread_id: thread.id, title: safeTitle } }); } catch {}
     return NextResponse.json(thread);
   } catch (error: unknown) {
     let message = 'Failed to create thread.';

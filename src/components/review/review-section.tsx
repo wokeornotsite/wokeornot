@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from './review-section.module.css';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
+import posthog from 'posthog-js';
 
 interface Category {
   id: string;
@@ -101,6 +102,7 @@ export default function ReviewSection({ id }: { id: string }) {
     try {
       const trimmedName = guestName.trim();
       await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined), honeypot, formLoadedAt: formLoadedAt.current });
+      try { posthog.capture('review_form_submitted', { content_id: id, rating, category_count: selectedCategories.length, has_text: text.trim().length > 0, is_guest: !session }); } catch {}
       setRating(0);
       setText('');
       setSelectedCategories([]);

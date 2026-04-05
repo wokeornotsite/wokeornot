@@ -8,6 +8,7 @@ import { createNotification } from '@/lib/notifications';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { checkCommentBadges } from '@/lib/badges';
+import { getPostHogClient } from '@/lib/posthog-server';
 
  
 // @ts-expect-error Next.js does not export type for context
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest, context) {
     });
 
     checkCommentBadges(dbUser.id).catch(() => {});
+    try { getPostHogClient().capture({ distinctId: dbUser.id, event: 'comment_submitted', properties: { content_id: id, is_reply: !!parentId } }); } catch {}
 
     // Notify parent comment author if this is a reply
     if (parentId) {
