@@ -2,11 +2,18 @@ import React from 'react';
 
 // Map category names to icons (can expand as needed)
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'Gender': <span role="img" aria-label="Gender" className="text-pink-400 drop-shadow-glow">♀️</span>,
-  'Race': <span role="img" aria-label="Race" className="text-yellow-400 drop-shadow-glow">✊🏽</span>,
-  'LGBTQ+': <span role="img" aria-label="LGBTQ+" className="text-purple-400 drop-shadow-glow">🏳️‍🌈</span>,
+  'LGBTQ+ Themes': <span role="img" aria-label="LGBTQ+ Themes" className="text-purple-400 drop-shadow-glow">🏳️‍🌈</span>,
+  'Transgender Themes': <span role="img" aria-label="Transgender Themes" className="text-blue-300 drop-shadow-glow">🏳️‍⚧️</span>,
+  'Gender Identity': <span role="img" aria-label="Gender Identity" className="text-pink-400 drop-shadow-glow">♀️</span>,
+  'Feminist Themes': <span role="img" aria-label="Feminist Themes" className="text-pink-300 drop-shadow-glow">✊</span>,
+  'Anti-Patriarchy': <span role="img" aria-label="Anti-Patriarchy" className="text-rose-400 drop-shadow-glow">⚡</span>,
+  'Race Swapping': <span role="img" aria-label="Race Swapping" className="text-orange-400 drop-shadow-glow">🔄</span>,
+  'Diversity Casting': <span role="img" aria-label="Diversity Casting" className="text-yellow-400 drop-shadow-glow">🎬</span>,
+  'Race & Ethnicity': <span role="img" aria-label="Race & Ethnicity" className="text-yellow-400 drop-shadow-glow">✊🏽</span>,
+  'Social Justice': <span role="img" aria-label="Social Justice" className="text-teal-400 drop-shadow-glow">⚖️</span>,
+  'Political Content': <span role="img" aria-label="Political Content" className="text-green-400 drop-shadow-glow">🏛️</span>,
+  'Environmental Messaging': <span role="img" aria-label="Environmental Messaging" className="text-emerald-400 drop-shadow-glow">🌿</span>,
   'Religion': <span role="img" aria-label="Religion" className="text-blue-400 drop-shadow-glow">✝️</span>,
-  'Politics': <span role="img" aria-label="Politics" className="text-green-400 drop-shadow-glow">🏛️</span>,
   'Other': <span role="img" aria-label="Other" className="text-gray-300 drop-shadow-glow">❓</span>,
 };
 
