@@ -180,6 +180,14 @@ export default async function AdminDashboardPage() {
         >
           Manage Users
         </Button>
+        <Button
+          component={Link}
+          href="/admin/moderation?tab=2"
+          variant="outlined"
+          sx={{ color: '#f97316', borderColor: '#f97316', fontWeight: 700, textTransform: 'none' }}
+        >
+          Flagged Users
+        </Button>
       </Box>
     </div>
   );

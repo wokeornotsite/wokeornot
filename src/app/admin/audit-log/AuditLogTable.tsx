@@ -21,6 +21,7 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE_MOVIE: 'Deleted Content',
   BULK_DELETE_CONTENT: 'Bulk Deleted Content',
   DELETE_FORUM_THREAD: 'Deleted Forum Thread',
+  REMOVE_WARNING: 'Removed Warning',
 };
 
 // Color per action (red = destructive, green = restorative, amber = warn, blue = role change)
@@ -38,6 +39,7 @@ const ACTION_COLORS: Record<string, string> = {
   PROMOTE_ADMIN: '#38bdf8',
   PROMOTE_MODERATOR: '#a78bfa',
   DEMOTE_USER: '#9ca3af',
+  REMOVE_WARNING: '#22c55e',
 };
 
 const TARGET_TYPE_COLORS: Record<string, string> = {

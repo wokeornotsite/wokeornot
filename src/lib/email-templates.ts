@@ -47,6 +47,36 @@ export function getPasswordResetEmailHtml(resetUrl: string, userName?: string): 
   return wrapInTemplate('Reset Your Password', body);
 }
 
+export function getWarnNotificationEmailHtml(userName: string | undefined, warnCount: number, reason?: string, contactUrl?: string): string {
+  const greeting = userName ? `Hi ${userName},` : 'Hi there,';
+  const reasonText = reason || 'Violation of community guidelines';
+  const contactLink = contactUrl || 'https://wokeornot.net/contact';
+  const body = `
+<h1 style="${H1}">Account Warning</h1>
+<p style="${P}">${greeting}</p>
+<p style="${P}">Your account on WokeOrNot has received a warning.</p>
+<p style="${P}"><strong style="color:#fbbf24">Reason:</strong> ${reasonText}</p>
+<p style="${P}">This is warning <strong style="color:#fbbf24">${warnCount} of 3</strong>. If your account reaches 3 warnings, it will be automatically suspended.</p>
+<p style="${P}">If you believe this warning was issued in error, please reach out to us.</p>
+<div style="text-align:center"><a href="${contactLink}" style="${BTN}">Contact Us</a></div>
+<p style="color:#6b7280;font-size:13px;margin:16px 0 0">Please review our community guidelines to ensure your content meets our standards.</p>`;
+  return wrapInTemplate('Account Warning — WokeOrNot', body);
+}
+
+export function getBanNotificationEmailHtml(userName: string | undefined, reason?: string, contactUrl?: string): string {
+  const greeting = userName ? `Hi ${userName},` : 'Hi there,';
+  const reasonText = reason || 'Violation of community guidelines';
+  const contactLink = contactUrl || 'https://wokeornot.net/contact';
+  const body = `
+<h1 style="${H1}">Account Suspended</h1>
+<p style="${P}">${greeting}</p>
+<p style="${P}">Your WokeOrNot account has been suspended.</p>
+<p style="${P}"><strong style="color:#ef4444">Reason:</strong> ${reasonText}</p>
+<p style="${P}">If you believe this action was taken in error, please contact us to appeal.</p>
+<div style="text-align:center"><a href="${contactLink}" style="${BTN}">Contact Us to Appeal</a></div>`;
+  return wrapInTemplate('Account Suspended — WokeOrNot', body);
+}
+
 export function getWelcomeEmailHtml(userName?: string): string {
   const greeting = userName ? `Welcome, ${userName}!` : 'Welcome to WokeOrNot!';
   const body = `

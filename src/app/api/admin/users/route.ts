@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAPI } from '@/lib/admin-auth';
+import { sendEmail } from '@/lib/mailer';
+import { getWarnNotificationEmailHtml, getBanNotificationEmailHtml } from '@/lib/email-templates';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdminAPI();
@@ -57,20 +59,27 @@ export async function GET(req: NextRequest) {
 
     const page = Number(searchParams.get('page') || '0'); // 0-based
     const pageSize = Math.min(Number(searchParams.get('pageSize') || '10'), 100);
-    const sortBy = (searchParams.get('sortBy') || 'createdAt') as 'email' | 'createdAt' | 'role';
+    const explicitSortBy = searchParams.get('sortBy');
+    const sortBy = (explicitSortBy || 'createdAt') as 'email' | 'createdAt' | 'role';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     const q = searchParams.get('q') || '';
     const role = searchParams.get('role') || '';
+    const flagged = searchParams.get('flagged') === 'true';
 
     const where: any = {};
     if (q) where.OR = [{ email: { contains: q, mode: 'insensitive' } }, { name: { contains: q, mode: 'insensitive' } }];
     if (role) where.role = role;
+    if (flagged) where.OR = [{ isBanned: true }, { warnCount: { gt: 0 } }];
+
+    const orderBy: any = flagged && !explicitSortBy
+      ? [{ isBanned: 'desc' }, { warnCount: 'desc' }]
+      : { [sortBy]: sortOrder };
 
     const [data, total] = await Promise.all([
       prisma.user.findMany({
         where,
         select: { id: true, email: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true },
-        orderBy: { [sortBy]: sortOrder },
+        orderBy,
         skip: page * pageSize,
         take: pageSize,
       }),
@@ -103,10 +112,10 @@ export async function DELETE(req: NextRequest) {
 
 async function applySingleUserPatch(
   id: string,
-  patch: { role?: 'USER' | 'ADMIN' | 'MODERATOR'; isBanned?: boolean; banReason?: string | null; warnDelta?: number; warnCount?: number },
+  patch: { role?: 'USER' | 'ADMIN' | 'MODERATOR'; isBanned?: boolean; banReason?: string | null; warnDelta?: number; warnCount?: number; warnReason?: string },
   adminId: string
 ) {
-  const { role, isBanned, banReason, warnDelta, warnCount } = patch;
+  const { role, isBanned, banReason, warnDelta, warnCount, warnReason } = patch;
 
   const data: any = {};
   if (typeof role !== 'undefined') data.role = role;
@@ -119,22 +128,22 @@ async function applySingleUserPatch(
     updated = await prisma.user.update({
       where: { id },
       data: { ...data, warnCount: { increment: Math.floor(warnDelta) } },
-      select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true },
+      select: { id: true, email: true, name: true, role: true, isBanned: true, banReason: true, warnCount: true },
     });
   } else {
     updated = await prisma.user.update({
       where: { id },
       data,
-      select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true },
+      select: { id: true, email: true, name: true, role: true, isBanned: true, banReason: true, warnCount: true },
     });
   }
 
   // Auto-ban after 3 warnings
-  if (typeof warnDelta === 'number' && updated.warnCount >= 3 && !updated.isBanned) {
+  if (typeof warnDelta === 'number' && warnDelta > 0 && updated.warnCount >= 3 && !updated.isBanned) {
     updated = await prisma.user.update({
       where: { id },
       data: { isBanned: true, banReason: 'Automatically banned after 3 warnings' },
-      select: { id: true, email: true, role: true, isBanned: true, banReason: true, warnCount: true },
+      select: { id: true, email: true, name: true, role: true, isBanned: true, banReason: true, warnCount: true },
     });
     await prisma.auditLog.create({
       data: {
@@ -145,6 +154,47 @@ async function applySingleUserPatch(
         details: `${updated.email} | Automatically banned after 3 warnings`,
       },
     });
+    // Send auto-ban email
+    try {
+      await sendEmail({
+        to: updated.email,
+        subject: 'Account Suspended — WokeOrNot',
+        html: getBanNotificationEmailHtml(
+          updated.name || undefined,
+          'Automatically suspended after 3 warnings',
+          (process.env.NEXTAUTH_URL || 'https://wokeornot.net') + '/contact'
+        ),
+      });
+    } catch { /* non-fatal */ }
+  } else if (typeof warnDelta === 'number' && warnDelta > 0) {
+    // Send warning email
+    try {
+      await sendEmail({
+        to: updated.email,
+        subject: 'Account Warning — WokeOrNot',
+        html: getWarnNotificationEmailHtml(
+          updated.name || undefined,
+          updated.warnCount,
+          warnReason,
+          (process.env.NEXTAUTH_URL || 'https://wokeornot.net') + '/contact'
+        ),
+      });
+    } catch { /* non-fatal */ }
+  }
+
+  // Manual ban email
+  if (typeof isBanned !== 'undefined' && isBanned === true) {
+    try {
+      await sendEmail({
+        to: updated.email,
+        subject: 'Account Suspended — WokeOrNot',
+        html: getBanNotificationEmailHtml(
+          updated.name || undefined,
+          banReason || undefined,
+          (process.env.NEXTAUTH_URL || 'https://wokeornot.net') + '/contact'
+        ),
+      });
+    } catch { /* non-fatal */ }
   }
 
   return updated;
@@ -176,6 +226,18 @@ export async function PATCH(req: NextRequest) {
               await prisma.auditLog.create({
                 data: { adminId, action: 'WARN_USER', targetId: id, targetType: 'User', details: updated.email },
               });
+              try {
+                await sendEmail({
+                  to: updated.email,
+                  subject: 'Account Warning — WokeOrNot',
+                  html: getWarnNotificationEmailHtml(
+                    (updated as any).name || undefined,
+                    updated.warnCount,
+                    undefined,
+                    (process.env.NEXTAUTH_URL || 'https://wokeornot.net') + '/contact'
+                  ),
+                });
+              } catch { /* non-fatal */ }
               return { id, success: true };
             }
             return { id, success: false, error: 'Unknown action' };
@@ -187,13 +249,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ results });
     }
 
-    const { id, role, isBanned, banReason, warnDelta, warnCount } = body as {
+    const { id, role, isBanned, banReason, warnDelta, warnCount, warnReason } = body as {
       id?: string;
       role?: 'USER' | 'ADMIN' | 'MODERATOR';
       isBanned?: boolean;
       banReason?: string | null;
       warnDelta?: number;
       warnCount?: number;
+      warnReason?: string;
     };
     if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
 
@@ -205,7 +268,7 @@ export async function PATCH(req: NextRequest) {
     const existingUser = await prisma.user.findUnique({ where: { id }, select: { id: true } });
     if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const updated = await applySingleUserPatch(id, { role, isBanned, banReason, warnDelta, warnCount }, adminId);
+    const updated = await applySingleUserPatch(id, { role, isBanned, banReason, warnDelta, warnCount, warnReason }, adminId);
     return NextResponse.json({ data: updated });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });

@@ -7,6 +7,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
 import { useUsers } from './useUsers';
 import Snackbar from '@mui/material/Snackbar';
@@ -29,6 +30,8 @@ export default function ModerationUsersTable() {
   const [role, setRole] = React.useState<string>('');
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [activityDialog, setActivityDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
+  const [warnDialog, setWarnDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [warnReason, setWarnReason] = React.useState('');
   const dq = useDebouncedValue(q, 300);
 
   // Initialize from URL
@@ -118,22 +121,45 @@ export default function ModerationUsersTable() {
     }
   }
 
-  async function handleWarn(row: any) {
+  async function confirmWarn() {
+    const row = warnDialog.row;
+    if (!row) return;
     try {
       await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, warnDelta: 1 }),
+        body: JSON.stringify({ id: row.id, warnDelta: 1, warnReason: warnReason || undefined }),
       });
       await fetch('/api/admin/auditlog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'WARN_USER', targetId: row.id, targetType: 'User', details: row.email }),
+        body: JSON.stringify({ action: 'WARN_USER', targetId: row.id, targetType: 'User', details: row.email + (warnReason ? ` | ${warnReason}` : '') }),
       });
-      setSnackbar({ open: true, message: 'Warning recorded' });
+      setSnackbar({ open: true, message: 'Warning issued' });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error warning user' });
+    }
+    setWarnDialog({ open: false, row: null });
+    setWarnReason('');
+  }
+
+  async function handleRemoveWarning(row: any) {
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, warnDelta: -1 }),
+      });
+      await fetch('/api/admin/auditlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REMOVE_WARNING', targetId: row.id, targetType: 'User', details: row.email }),
+      });
+      setSnackbar({ open: true, message: 'Warning removed' });
+      mutate();
+    } catch {
+      setSnackbar({ open: true, message: 'Error removing warning' });
     }
   }
 
@@ -258,8 +284,18 @@ export default function ModerationUsersTable() {
           params.row.isBanned
             ? <GridActionsCellItem icon={<BlockIcon color="success" />} label="Unban" onClick={() => handleUnban(params.row)} />
             : <GridActionsCellItem icon={<BlockIcon color="error" />} label="Ban" onClick={() => { setBanReason(''); setBanDialog({ open: true, row: params.row }); }} />,
-          <GridActionsCellItem icon={<WarningIcon color="warning" />} label="Warn" onClick={() => handleWarn(params.row)} />,
+          <GridActionsCellItem icon={<WarningIcon color="warning" />} label="Warn" onClick={() => { setWarnReason(''); setWarnDialog({ open: true, row: params.row }); }} />,
         ];
+        if (params.row.warnCount > 0) {
+          actions.push(
+            <GridActionsCellItem
+              icon={<RemoveCircleOutlineIcon sx={{ color: '#22c55e' }} />}
+              label="Remove Warning"
+              onClick={() => handleRemoveWarning(params.row)}
+              showInMenu
+            />
+          );
+        }
         if (params.row.role !== 'ADMIN') {
           actions.push(
             <GridActionsCellItem
@@ -435,6 +471,28 @@ export default function ModerationUsersTable() {
         <DialogActions>
           <Button onClick={() => setBanDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={confirmBan} variant="contained" color="error">Ban User</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Warn dialog */}
+      <Dialog open={warnDialog.open} onClose={() => setWarnDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Warn {warnDialog.row?.email}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="Reason (optional)"
+            value={warnReason}
+            onChange={(e) => setWarnReason(e.target.value)}
+            InputProps={{ sx: { color: '#fff' } }}
+            InputLabelProps={{ sx: { color: '#9ca3af' } }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWarnDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmWarn} variant="contained" sx={{ background: '#fbbf24', '&:hover': { background: '#d97706' }, color: '#000' }}>Issue Warning</Button>
         </DialogActions>
       </Dialog>
 
