@@ -32,6 +32,16 @@ export function sanitizeHTML(input: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// For plain-text fields rendered as React text nodes (reviews, comments, usernames, forum posts).
+// React automatically escapes text nodes, so HTML-encoding is not needed and causes &#39; etc.
+// to display literally. This function only strips dangerous control characters.
+export function sanitizePlainText(input: string): string {
+  return input
+    .trim()
+    // Strip null bytes and non-printable control characters (keep tab \x09, newline \x0A, CR \x0D)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
+
 export const schemas = {
   reaction: z.object({ reaction: z.enum(['like', 'dislike']) }),
   reviewCreate: z.object({

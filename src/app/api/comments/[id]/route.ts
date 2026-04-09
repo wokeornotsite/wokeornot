@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { createNotification } from '@/lib/notifications';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, context) {
     }
     const id = context.params.id;
     const { text, parentId } = await parseJson(req as any, schemas.commentCreate);
-    const safeText = sanitizeHTML(text);
+    const safeText = sanitizePlainText(text);
     // Find user
     const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (!dbUser) {
@@ -150,7 +150,7 @@ export async function PATCH(req: NextRequest, context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const { commentId, text } = await parseJson(req as any, schemas.commentUpdate);
-    const safeText = sanitizeHTML(text);
+    const safeText = sanitizePlainText(text);
     // Find user
     const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (!dbUser) {

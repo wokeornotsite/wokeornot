@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
-import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { error as httpError } from '@/lib/http';
 import { getVerificationEmailHtml } from '@/lib/email-templates';
 import { getPostHogClient } from '@/lib/posthog-server';
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const rawParsed = await parseJson(req, schemas.authRegister);
     const { name, password } = rawParsed;
     const email = rawParsed.email.toLowerCase();
-    const safeName = name ? sanitizeHTML(name) : '';
+    const safeName = name ? sanitizePlainText(name) : '';
     if (!email || !password) {
       const res = NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
       setRateLimitHeaders(res, rl);

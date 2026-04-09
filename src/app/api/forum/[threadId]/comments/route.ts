@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sanitizeHTML } from '@/lib/validation';
+import { sanitizePlainText } from '@/lib/validation';
 
  
 // @ts-expect-error Next.js does not export type for context
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, context) {
     }
     const { threadId } = await context.params;
     const { text } = await req.json();
-    const safeText = sanitizeHTML(text.trim());
+    const safeText = sanitizePlainText(text.trim());
     const user = await prisma.user.findUnique({ where: { email: session.user.email! } });
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { parseJson, schemas, sanitizeHTML } from '@/lib/validation';
+import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { checkReviewBadges } from '@/lib/badges';
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Please take your time reviewing' }, { status: 400 });
     }
 
-    const safeText = text ? sanitizeHTML(text) : '';
+    const safeText = text ? sanitizePlainText(text) : '';
     const session = await getServerSession(authOptions);
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
@@ -305,7 +305,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   try {
     const { rating, text, categoryIds } = await parseJson(req, schemas.reviewUpdate);
-    const safeText = typeof text === 'string' ? sanitizeHTML(text) : undefined;
+    const safeText = typeof text === 'string' ? sanitizePlainText(text) : undefined;
     const resolvedParams = await params;
     const { id } = resolvedParams;
     const review = await prisma.review.findUnique({ where: { id } });

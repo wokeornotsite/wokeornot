@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sanitizeHTML } from '@/lib/validation';
+import { sanitizePlainText } from '@/lib/validation';
 import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function POST(req: NextRequest) {
@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     if (!title || !content) {
       return NextResponse.json({ error: 'Title and content are required.' }, { status: 400 });
     }
-    const safeTitle = sanitizeHTML(title.trim());
-    const safeContent = sanitizeHTML(content.trim());
+    const safeTitle = sanitizePlainText(title.trim());
+    const safeContent = sanitizePlainText(content.trim());
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
