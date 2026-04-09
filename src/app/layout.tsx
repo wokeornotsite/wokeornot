@@ -42,10 +42,10 @@ export const metadata: Metadata = {
       'Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think.',
     images: [
       {
-        url: 'https://wokeornot.net/og-image.png',
+        url: 'https://wokeornot.net/api/og?title=WokeOrNot',
         width: 1200,
         height: 630,
-        alt: 'WokeOrNot',
+        alt: 'WokeOrNot - Rate the Wokeness of Movies and TV Shows',
       },
     ],
   },
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     title: 'WokeOrNot - Rate the Wokeness of Movies and TV Shows',
     description:
       'Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think.',
-    images: ['https://wokeornot.net/og-image.png'],
+    images: ['https://wokeornot.net/api/og?title=WokeOrNot'],
   },
   alternates: {
     canonical: 'https://wokeornot.net/',
@@ -89,6 +89,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-text font-sans text-base leading-relaxed`}
       >
         <AccessibilityAnnouncer />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'WokeOrNot',
+              url: 'https://wokeornot.net',
+              logo: 'https://wokeornot.net/icons/icon.svg',
+            }),
+          }}
+        />
         <MUIProvider>
           <ClientLayout>{children}</ClientLayout>
         </MUIProvider>

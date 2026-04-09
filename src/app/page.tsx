@@ -22,6 +22,22 @@ export default function Home() {
 
   return (
     <div className="w-full bg-[#0f0f1a] text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'WokeOrNot',
+            url: 'https://wokeornot.net',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: 'https://wokeornot.net/search?q={search_term_string}',
+              'query-input': 'required name=search_term_string',
+            },
+          }),
+        }}
+      />
       {/* Hero Section - Modern, Cinematic Design */}
       <section className="relative overflow-hidden">
         {/* Background with overlay gradient */}

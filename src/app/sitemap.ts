@@ -8,37 +8,38 @@ export const dynamic = 'force-dynamic';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://wokeornot.net';
 
+  // Static legal/info pages use a fixed date so Google doesn't think they change daily
+  const STATIC_DATE = new Date('2025-01-01');
+
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
     { url: `${baseUrl}/movies`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/tv-shows`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/kids`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
-    { url: `${baseUrl}/search`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${baseUrl}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/contact`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/privacy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/terms`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/cookies`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/search`, lastModified: STATIC_DATE, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${baseUrl}/about`, lastModified: STATIC_DATE, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/contact`, lastModified: STATIC_DATE, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/privacy`, lastModified: STATIC_DATE, changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/terms`, lastModified: STATIC_DATE, changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/cookies`, lastModified: STATIC_DATE, changeFrequency: 'monthly', priority: 0.3 },
   ];
 
   let contentPages: MetadataRoute.Sitemap = [];
   try {
-    // Only include content that has been rated — keeps the sitemap lean
-    // and ensures search engines only index pages with real community data
     const contents = await prisma.content.findMany({
-      where: { reviewCount: { gt: 0 } },
-      select: { tmdbId: true, contentType: true, updatedAt: true },
+      select: { tmdbId: true, contentType: true, updatedAt: true, reviewCount: true },
     });
     contentPages = contents.map((c) => {
       const segment =
         c.contentType === 'TV_SHOW' ? 'tv-shows' :
         c.contentType === 'KIDS' ? 'kids' :
         'movies';
+      const hasReviews = (c.reviewCount ?? 0) > 0;
       return {
         url: `${baseUrl}/${segment}/${c.tmdbId}`,
         lastModified: c.updatedAt ?? new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
+        changeFrequency: (hasReviews ? 'weekly' : 'monthly') as const,
+        priority: hasReviews ? 0.8 : 0.6,
       };
     });
   } catch {
