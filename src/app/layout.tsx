@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://wokeornot.net'),
+  verification: {
+    google: '2JlXhEUOlDPwwJzFXkryHKUaXPYU1aOfF0jOixcEBN0',
+  },
   title: {
     default: 'WokeOrNot — Community Wokeness Ratings for Movies & TV Shows',
     template: '%s | WokeOrNot',
