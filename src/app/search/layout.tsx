@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Search',
-  description: 'Search for movies and TV shows to discover their wokeness ratings and reviews from the community.',
+  title: 'Search Wokeness Ratings — Look Up Any Movie or TV Show | WokeOrNot',
+  description: 'Search for any movie or TV show to see its wokeness rating and community reviews. Find out if your next watch is woke or not.',
   openGraph: {
-    title: 'Search | WokeOrNot',
-    description: 'Search for movies and TV shows to discover their wokeness ratings.',
+    title: 'Search Wokeness Ratings — Look Up Any Movie or TV Show | WokeOrNot',
+    description: 'Search for any movie or TV show to see its wokeness rating and community reviews.',
     url: 'https://wokeornot.net/search',
   },
   alternates: {

@@ -39,20 +39,27 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   if (!movie) return {};
   const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'KIDS' } });
   const wokeScore = dbContent?.wokeScore;
-  const year = movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : '';
-  const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
-  const description = `${movie.title}${year}${ratingPart} ${movie.overview || ''}`.trim().slice(0, 160);
+  const reviewCount = dbContent?.reviewCount ?? 0;
+  const score = wokeScore ? Number(wokeScore) : null;
+  const label = score !== null ? getWokenessLabel(score) : null;
+  const pageTitle = score !== null
+    ? `Is ${movie.title} Safe for Kids? Wokeness: ${label} (${score.toFixed(1)}/10) | WokeOrNot`
+    : `Is ${movie.title} Safe for Kids? | WokeOrNot`;
+  const descBase = score !== null
+    ? `${movie.title} has a kids content wokeness score of ${score.toFixed(1)}/10 (${label})${reviewCount > 0 ? ` from ${reviewCount} community reviews` : ''}. `
+    : `Find out if ${movie.title} is appropriate for kids. Community wokeness ratings for children's content. `;
+  const description = (descBase + (movie.overview || '')).trim().slice(0, 160);
   const imageUrl = movie.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : movie.poster_path
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
     : null;
   return {
-    title: `${movie.title} | WokeOrNot`,
+    title: pageTitle,
     description,
     alternates: { canonical: `https://wokeornot.net/kids/${tmdbId}` },
     openGraph: {
-      title: `${movie.title} | WokeOrNot`,
+      title: pageTitle,
       description,
       type: 'video.movie',
       ...(imageUrl ? { images: [{ url: imageUrl }] } : {}),

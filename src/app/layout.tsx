@@ -18,20 +18,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://wokeornot.net'),
   title: {
-    default: 'WokeOrNot - Rate the Wokeness of Movies and TV Shows',
+    default: 'WokeOrNot — Community Wokeness Ratings for Movies & TV Shows',
     template: '%s | WokeOrNot',
   },
   description:
-    'Discover and rate the wokeness level of your favorite movies and TV shows. Join our community to share your opinions and see what others think.',
+    'The community platform to rate and review wokeness in movies, TV shows, and kids content. See woke scores, read reviews, and make informed viewing choices.',
   keywords: [
     'woke',
     'wokeness',
+    'non-woke movies',
+    'woke movies list',
+    'conservative movie reviews',
     'movies',
     'tv shows',
     'ratings',
     'reviews',
-    'family',
+    'family friendly',
     'kids',
+    'woke content',
+    'DEI movies',
   ],
   openGraph: {
     type: 'website',

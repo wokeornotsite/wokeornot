@@ -38,9 +38,16 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   if (!movie) return {};
   const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'MOVIE' } });
   const wokeScore = dbContent?.wokeScore;
-  const year = movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : '';
-  const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
-  const description = `${movie.title}${year}${ratingPart} ${movie.overview || ''}`.trim().slice(0, 160);
+  const reviewCount = dbContent?.reviewCount ?? 0;
+  const score = wokeScore ? Number(wokeScore) : null;
+  const label = score !== null ? getWokenessLabel(score) : null;
+  const pageTitle = score !== null
+    ? `Is ${movie.title} Woke? — ${label} (${score.toFixed(1)}/10) | WokeOrNot`
+    : `Is ${movie.title} Woke? Community Ratings & Reviews | WokeOrNot`;
+  const descBase = score !== null
+    ? `${movie.title} has a wokeness score of ${score.toFixed(1)}/10 (${label})${reviewCount > 0 ? ` from ${reviewCount} community reviews` : ''}. `
+    : `Find out if ${movie.title} is woke. Read community wokeness ratings and reviews. `;
+  const description = (descBase + (movie.overview || '')).trim().slice(0, 160);
   const fallbackImageUrl = movie.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : movie.poster_path
@@ -48,17 +55,17 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     : null;
   const ogImageUrl =
     `https://wokeornot.net/api/og?title=${encodeURIComponent(movie.title)}&type=movie` +
-    (wokeScore ? `&score=${Number(wokeScore).toFixed(1)}` : '');
+    (score !== null ? `&score=${score.toFixed(1)}` : '');
   const ogImages = [
     { url: ogImageUrl, width: 1200, height: 630, alt: `${movie.title} woke score` },
     ...(fallbackImageUrl ? [{ url: fallbackImageUrl }] : []),
   ];
   return {
-    title: `${movie.title} | WokeOrNot`,
+    title: pageTitle,
     description,
     alternates: { canonical: `https://wokeornot.net/movies/${tmdbId}` },
     openGraph: {
-      title: `${movie.title} | WokeOrNot`,
+      title: pageTitle,
       description,
       type: 'video.movie',
       images: ogImages,

@@ -37,9 +37,16 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
   if (!tvShow) return {};
   const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'TV_SHOW' } });
   const wokeScore = dbContent?.wokeScore;
-  const year = tvShow.first_air_date ? ` (${tvShow.first_air_date.slice(0, 4)})` : '';
-  const ratingPart = wokeScore ? ` — Woke Score: ${Number(wokeScore).toFixed(1)}/10.` : '';
-  const description = `${tvShow.name}${year}${ratingPart} ${tvShow.overview || ''}`.trim().slice(0, 160);
+  const reviewCount = dbContent?.reviewCount ?? 0;
+  const score = wokeScore ? Number(wokeScore) : null;
+  const label = score !== null ? getWokenessLabel(score) : null;
+  const pageTitle = score !== null
+    ? `Is ${tvShow.name} Woke? — ${label} (${score.toFixed(1)}/10) | WokeOrNot`
+    : `Is ${tvShow.name} Woke? Community Ratings & Reviews | WokeOrNot`;
+  const descBase = score !== null
+    ? `${tvShow.name} has a wokeness score of ${score.toFixed(1)}/10 (${label})${reviewCount > 0 ? ` from ${reviewCount} community reviews` : ''}. `
+    : `Find out if ${tvShow.name} is woke. Read community wokeness ratings and reviews. `;
+  const description = (descBase + (tvShow.overview || '')).trim().slice(0, 160);
   const fallbackImageUrl = tvShow.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
     : tvShow.poster_path
@@ -47,17 +54,17 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     : null;
   const ogImageUrl =
     `https://wokeornot.net/api/og?title=${encodeURIComponent(tvShow.name)}&type=tv` +
-    (wokeScore ? `&score=${Number(wokeScore).toFixed(1)}` : '');
+    (score !== null ? `&score=${score.toFixed(1)}` : '');
   const ogImages = [
     { url: ogImageUrl, width: 1200, height: 630, alt: `${tvShow.name} woke score` },
     ...(fallbackImageUrl ? [{ url: fallbackImageUrl }] : []),
   ];
   return {
-    title: `${tvShow.name} | WokeOrNot`,
+    title: pageTitle,
     description,
     alternates: { canonical: `https://wokeornot.net/tv-shows/${tmdbId}` },
     openGraph: {
-      title: `${tvShow.name} | WokeOrNot`,
+      title: pageTitle,
       description,
       type: 'video.tv_show',
       images: ogImages,

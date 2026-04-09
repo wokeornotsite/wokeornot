@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'TV Shows',
-  description: 'Browse and rate the wokeness of the latest and most popular TV shows. Filter by genre, year, language, and wokeness level.',
+  title: 'Non-Woke & Woke TV Shows Rated by the Community | WokeOrNot',
+  description: 'Browse TV shows rated for wokeness by real viewers. Find the least woke series, most woke shows, and everything in between. Filter by genre and woke level.',
   openGraph: {
-    title: 'TV Shows | WokeOrNot',
-    description: 'Browse and rate the wokeness of the latest and most popular TV shows.',
+    title: 'Non-Woke & Woke TV Shows Rated by the Community | WokeOrNot',
+    description: 'Browse TV shows rated for wokeness by real viewers. Find the least woke series, most woke shows, and everything in between.',
     url: 'https://wokeornot.net/tv-shows',
   },
   alternates: {

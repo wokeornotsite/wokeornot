@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Kids & Family',
-  description: 'Browse and rate the wokeness of family-friendly movies and TV shows. Find content suitable for kids with wokeness ratings.',
+  title: 'Is Kids Content Safe? Wokeness Ratings for Children\'s Movies & Shows | WokeOrNot',
+  description: 'Find out which kids movies and shows are woke. Community ratings help parents make informed choices about children\'s entertainment. Filter by wokeness level.',
   openGraph: {
-    title: 'Kids & Family | WokeOrNot',
-    description: 'Browse and rate the wokeness of family-friendly movies and TV shows.',
+    title: 'Is Kids Content Safe? Wokeness Ratings for Children\'s Movies & Shows | WokeOrNot',
+    description: 'Find out which kids movies and shows are woke. Community ratings help parents make informed choices about children\'s entertainment.',
     url: 'https://wokeornot.net/kids',
   },
   alternates: {

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Movies',
-  description: 'Browse and rate the wokeness of the latest and most popular movies. Filter by genre, year, language, and wokeness level.',
+  title: 'Non-Woke & Woke Movies Rated by the Community | WokeOrNot',
+  description: 'Browse thousands of movies rated for wokeness by real viewers. Find the least woke movies, most woke films, and everything in between. Filter by genre, year, and woke level.',
   openGraph: {
-    title: 'Movies | WokeOrNot',
-    description: 'Browse and rate the wokeness of the latest and most popular movies.',
+    title: 'Non-Woke & Woke Movies Rated by the Community | WokeOrNot',
+    description: 'Browse thousands of movies rated for wokeness by real viewers. Find the least woke movies, most woke films, and everything in between.',
     url: 'https://wokeornot.net/movies',
   },
   alternates: {
