@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     // Use /search/multi — searches movies + TV in one call with better fuzzy matching
     const multiRes = await searchMulti(query, 1);
     console.log('[search] query:', query, '| raw TMDB results:', multiRes.results?.length ?? 0);
+    console.log('[search] TMDB raw response:', JSON.stringify(multiRes).slice(0, 500));
 
     let movieItems: ContentItem[] = (multiRes.results ?? [])
       .filter((r: any) => r.media_type === 'movie')
