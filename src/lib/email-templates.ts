@@ -92,3 +92,19 @@ export function getWelcomeEmailHtml(userName?: string): string {
 <div style="text-align:center"><a href="https://wokeornot.net" style="${BTN}">Start Exploring</a></div>`;
   return wrapInTemplate('Welcome to WokeOrNot!', body);
 }
+
+export function getReviewLikedEmailHtml(
+  reviewAuthorName: string | undefined,
+  likerName: string,
+  contentTitle: string,
+  reviewLink: string
+): string {
+  const greeting = reviewAuthorName ? `Hi ${reviewAuthorName},` : 'Hi there,';
+  const body = `
+<h1 style="${H1}">Your review got a like! &#128077;</h1>
+<p style="${P}">${greeting}</p>
+<p style="${P}"><strong style="color:#a855f7">${likerName}</strong> liked your review of <strong style="color:#f9fafb">${contentTitle}</strong>.</p>
+<div style="text-align:center"><a href="https://wokeornot.net${reviewLink}" style="${BTN}">View Your Review</a></div>
+<p style="color:#6b7280;font-size:13px;margin:16px 0 0">Don't want these emails? <a href="https://wokeornot.net/profile" style="color:#a855f7">Manage notification settings</a> in your profile.</p>`;
+  return wrapInTemplate('Your review got a like!', body);
+}

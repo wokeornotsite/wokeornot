@@ -26,6 +26,7 @@ export default async function ProfilePage() {
     createdAt: Date;
     updatedAt: Date;
     role: string;
+    emailNotifications: boolean;
     reviews: any[];
     comments: any[];
   };
@@ -67,6 +68,7 @@ export default async function ProfilePage() {
         bio: user.bio || '',
         createdAt: user.createdAt.toISOString(),
         reviewCount: user.reviews.length,
+        emailNotifications: user.emailNotifications ?? true,
         reviews,
         comments,
       }} />

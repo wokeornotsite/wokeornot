@@ -26,6 +26,7 @@ model User {
   banReason     String?
   warnCount     Int       @default(0)
   bio           String?
+  emailNotifications Boolean @default(true) // Email notifications opt-in
 
   // Relations
   accounts      Account[]

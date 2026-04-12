@@ -46,6 +46,7 @@ export type UserProfileData = {
   bio?: string;
   createdAt?: string;
   reviewCount?: number;
+  emailNotifications?: boolean;
   reviews: Review[];
   comments: Comment[];
 };
@@ -74,6 +75,7 @@ function ProfileClient({ user }: { user: UserProfileData }) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [bio, setBio] = useState(user.bio || "");
+  const [emailNotifs, setEmailNotifs] = useState(user.emailNotifications ?? true);
   const [nameLoading, setNameLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
@@ -438,6 +440,35 @@ function ProfileClient({ user }: { user: UserProfileData }) {
                 ))}
               </div>
               {avatarError && <p className="text-red-400 text-xs">{avatarError}</p>}
+            </div>
+
+            <div className="border-t border-white/10" />
+
+            {/* Notification preferences */}
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide">Notifications</label>
+              <div className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-sm font-semibold text-white">Email when someone likes your review</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Receive an email when another user likes one of your reviews</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={emailNotifs ? 'Disable email notifications' : 'Enable email notifications'}
+                  onClick={async () => {
+                    const next = !emailNotifs;
+                    setEmailNotifs(next);
+                    await fetch('/api/user/notifications', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ emailNotifications: next }),
+                    });
+                  }}
+                  className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${emailNotifs ? 'bg-purple-600' : 'bg-gray-600'}`}
+                >
+                  <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform absolute top-1 ${emailNotifs ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

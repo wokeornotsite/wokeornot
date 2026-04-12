@@ -7,6 +7,8 @@ import { parseJson, schemas } from '@/lib/validation';
 import { error } from '@/lib/http';
 import { createNotification } from '@/lib/notifications';
 import { checkHelpfulBadge } from '@/lib/badges';
+import { sendEmail } from '@/lib/mailer';
+import { getReviewLikedEmailHtml } from '@/lib/email-templates';
 import { getPostHogClient } from '@/lib/posthog-server';
 
 // Need to run prisma generate after schema changes
@@ -108,7 +110,7 @@ export async function POST(
       if (review.userId && review.userId !== user.id) {
         const content = await prisma.content.findUnique({
           where: { id: review.contentId },
-          select: { tmdbId: true, contentType: true },
+          select: { tmdbId: true, contentType: true, title: true },
         });
         if (content) {
           const linkPrefix =
@@ -117,12 +119,32 @@ export async function POST(
               : content.contentType === 'KIDS'
               ? '/kids'
               : '/movies';
+          const reviewLink = `${linkPrefix}/${content.tmdbId}`;
           await createNotification({
             userId: review.userId,
             type: 'REVIEW_REACTION',
             message: 'Someone liked your review',
-            link: `${linkPrefix}/${content.tmdbId}`,
+            link: reviewLink,
           });
+          // Send email if reaction is a like and review author has opted in
+          if (reaction === 'like') {
+            const reviewAuthor = await prisma.user.findUnique({
+              where: { id: review.userId },
+              select: { email: true, name: true, emailNotifications: true },
+            });
+            if (reviewAuthor?.emailNotifications && reviewAuthor.email) {
+              sendEmail({
+                to: reviewAuthor.email,
+                subject: `${user.name || 'Someone'} liked your review on WokeOrNot`,
+                html: getReviewLikedEmailHtml(
+                  reviewAuthor.name ?? undefined,
+                  user.name || 'A user',
+                  content.title || 'a title',
+                  reviewLink,
+                ),
+              }).catch(() => {});
+            }
+          }
         }
       }
     }
