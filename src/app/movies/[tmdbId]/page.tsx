@@ -27,6 +27,8 @@ import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
+export const revalidate = 3600; // Cache movie detail pages for 1 hour
+
 export async function generateMetadata({ params }: { params: Promise<{ tmdbId: string }> }): Promise<Metadata> {
   const { tmdbId } = await params;
   let movie;

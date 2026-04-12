@@ -10,7 +10,10 @@ export function useAnalytics(days?: number, startDate?: string, endDate?: string
   } else {
     key = '/api/admin/analytics';
   }
-  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  });
   return {
     analytics: data || {},
     isLoading,

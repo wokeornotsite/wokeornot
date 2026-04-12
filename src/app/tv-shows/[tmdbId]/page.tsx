@@ -26,6 +26,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
+export const revalidate = 3600; // Cache TV detail pages for 1 hour
+
 export async function generateMetadata({ params }: { params: Promise<{ tmdbId: string }> }): Promise<Metadata> {
   const { tmdbId } = await params;
   let tvShow;

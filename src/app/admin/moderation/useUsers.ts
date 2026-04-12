@@ -17,7 +17,10 @@ export function useUsers(params?: {
   if (params?.role) query.set('role', params.role);
 
   const key = `/api/admin/users${query.toString() ? `?${query.toString()}` : ''}`;
-  const { data, error, mutate, isLoading } = useSWR(key, fetcher);
+  const { data, error, mutate, isLoading } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  });
   return {
     rows: (data?.data as any[]) || [],
     total: (data?.total as number) || 0,

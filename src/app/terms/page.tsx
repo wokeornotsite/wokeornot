@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+export const revalidate = 86400; // Rebuild at most once per day
+
 export const metadata: Metadata = {
   title: 'Terms of Service | WokeOrNot',
   description: 'Review the WokeOrNot Terms of Service — the rules and guidelines governing your use of our community rating platform.',

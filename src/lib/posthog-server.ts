@@ -10,8 +10,8 @@ export function getPostHogClient(): PostHog {
   if (!posthogClient) {
     posthogClient = new PostHog(key, {
       host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-      flushAt: 1,
-      flushInterval: 0,
+      flushAt: 20,
+      flushInterval: 5000,
     });
   }
   return posthogClient;

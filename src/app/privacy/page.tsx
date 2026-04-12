@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+export const revalidate = 86400; // Rebuild at most once per day
+
 export const metadata: Metadata = {
   title: 'Privacy Policy | WokeOrNot',
   description: 'Read the WokeOrNot Privacy Policy to understand how we collect, use, and protect your personal information when you use our platform.',
