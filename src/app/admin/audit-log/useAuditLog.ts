@@ -18,7 +18,10 @@ export function useAuditLog(params?: {
   if (params?.endDate) query.set('endDate', params.endDate);
 
   const key = `/api/admin/auditlog${query.toString() ? `?${query.toString()}` : ''}`;
-  const { data, error, mutate, isLoading } = useSWR(key, fetcher);
+  const { data, error, mutate, isLoading } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  });
   return {
     rows: (data?.data as any[]) || [],
     total: (data?.total as number) || 0,
