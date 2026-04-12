@@ -305,7 +305,9 @@ export default function SearchPage() {
           </div>
         )}
         {displayedResults && displayedResults.length === 0 && !loading && (
-          <div className="text-center text-blue-200 py-8 text-xl">No results found. Try a different search.</div>
+          <div className="text-center text-blue-200 py-8 text-xl">
+            No results found. Check your spelling or try a different search.
+          </div>
         )}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-8">
