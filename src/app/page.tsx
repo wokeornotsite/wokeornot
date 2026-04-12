@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-export const revalidate = 60; // Regenerate at most once per minute so Recently Rated stays fresh
+export const revalidate = 1800; // Regenerate at most once per 30 minutes
 
 import RecentlyRatedSection from "@/components/ui/recently-rated-section";
 

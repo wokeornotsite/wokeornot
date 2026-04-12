@@ -40,7 +40,7 @@ export function NotificationBell() {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { data, mutate } = useSWR<NotificationsResponse>('/api/notifications', fetcher, {
-    refreshInterval: 30_000,
+    refreshInterval: 120_000,
   });
 
   const notifications = data?.notifications ?? [];

@@ -23,7 +23,7 @@ const nextConfig = {
     ],
     formats: ['image/webp'],
     minimumCacheTTL: 2678400,
-    deviceSizes: [640, 828, 1080],
+    deviceSizes: [640, 1080],
     imageSizes: [32, 64, 96],
   },
   output: 'standalone',

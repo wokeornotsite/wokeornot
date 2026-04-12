@@ -100,6 +100,8 @@ export async function GET(req: NextRequest) {
       page: tmdbResults.page,
       totalPages: tmdbResults.total_pages,
       totalResults: tmdbResults.total_results,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
     console.error('Content browse error:', error);

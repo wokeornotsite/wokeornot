@@ -87,7 +87,9 @@ export async function GET(req: NextRequest) {
       contentType: c.contentType === 'TV_SHOW' ? 'tv' : c.contentType === 'KIDS' ? 'kids' : 'movie',
     }));
 
-    return NextResponse.json(results);
+    return NextResponse.json(results, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    });
   } catch (error) {
     console.error('Trending content error:', error);
     return NextResponse.json({ error: 'Failed to fetch trending content' }, { status: 500 });

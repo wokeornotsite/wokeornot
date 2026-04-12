@@ -40,17 +40,21 @@ tmdbApi.interceptors.response.use(
 
 // Get popular movies
 export const getPopularMovies = async (page = 1): Promise<TMDBResponse<TMDBMovie>> => {
-  const response = await tmdbApi.get<TMDBResponse<TMDBMovie>>('/movie/popular', {
-    params: { page },
-  });
+  const cacheKey = `popularMovies:${page}`;
+  const cached = getCached<TMDBResponse<TMDBMovie>>(cacheKey);
+  if (cached) return cached;
+  const response = await tmdbApi.get<TMDBResponse<TMDBMovie>>('/movie/popular', { params: { page } });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get popular TV shows
 export const getPopularTVShows = async (page = 1): Promise<TMDBResponse<TMDBTVShow>> => {
-  const response = await tmdbApi.get<TMDBResponse<TMDBTVShow>>('/tv/popular', {
-    params: { page },
-  });
+  const cacheKey = `popularTVShows:${page}`;
+  const cached = getCached<TMDBResponse<TMDBTVShow>>(cacheKey);
+  if (cached) return cached;
+  const response = await tmdbApi.get<TMDBResponse<TMDBTVShow>>('/tv/popular', { params: { page } });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
@@ -153,27 +157,38 @@ export const getTVGenres = async (): Promise<TMDBGenre[]> => {
 // Discover movies with filters
 type DiscoverMoviesParams = { genre?: string; year?: string; page?: number; language?: string };
 export const discoverMovies = async ({ genre, year, page = 1, language }: DiscoverMoviesParams): Promise<TMDBResponse<TMDBMovie>> => {
+  const cacheKey = `discoverMovies:${genre}:${year}:${page}:${language}`;
+  const cached = getCached<TMDBResponse<TMDBMovie>>(cacheKey);
+  if (cached) return cached;
   const params: any = { page, sort_by: 'popularity.desc' };
   if (genre) params.with_genres = genre;
   if (year) params.primary_release_year = year;
   if (language) params.with_original_language = language;
   const response = await tmdbApi.get<TMDBResponse<TMDBMovie>>('/discover/movie', { params });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Discover TV shows with filters
 type DiscoverTVShowsParams = { genre?: string; year?: string; page?: number; language?: string };
 export const discoverTVShows = async ({ genre, year, page = 1, language }: DiscoverTVShowsParams): Promise<TMDBResponse<TMDBTVShow>> => {
+  const cacheKey = `discoverTVShows:${genre}:${year}:${page}:${language}`;
+  const cached = getCached<TMDBResponse<TMDBTVShow>>(cacheKey);
+  if (cached) return cached;
   const params: any = { page, sort_by: 'popularity.desc' };
   if (genre) params.with_genres = genre;
   if (year) params.first_air_date_year = year;
   if (language) params.with_original_language = language;
   const response = await tmdbApi.get<TMDBResponse<TMDBTVShow>>('/discover/tv', { params });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
 // Get family/kids content
 export const getKidsContent = async (page = 1): Promise<TMDBResponse<TMDBMovie>> => {
+  const cacheKey = `kidsContent:${page}`;
+  const cached = getCached<TMDBResponse<TMDBMovie>>(cacheKey);
+  if (cached) return cached;
   // Get family genre movies (Family genre ID is 10751)
   const response = await tmdbApi.get<TMDBResponse<TMDBMovie>>('/discover/movie', {
     params: {
@@ -184,6 +199,7 @@ export const getKidsContent = async (page = 1): Promise<TMDBResponse<TMDBMovie>>
       sort_by: 'popularity.desc',
     },
   });
+  setCache(cacheKey, response.data);
   return response.data;
 };
 
