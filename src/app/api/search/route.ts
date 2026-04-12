@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { searchMovies, searchTVShows } from '@/lib/tmdb';
-import type { TMDBMovie, TMDBTVShow, ContentItem } from '@/types';
+import { searchMulti } from '@/lib/tmdb';
+import type { ContentItem } from '@/types';
 import { prisma } from '@/lib/prisma';
 import { getPostHogClient } from '@/lib/posthog-server';
 
@@ -19,41 +19,42 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
   try {
-    // Fetch movies, TV, and optionally kids content
-    const promises = [searchMovies(query, 1), searchTVShows(query, 1)];
-    if (mediaType === 'kids') {
-      // Optionally, you could fetch kids/family content here
-      // For now, we'll just filter movies by family genre (10751)
-    }
-    const [moviesRes, tvRes] = await Promise.all(promises);
-    let movieItems: ContentItem[] = moviesRes.results.map((m: TMDBMovie) => ({
-      id: `movie-${m.id}`,
-      tmdbId: m.id,
-      title: m.title,
-      overview: m.overview,
-      posterPath: m.poster_path,
-      backdropPath: m.backdrop_path,
-      releaseDate: m.release_date ? new Date(m.release_date) : null,
-      contentType: 'MOVIE',
-      wokeScore: 0,
-      reviewCount: 0,
-      genres: m.genre_ids?.map(id => ({ id: String(id), name: '' })) ?? [],
-      categoryScores: [],
-    }));
-    let tvItems: ContentItem[] = tvRes.results.map((tv: TMDBTVShow) => ({
-      id: `tv-${tv.id}`,
-      tmdbId: tv.id,
-      title: tv.name,
-      overview: tv.overview,
-      posterPath: tv.poster_path,
-      backdropPath: tv.backdrop_path,
-      releaseDate: tv.first_air_date ? new Date(tv.first_air_date) : null,
-      contentType: 'TV_SHOW',
-      wokeScore: 0,
-      reviewCount: 0,
-      genres: tv.genre_ids?.map(id => ({ id: String(id), name: '' })) ?? [],
-      categoryScores: [],
-    }));
+    // Use /search/multi — searches movies + TV in one call with better fuzzy matching
+    const multiRes = await searchMulti(query, 1);
+    console.log('[search] query:', query, '| raw TMDB results:', multiRes.results?.length ?? 0);
+
+    let movieItems: ContentItem[] = (multiRes.results ?? [])
+      .filter((r: any) => r.media_type === 'movie')
+      .map((m: any) => ({
+        id: `movie-${m.id}`,
+        tmdbId: m.id,
+        title: m.title,
+        overview: m.overview,
+        posterPath: m.poster_path,
+        backdropPath: m.backdrop_path,
+        releaseDate: m.release_date ? new Date(m.release_date) : null,
+        contentType: 'MOVIE',
+        wokeScore: 0,
+        reviewCount: 0,
+        genres: m.genre_ids?.map((id: number) => ({ id: String(id), name: '' })) ?? [],
+        categoryScores: [],
+      }));
+    let tvItems: ContentItem[] = (multiRes.results ?? [])
+      .filter((r: any) => r.media_type === 'tv')
+      .map((tv: any) => ({
+        id: `tv-${tv.id}`,
+        tmdbId: tv.id,
+        title: tv.name,
+        overview: tv.overview,
+        posterPath: tv.poster_path,
+        backdropPath: tv.backdrop_path,
+        releaseDate: tv.first_air_date ? new Date(tv.first_air_date) : null,
+        contentType: 'TV_SHOW',
+        wokeScore: 0,
+        reviewCount: 0,
+        genres: tv.genre_ids?.map((id: number) => ({ id: String(id), name: '' })) ?? [],
+        categoryScores: [],
+      }));
 
     // --- Filtering (by type, genre, year) ---
     let results: ContentItem[] = [];
@@ -113,6 +114,7 @@ export async function GET(req: NextRequest) {
     
     // Sort by release date descending
     results = results.sort((a, b) => (b.releaseDate?.getTime() || 0) - (a.releaseDate?.getTime() || 0));
+    console.log('[search] after filters:', results.length, 'results for query:', query);
     const searchUserId = (session?.user as { id?: string } | undefined)?.id;
     try {
       getPostHogClient().capture({

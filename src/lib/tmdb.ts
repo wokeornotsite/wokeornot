@@ -26,6 +26,18 @@ const tmdbApi = axios.create({
   },
 });
 
+if (!TMDB_API_KEY) {
+  console.error('[TMDB] TMDB_API_KEY is not set — search and content fetching will fail');
+}
+
+tmdbApi.interceptors.response.use(
+  r => r,
+  error => {
+    console.error('[TMDB] API error:', error.response?.status, error.config?.url, error.response?.data?.status_message || error.message);
+    return Promise.reject(error);
+  }
+);
+
 // Get popular movies
 export const getPopularMovies = async (page = 1): Promise<TMDBResponse<TMDBMovie>> => {
   const response = await tmdbApi.get<TMDBResponse<TMDBMovie>>('/movie/popular', {
@@ -116,6 +128,14 @@ export const searchTVShows = async (query: string, page = 1): Promise<TMDBRespon
     params: { query, page },
   });
   return response.data;
+};
+
+// Multi-search (movies + TV shows in one call, better fuzzy/typo matching than separate endpoints)
+export const searchMulti = async (query: string, page = 1) => {
+  const response = await tmdbApi.get('/search/multi', {
+    params: { query, page, language: 'en-US', include_adult: false },
+  });
+  return response.data as { results: any[]; total_results: number; total_pages: number };
 };
 
 // Get movie genres
