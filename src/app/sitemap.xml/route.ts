@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Custom route handler instead of Next.js metadata sitemap.ts because the
-// sitemap body exceeds Vercel's 19 MB ISR fallback limit.
-// Cache-Control tells the CDN to serve the cached response for 24 hours —
-// same effect as ISR without the size restriction.
+// Never pre-render at build time — the response is 37+ MB which exceeds
+// Vercel's 19 MB ISR fallback limit. Instead, the CDN caches the response
+// for 24 hours via Cache-Control, achieving the same cost reduction.
+export const dynamic = 'force-dynamic';
 
 const BASE_URL = 'https://wokeornot.net';
 const STATIC_DATE = '2025-01-01';
