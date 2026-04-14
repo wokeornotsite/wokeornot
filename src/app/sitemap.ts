@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 
-// Force dynamic so Vercel doesn't try to pre-render and cache this as an ISR page
-// (the full content list easily exceeds the 19MB ISR size limit)
-export const dynamic = 'force-dynamic';
+// Rebuild the sitemap at most once per day — legitimate crawlers (Google, Bing) hit
+// this frequently and each render runs a full prisma.content.findMany scan.
+export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://wokeornot.net';

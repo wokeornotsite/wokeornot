@@ -23,6 +23,7 @@ import { notFound } from 'next/navigation';
 import { CategoryIcon } from '@/components/ui/category-icon';
 
 import { prisma } from '@/lib/prisma';
+import { getMovieContent } from '@/lib/content-fetch';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     return {};
   }
   if (!movie) return {};
-  const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'MOVIE' } });
+  const dbContent = await getMovieContent(Number(tmdbId));
   const wokeScore = dbContent?.wokeScore;
   const reviewCount = dbContent?.reviewCount ?? 0;
   const score = wokeScore ? Number(wokeScore) : null;
@@ -91,8 +92,9 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
   if (!movie) return notFound();
 
   // --- Automatic content creation ---
-  // Try to find content in DB by tmdbId and type
-  let dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: "MOVIE" } });
+  // Reuses the same React cache() entry populated by generateMetadata above,
+  // so this is a cache hit on the second call within one request.
+  let dbContent = await getMovieContent(Number(tmdbId));
   if (!dbContent) {
     dbContent = await prisma.content.create({
       data: {

@@ -23,7 +23,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ tmdb
       ? await getTVWatchProviders(tmdbId)
       : await getMovieWatchProviders(tmdbId);
 
-    return NextResponse.json(providers);
+    return NextResponse.json(providers, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=172800',
+      },
+    });
   } catch (error) {
     console.error('Watch providers error:', error);
     return NextResponse.json({ error: 'Failed to fetch watch providers' }, { status: 500 });

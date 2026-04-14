@@ -26,6 +26,7 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { notFound } from 'next/navigation';
 
 import { prisma } from '@/lib/prisma';
+import { getKidsContent } from '@/lib/content-fetch';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
 export const revalidate = 3600; // Cache kids detail pages for 1 hour
@@ -39,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     return {};
   }
   if (!movie) return {};
-  const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'KIDS' } });
+  const dbContent = await getKidsContent(Number(tmdbId));
   const wokeScore = dbContent?.wokeScore;
   const reviewCount = dbContent?.reviewCount ?? 0;
   const score = wokeScore ? Number(wokeScore) : null;
@@ -84,24 +85,22 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
   if (!movie) return notFound();
 
   // --- Automatic content creation ---
-  let dbContent = await prisma.content.upsert({
-    where: {
-      tmdbId_contentType: {
+  // Reuses the React cache() entry populated by generateMetadata above,
+  // so this is a cache hit on the second call within one request.
+  let dbContent = await getKidsContent(Number(tmdbId));
+  if (!dbContent) {
+    dbContent = await prisma.content.create({
+      data: {
         tmdbId: Number(tmdbId),
-        contentType: "KIDS"
-      } as any // workaround for Prisma MongoDB compound unique with upsert
-    },
-    update: {},
-    create: {
-      tmdbId: Number(tmdbId),
-      contentType: "KIDS",
-      title: movie.title,
-      overview: movie.overview,
-      posterPath: movie.poster_path || '',
-      backdropPath: movie.backdrop_path || '',
-      releaseDate: movie.release_date ? new Date(movie.release_date).toISOString() : null,
-    }
-  });
+        contentType: "KIDS",
+        title: movie.title,
+        overview: movie.overview,
+        posterPath: movie.poster_path || '',
+        backdropPath: movie.backdrop_path || '',
+        releaseDate: movie.release_date ? new Date(movie.release_date).toISOString() : null,
+      },
+    });
+  }
   // --- End automatic content creation ---
 
   // Fetch categoryScores for this content (with category name)

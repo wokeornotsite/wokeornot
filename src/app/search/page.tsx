@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import posthog from 'posthog-js';
 import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
@@ -24,7 +25,18 @@ async function searchContent(query: string, genre: string, year: string, wokenes
     const res = await fetch(`/api/search?${params.toString()}`);
     const data = await res.json();
     if (res.ok) {
-      return data.results as ContentItem[];
+      const results = data.results as ContentItem[];
+      try {
+        posthog.capture('content_searched', {
+          query,
+          media_type: mediaType || 'all',
+          genre_filter: genre || undefined,
+          year_filter: year || undefined,
+          wokeness_filter: wokeness || undefined,
+          result_count: results.length,
+        });
+      } catch {}
+      return results;
     } else {
       throw new Error(data.error || 'Failed to fetch results.');
     }

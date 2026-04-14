@@ -24,6 +24,7 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 import { notFound } from 'next/navigation';
 // Import ContentType enum directly from Prisma client
 import { prisma } from '@/lib/prisma';
+import { getTVShowContent } from '@/lib/content-fetch';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 
 export const revalidate = 3600; // Cache TV detail pages for 1 hour
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
     return {};
   }
   if (!tvShow) return {};
-  const dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: 'TV_SHOW' } });
+  const dbContent = await getTVShowContent(Number(tmdbId));
   const wokeScore = dbContent?.wokeScore;
   const reviewCount = dbContent?.reviewCount ?? 0;
   const score = wokeScore ? Number(wokeScore) : null;
@@ -90,7 +91,8 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
   if (!tvShow) return notFound();
 
   // --- Automatic content creation ---
-  let dbContent = await prisma.content.findFirst({ where: { tmdbId: Number(tmdbId), contentType: "TV_SHOW" } });
+  // Reuses the React cache() entry populated by generateMetadata above.
+  let dbContent = await getTVShowContent(Number(tmdbId));
   if (!dbContent) {
     dbContent = await prisma.content.create({
       data: {

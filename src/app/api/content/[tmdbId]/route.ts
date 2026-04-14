@@ -84,7 +84,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ tmdb
       trailer: trailer ? { key: trailer.key, name: trailer.name } : null,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+      },
+    });
   } catch (error) {
     console.error('Content detail error:', error);
     return NextResponse.json({ error: 'Failed to fetch content details' }, { status: 500 });

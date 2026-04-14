@@ -50,11 +50,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ tmdb
       reviewCount: scoreMap.get(item.id)?.reviewCount ?? 0,
     }));
 
-    return NextResponse.json({
-      items,
-      page: similar.page,
-      totalPages: similar.total_pages,
-    });
+    return NextResponse.json(
+      {
+        items,
+        page: similar.page,
+        totalPages: similar.total_pages,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
+    );
   } catch (error) {
     console.error('Similar content error:', error);
     return NextResponse.json({ error: 'Failed to fetch similar content' }, { status: 500 });

@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { searchMulti } from '@/lib/tmdb';
 import type { ContentItem } from '@/types';
 import { prisma } from '@/lib/prisma';
-import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query') || '';
   const genre = searchParams.get('genre') || '';
@@ -21,7 +17,6 @@ export async function GET(req: NextRequest) {
   try {
     // Use /search/multi — searches movies + TV in one call with better fuzzy matching
     const multiRes = await searchMulti(query, 1);
-    console.log('[search] query:', query, '| raw TMDB results:', multiRes.results?.length ?? 0);
 
     let movieItems: ContentItem[] = (multiRes.results ?? [])
       .filter((r: any) => r.media_type === 'movie')
@@ -111,27 +106,18 @@ export async function GET(req: NextRequest) {
         return true;
       });
     }
-    
+
     // Sort by release date descending
     results = results.sort((a, b) => (b.releaseDate?.getTime() || 0) - (a.releaseDate?.getTime() || 0));
-    console.log('[search] after filters:', results.length, 'results for query:', query);
-    const searchUserId = (session?.user as { id?: string } | undefined)?.id;
-    try {
-      getPostHogClient().capture({
-        distinctId: searchUserId ?? 'anonymous',
-        event: 'content_searched',
-        properties: {
-          query,
-          media_type: mediaType || 'all',
-          genre_filter: genre || undefined,
-          year_filter: year || undefined,
-          wokeness_filter: wokeness || undefined,
-          result_count: results.length,
-          ...(!searchUserId && { $process_person_profile: false }),
+
+    return NextResponse.json(
+      { results },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
         },
-      });
-    } catch {}
-    return NextResponse.json({ results });
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Search failed.' }, { status: 500 });
   }

@@ -40,7 +40,14 @@ export async function GET(req: NextRequest) {
       return true;
     });
 
-    return NextResponse.json({ suggestions });
+    return NextResponse.json(
+      { suggestions },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('[suggestions] TMDB error:', err?.message);
     return NextResponse.json({ suggestions: [] });
