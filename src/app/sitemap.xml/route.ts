@@ -46,7 +46,11 @@ export async function GET() {
 
   let contentEntries: string[] = [];
   try {
+    // Only include content that has at least one review — this stops legitimate
+    // search crawlers from visiting tens of thousands of empty/unrated pages,
+    // which was the primary driver of function invocations and cost.
     const contents = await prisma.content.findMany({
+      where: { reviewCount: { gt: 0 } },
       select: { tmdbId: true, contentType: true, updatedAt: true, reviewCount: true },
     });
     contentEntries = contents.map((c) => {

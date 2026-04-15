@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ClientLayout from '@/components/layout/client-layout';
 import MUIProvider from '@/components/theme/MUIProvider';
@@ -72,7 +72,6 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: '/manifest.json',
-  themeColor: '#8b5cf6',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -82,6 +81,10 @@ export const metadata: Metadata = {
   },
 };
 
+
+export const viewport: Viewport = {
+  themeColor: '#8b5cf6',
+};
 
 import Analytics from './analytics';
 
