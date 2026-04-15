@@ -22,6 +22,12 @@ export async function middleware(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
+  // Temporary: log user-agent on content detail pages to identify active crawler
+  const path = req.nextUrl.pathname;
+  if (/^\/(movies|tv-shows|kids)\/\d+/.test(path)) {
+    console.log(`[crawler-id] ${ua || '(empty)'} → ${path}`);
+  }
+
   // Only protect /admin routes
   if (req.nextUrl.pathname.startsWith('/admin')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
