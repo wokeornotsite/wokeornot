@@ -71,6 +71,7 @@ export async function middleware(req: NextRequest) {
     // x-forwarded-for is set by Vercel's edge network; first entry is the
     // real client IP even behind multiple proxies.
     const ip =
+      req.headers.get('cf-connecting-ip') ??
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
       req.headers.get('x-real-ip') ??
       'unknown';
