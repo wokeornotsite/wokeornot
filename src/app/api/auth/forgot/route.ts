@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
 import { getPasswordResetEmailHtml } from '@/lib/email-templates';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { sendEmail } from '@/lib/mailer';
 
 export async function POST(req: NextRequest) {
   const rl = rateLimitCheck(req, { limit: 10, windowMs: 60_000, route: 'auth_forgot' });
@@ -26,31 +26,10 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
     await prisma.passwordResetToken.create({ data: { userId: user.id, token, expires } });
-    // Guard: fail fast if email is not configured
-    if (!process.env.EMAIL_HOST && !process.env.EMAIL_SERVER) {
-      const res = NextResponse.json({ error: 'Email service not configured.' }, { status: 500 });
-      setRateLimitHeaders(res, rl);
-      return res;
-    }
-    // Send email — individual vars take priority over EMAIL_SERVER URL
-    let transportConfig: any;
-    if (process.env.EMAIL_HOST) {
-      transportConfig = {
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT || 587),
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      };
-    } else {
-      transportConfig = process.env.EMAIL_SERVER;
-    }
-
-    const transporter = nodemailer.createTransport(transportConfig);
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    await sendEmail({
       to: email,
       subject: 'Reset your password',
-      text: `Click the link to reset your password: ${resetUrl}`,
       html: getPasswordResetEmailHtml(resetUrl, user.name || undefined),
     });
     try { getPostHogClient().capture({ distinctId: user.id, event: 'password_reset_requested', properties: { email } }); } catch {}

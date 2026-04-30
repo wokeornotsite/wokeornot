@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { error as httpError } from '@/lib/http';
 import { getVerificationEmailHtml } from '@/lib/email-templates';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { sendEmail } from '@/lib/mailer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,25 +53,10 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
     await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
-    // Send verification email — individual vars take priority over EMAIL_SERVER URL
-    let transportConfig: any;
-    if (process.env.EMAIL_HOST) {
-      transportConfig = {
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT || 587),
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      };
-    } else {
-      transportConfig = process.env.EMAIL_SERVER;
-    }
-
-    const transporter = nodemailer.createTransport(transportConfig);
     const verificationUrl = `${process.env.NEXTAUTH_URL}/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    await sendEmail({
       to: email,
       subject: 'Verify your email',
-      text: `Click the link to verify your email: ${verificationUrl}`,
       html: getVerificationEmailHtml(verificationUrl, name || undefined),
     });
     try {
