@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import nodemailer from 'nodemailer';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
 import { getWelcomeEmailHtml } from '@/lib/email-templates';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { sendEmail } from '@/lib/mailer';
 
 export async function GET(req: NextRequest) {
   const rl = rateLimitCheck(req as any, { limit: 20, windowMs: 60_000, route: 'auth_verify_get' });
@@ -30,33 +30,11 @@ export async function GET(req: NextRequest) {
   const verifiedUser = await prisma.user.update({ where: { email }, data: { emailVerified: new Date() } });
   await prisma.verificationToken.deleteMany({ where: { identifier: email } });
   try { getPostHogClient().capture({ distinctId: verifiedUser.id, event: 'email_verified', properties: { email } }); } catch {}
-  // Fire-and-forget welcome email
-  (async () => {
-    try {
-      let transportConfig: any;
-      if (process.env.EMAIL_HOST) {
-        transportConfig = {
-          host: process.env.EMAIL_HOST,
-          port: Number(process.env.EMAIL_PORT || 587),
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        };
-      } else {
-        transportConfig = process.env.EMAIL_SERVER;
-      }
-      if (transportConfig) {
-        const transporter = nodemailer.createTransport(transportConfig);
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-          to: email,
-          subject: 'Welcome to WokeOrNot!',
-          text: `Welcome to WokeOrNot! Your account is now active. Visit https://wokeornot.net to get started.`,
-          html: getWelcomeEmailHtml(verifiedUser.name || undefined),
-        });
-      }
-    } catch (e) {
-      console.error('[verify] welcome email error:', e);
-    }
-  })();
+  sendEmail({
+    to: email,
+    subject: 'Welcome to WokeOrNot!',
+    html: getWelcomeEmailHtml(verifiedUser.name || undefined),
+  }).catch((e) => console.error('[verify] welcome email error:', e));
   const res = NextResponse.json({ success: true });
   setRateLimitHeaders(res, rl);
   return res;

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { error as httpError } from '@/lib/http';
 import { parseJson, schemas } from '@/lib/validation';
+import { sendEmail } from '@/lib/mailer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,29 +36,12 @@ export async function POST(req: NextRequest) {
         expires,
       },
     });
-    // Send email
-    // Handle both EMAIL_SERVER format and individual EMAIL_HOST/PORT variables
-    let transportConfig: any;
-    if (process.env.EMAIL_SERVER) {
-      // Parse the EMAIL_SERVER string (format: smtp://user:pass@host:port)
-      transportConfig = process.env.EMAIL_SERVER;
-    } else {
-      transportConfig = {
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT || 587),
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      };
-    }
-    
-    const transporter = nodemailer.createTransport(transportConfig);
-    const baseUrl = process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-const verifyUrl = `${baseUrl}/verify?token=${token}&email=${encodeURIComponent(email)}`;
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://wokeornot.net';
+    const verifyUrl = `${baseUrl}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    await sendEmail({
       to: email,
       subject: 'Verify your email address',
-      html: `<p>Please verify your email address by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+      html: `<p>Please verify your email address by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
     });
     const res = NextResponse.json({ success: true });
     setRateLimitHeaders(res, rl);
