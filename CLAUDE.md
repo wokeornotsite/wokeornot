@@ -16,7 +16,7 @@ Content metadata (posters, descriptions, cast) is sourced from the **TMDB API**.
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15.3.8 (App Router, Turbopack) |
+| Framework | Next.js 15.3.8 (App Router + Turbopack; hybrid: some routes in `src/pages/api/`) |
 | Language | TypeScript 5.8.3 (strict mode) |
 | UI | React 19, Tailwind CSS 4, Framer Motion 12, MUI 7 |
 | Icons | Lucide React, React Icons |
@@ -24,18 +24,23 @@ Content metadata (posters, descriptions, cast) is sourced from the **TMDB API**.
 | Data fetching | SWR 2 (client), Server Components (server) |
 | ORM | Prisma 6 |
 | Database | MongoDB (NoSQL) |
-| Auth | NextAuth.js 4 (Google OAuth + credentials) |
-| Email | Nodemailer |
+| Auth | NextAuth.js 4 (Google OAuth + credentials); JWT Bearer for mobile |
+| Email | Resend API (`src/lib/mailer.ts` + `src/lib/email-templates.ts`) |
 | HTTP client | Axios |
 | External API | TMDB (movies, TV shows, search) |
-| Analytics | Google Analytics 4 |
+| Analytics | Google Analytics 4 (hardcoded ID `G-C1RWGTWZ61`) + PostHog |
 | Error tracking | Sentry (optional) |
-| Hosting | Vercel (wokeornot.net) |
+| Notifications | notistack (snackbar), in-app bell (Notification model) |
+| Charts | Recharts (admin analytics) |
+| JWT (mobile) | jose (Edge-compatible) |
+| Hosting | Railway (wokeornot.net) behind Cloudflare CDN |
 | CI/CD | GitHub Actions |
 
 **Important build notes:**
 - `next.config.js` sets `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true` — builds succeed even with type/lint errors
-- `output: 'standalone'` is set for Vercel deployment
+- `output: 'standalone'` is set for Railway deployment
+- Security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy) applied globally in `next.config.js`
+- PostHog events are proxied through `/ingest/*` rewrites in `next.config.js` to avoid ad-blocker interference
 
 ---
 
@@ -45,70 +50,122 @@ Content metadata (posters, descriptions, cast) is sourced from the **TMDB API**.
 wokeornot/
 ├── src/
 │   ├── app/                        # Next.js App Router
-│   │   ├── layout.tsx              # Root layout (Navbar, Footer, SessionProvider)
-│   │   ├── page.tsx                # Home page (hero + trending)
+│   │   ├── layout.tsx              # Root layout (GA4, AdSense script, SessionProvider, PostHog, schema.org JSON-LD)
+│   │   ├── analytics.tsx           # GA4 <Script> component (hardcoded ID G-C1RWGTWZ61)
+│   │   ├── page.tsx                # Home page (hero + trending + recently rated)
 │   │   ├── globals.css             # Global styles
-│   │   ├── api/                    # API routes
-│   │   │   ├── auth/               # NextAuth + register/verify/reset/forgot
-│   │   │   ├── admin/              # Admin-only: movies, users, reviews, analytics, auditlog
+│   │   ├── robots.ts               # robots.txt (blocks /api, /admin, /favorites)
+│   │   ├── sitemap.xml/route.ts    # Dynamic XML sitemap — only reviewed content; CDN-cached 24h
+│   │   ├── api/                    # API routes (App Router)
+│   │   │   ├── auth/               # NextAuth + register/verify/reset/forgot/resend
+│   │   │   │   └── mobile/         # Mobile JWT auth: login, google, apple, me
+│   │   │   ├── admin/              # Admin-only: movies, users, reviews, analytics, auditlog, forum
+│   │   │   ├── content/            # Content CRUD, trending, providers, similar
+│   │   │   │   └── [tmdbId]/
+│   │   │   │       ├── providers/  # Streaming providers from TMDB
+│   │   │   │       └── similar/    # Similar content from TMDB
 │   │   │   ├── reviews/[id]/       # CRUD + reactions for content reviews
 │   │   │   ├── comments/[id]/      # Comment CRUD
 │   │   │   ├── favorites/          # Favorites/watchlist
-│   │   │   ├── forum/              # Forum threads
-│   │   │   ├── search/             # Content search
+│   │   │   ├── forum/[threadId]/   # Forum threads + thread comments
+│   │   │   ├── notifications/      # Unread count + mark-all-read
+│   │   │   ├── recently-rated/     # Recently rated content feed
+│   │   │   ├── search/             # Content search + suggestions
 │   │   │   ├── categories/         # Rating categories
 │   │   │   ├── genres/             # Genre data
 │   │   │   ├── kids/               # Kids content
-│   │   │   ├── user/               # Profile: avatar, email, name, password
-│   │   │   └── cron/cleanup/       # Daily DB cleanup (called by Vercel cron)
+│   │   │   ├── og/                 # OG image generation (satori)
+│   │   │   ├── user/               # Profile: avatar, bio, email, name, password, notifications, profile/[id]
+│   │   │   └── cron/cleanup/       # Daily DB cleanup (called by Railway cron service)
 │   │   ├── movies/                 # Movie browse + detail pages
 │   │   ├── tv-shows/               # TV show browse + detail pages
 │   │   ├── kids/                   # Kids content pages
 │   │   ├── favorites/              # User favorites page
 │   │   ├── forum/                  # Community forum
-│   │   ├── profile/                # User profile
+│   │   ├── profile/                # Own user profile (edit name, avatar, bio, password)
+│   │   ├── users/[id]/             # Public user profile pages
 │   │   ├── search/                 # Search results
+│   │   ├── register/               # Registration page
 │   │   ├── admin/                  # Admin dashboard (middleware-protected)
 │   │   │   ├── layout.tsx          # Admin layout with sidebar
 │   │   │   ├── page.tsx            # Admin overview
 │   │   │   ├── content/            # Content management
-│   │   │   ├── users/              # User moderation
-│   │   │   ├── analytics/          # Analytics dashboard
-│   │   │   ├── moderation/         # Moderation panel
+│   │   │   ├── users/              # User management
+│   │   │   ├── analytics/          # Analytics dashboard (Recharts)
+│   │   │   ├── moderation/         # Ban/warn users, delete reviews
+│   │   │   ├── forum/              # Forum thread management
+│   │   │   ├── audit-log/          # Admin action audit log viewer
 │   │   │   └── maintenance/        # DB maintenance tools
 │   │   └── [legal pages]/          # about, privacy, terms, contact, cookies
 │   │
 │   ├── components/
-│   │   ├── ui/                     # Reusable UI: content-card, wokeness-bar, genre-badges, etc.
-│   │   ├── review/                 # ReviewForm, ReviewList, ReviewCard
+│   │   ├── ui/                     # Reusable UI components
+│   │   │   ├── amazon-affiliate-button.tsx  # Amazon affiliate "Find on Amazon" button
+│   │   │   ├── content-card.tsx    # Content card (poster, score, genres)
+│   │   │   ├── wokeness-bar.tsx    # Color-coded wokeness score bar
+│   │   │   ├── genre-badges.tsx    # Genre tag pills
+│   │   │   ├── social-share-buttons.tsx     # Share to Twitter/Facebook/copy link
+│   │   │   ├── breadcrumbs.tsx     # Navigation breadcrumbs
+│   │   │   ├── skip-link.tsx       # Accessibility skip-to-content link
+│   │   │   ├── accessibility-announcer.tsx  # ARIA live region for SPA navigation
+│   │   │   ├── trending-section.tsx
+│   │   │   ├── recently-rated-section.tsx
+│   │   │   ├── trending-carousel.tsx
+│   │   │   ├── favorite-button.tsx
+│   │   │   ├── user-stats-card.tsx
+│   │   │   ├── skeleton-card.tsx
+│   │   │   ├── empty-state.tsx
+│   │   │   └── category-icon.tsx
+│   │   ├── ads/
+│   │   │   └── adsense-ad.tsx      # Google AdSense <ins> block (client component)
+│   │   ├── review/                 # ReviewForm, ReviewList, ReviewCard, review tabs
 │   │   ├── comment/                # Comment components
-│   │   ├── auth/                   # register-form, reset-password-form, verification-notice
-│   │   ├── admin/                  # AdminSidebar and admin-specific components
-│   │   ├── layout/                 # Navbar, Footer
-│   │   ├── analytics/              # AnalyticsCharts
+│   │   ├── forum/                  # Forum thread form + comment section
+│   │   ├── auth/                   # register-form, reset-password-form, login-form, etc.
+│   │   ├── admin/                  # AdminSidebar, AdminDashboardStats, RecentReviewsTable, etc.
+│   │   ├── layout/                 # Navbar, Footer, NotificationBell, ClientLayout
+│   │   ├── analytics/              # PageViewTracker, PosthogUserIdentifier
+│   │   ├── theme/                  # MUIProvider, EmotionCacheProvider
 │   │   └── error-boundary.tsx
 │   │
 │   ├── lib/
 │   │   ├── auth.ts                 # NextAuth configuration (providers, callbacks, session)
 │   │   ├── admin-auth.ts           # Admin authorization helpers
+│   │   ├── mobile-auth.ts          # JWT Bearer auth for mobile: sign/verify token, getAuthUser()
 │   │   ├── prisma.ts               # Prisma client singleton
 │   │   ├── tmdb.ts                 # TMDB API integration
 │   │   ├── validation.ts           # Zod schemas + sanitizeHTML (XSS prevention)
 │   │   ├── wokeness-utils.ts       # Score colors, labels, level helpers
-│   │   ├── rateLimit.ts            # Sliding window rate limiter
+│   │   ├── rateLimit.ts            # Sliding window rate limiter (API-level)
 │   │   ├── analytics.ts            # GA4 event tracking helpers
+│   │   ├── posthog-server.ts       # PostHog server-side client singleton
+│   │   ├── notifications.ts        # createNotification() — write in-app notifications
+│   │   ├── badges.ts               # Badge award logic: checkReviewBadges, checkHelpfulBadge, etc.
+│   │   ├── mailer.ts               # Nodemailer transport + sendMail()
+│   │   ├── email-templates.ts      # HTML email templates (verification, reset, etc.)
 │   │   ├── cleanup.ts              # DB cleanup logic
+│   │   ├── content-fetch.ts        # Server-side content fetch helpers
+│   │   ├── http.ts                 # Shared HTTP client/fetch helpers
+│   │   ├── request.ts              # Request utility helpers
 │   │   ├── design-system.ts        # Design tokens/constants
 │   │   ├── date-utils.ts           # Date formatting
 │   │   ├── genre-map.ts            # TMDB genre ID → name mapping
 │   │   ├── log.ts                  # Logging utilities
+│   │   ├── useDebouncedValue.ts    # Custom debounce hook
+│   │   ├── i18n/config.ts          # i18n config (scaffolded, not active)
 │   │   ├── sentry-client.ts        # Sentry browser setup
 │   │   └── sentry-server.ts        # Sentry server setup
 │   │
 │   ├── types/
 │   │   └── index.ts                # All shared TypeScript types
 │   │
-│   └── middleware.ts               # Protects /admin — redirects non-ADMIN users to /
+│   ├── middleware.ts               # 3 layers: AI crawler block → IP rate limit → /admin guard
+│   │
+│   └── pages/api/                  # Legacy Pages Router API (hybrid coexistence)
+│       ├── movies.ts
+│       ├── trending.ts
+│       ├── tv-shows.ts
+│       └── (admin + user routes)
 │
 ├── prisma/
 │   ├── schema.prisma               # Complete DB schema (MongoDB)
@@ -128,19 +185,13 @@ wokeornot/
 │   └── avatars/                    # User avatar uploads
 │
 ├── .github/workflows/
-│   ├── ci.yml                      # Lint + build + security audit on push/PR
-│   └── deploy.yml                  # Deploy to Vercel on main branch push
+│   └── ci.yml                      # Lint + build + security audit on push/PR
 │
 ├── docs/                           # Supplemental documentation
-│   ├── CI_CD.md
-│   ├── SENTRY_SETUP.md
-│   ├── I18N_SETUP.md
-│   └── ENOENT_error.md
 │
 ├── next.config.js
 ├── tailwind.config.js
 ├── tsconfig.json
-├── vercel.json                     # Vercel cron job config
 └── package.json
 ```
 
@@ -163,9 +214,6 @@ npm start
 
 # Lint
 npm run lint
-
-# Database: apply schema changes
-npx prisma migrate dev --name <migration-name>
 
 # Database: regenerate Prisma client (after schema changes)
 npx prisma generate
@@ -207,17 +255,27 @@ TMDB_API_KEY="..."
 ### Email (required for password reset and email verification)
 
 ```env
-EMAIL_HOST="smtp.example.com"
-EMAIL_PORT=587
-EMAIL_USER="your@email.com"
-EMAIL_PASS="your-password"
+# Resend API (https://resend.com) — replaces SMTP, works on Railway
+RESEND_API_KEY="re_..."
+EMAIL_FROM="WokeOrNot <noreply@wokeornot.net>"
 ```
 
 ### Optional
 
 ```env
-# Google Analytics 4
+# Google Analytics 4 — NOTE: GA4 ID G-C1RWGTWZ61 is hardcoded in src/app/analytics.tsx
+# This env var is currently unused but reserved for future env-driven config
 NEXT_PUBLIC_GA_ID="G-XXXXXXXXXX"
+
+# PostHog product analytics
+NEXT_PUBLIC_POSTHOG_KEY="phc_..."
+NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"  # or your EU host
+
+# Monetization: Amazon affiliate links (shows "Find on Amazon" button on detail pages)
+NEXT_PUBLIC_AMAZON_AFFILIATE_TAG="yourtag-20"
+
+# Monetization: Google AdSense (renders ad units when set)
+NEXT_PUBLIC_ADSENSE_CLIENT="ca-pub-XXXXXXXXXXXXXXXX"
 
 # Rate limiting (set to "1" to enable, "0" to disable)
 RATE_LIMIT_ENABLED="1"
@@ -232,49 +290,35 @@ CRON_SECRET="..."
 
 ---
 
-## Database
+## Middleware (`src/middleware.ts`)
 
-**MongoDB** via **Prisma ORM**. The connection string must point to a MongoDB instance (Atlas recommended for production).
+The middleware runs on **every request** (except static assets) and enforces three layers in order:
 
-### Key Models
+1. **AI crawler blocking** — Returns 403 for known AI training bots (claudebot, gptbot, ccbot, google-extended, bytespider, etc.) matched by User-Agent. Keep in sync with `public/robots.txt`.
 
-| Model | Purpose |
-|---|---|
-| `User` | Auth, roles (USER/MODERATOR/ADMIN), email verification |
-| `Account` / `Session` | NextAuth adapter tables |
-| `Content` | Movies, TV shows, kids content (linked to TMDB ID) |
-| `Review` | User rating (1–10) with optional text and guest name |
-| `Category` | Wokeness aspect categories (e.g., political, environmental) |
-| `ReviewCategory` | Junction: which categories a review tagged |
-| `CategoryScore` | Aggregated category scores per content item |
-| `Comment` | Threaded comments on content and forums |
-| `Genre` / `ContentGenre` | Genre data and many-to-many mapping |
-| `ReviewReaction` | Like/dislike on reviews |
-| `Favorite` | User watchlist entries |
-| `ForumThread` | Community discussion threads |
-| `AuditLog` | Admin action history (bans, deletions, warnings) |
-| `VerificationToken` | Email verification tokens |
-| `PasswordResetToken` | Password reset tokens |
+2. **IP-based rate limiting for content pages** — Limits to **30 hits per 60 seconds** per IP on `/movies/:id`, `/tv-shows/:id`, `/kids/:id`. Threshold is 10× normal human browsing speed — targets scrapers that rotate UA strings. Responds with 429 + `Retry-After: 60`. Reads `cf-connecting-ip` header (set by Cloudflare) for the real visitor IP, falling back to `x-forwarded-for`.
 
-After changing `prisma/schema.prisma`, always run `npx prisma generate` (and `migrate dev` if changing the schema structure).
+3. **Admin route protection** — Checks NextAuth JWT for `role === 'ADMIN'` on all `/admin/*` paths. Non-admin users are redirected to `/`.
 
 ---
 
 ## Authentication
 
-Handled by **NextAuth.js 4** (`src/lib/auth.ts`).
+Handled by **NextAuth.js 4** (`src/lib/auth.ts`) for web, and JWT Bearer tokens for mobile.
 
-### Providers
-1. **Google OAuth** — Third-party sign-in
-2. **Credentials** — Email + bcrypt-hashed password
+### Web (NextAuth)
+- **Providers:** Google OAuth + Email/Password credentials
+- **Flow:** Register → email verification token sent → must verify → login
+- Password reset via email token (expires 1 hour)
+- Sessions: JWT strategy, 30-day expiry
 
-### Flow
-- Register → email verification token sent → user must verify before logging in
-- Password reset via email token (expires in 1 hour)
-- Sessions use JWT, 30-day expiry
+### Mobile (JWT Bearer)
+- `src/lib/mobile-auth.ts` handles signing/verifying 30-day JWTs with `jose` (Edge-compatible)
+- Mobile API endpoints: `POST /api/auth/mobile/login`, `/google`, `/apple`, `/me`
+- `getAuthUser(req)` in `mobile-auth.ts` accepts both NextAuth session cookies (web) and `Authorization: Bearer <token>` headers (mobile) — use this in any route that must serve both clients
 
 ### Authorization
-- **Middleware** (`src/middleware.ts`) protects all `/admin/*` routes — redirects non-ADMIN users to `/`
+- Middleware protects `/admin/*` (see above)
 - Admin API routes additionally call helpers from `src/lib/admin-auth.ts`
 - Roles: `USER`, `MODERATOR`, `ADMIN`
 
@@ -282,18 +326,17 @@ Handled by **NextAuth.js 4** (`src/lib/auth.ts`).
 
 ## API Conventions
 
-All API routes live in `src/app/api/`. Follow this pattern:
+Most API routes live in `src/app/api/` (App Router). A few legacy routes remain in `src/pages/api/` (Pages Router). Follow this pattern for App Router routes:
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/mobile-auth'; // handles both web + mobile auth
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     // ... handler logic
@@ -308,7 +351,83 @@ export async function GET(req: NextRequest) {
 - Validate input with Zod schemas from `src/lib/validation.ts`
 - Sanitize user-generated HTML with `sanitizeHTML` from `src/lib/validation.ts` (XSS prevention)
 - Apply rate limiting on auth and review endpoints via `src/lib/rateLimit.ts`
+- Use `getAuthUser()` from `src/lib/mobile-auth.ts` for routes that need to work on both web and mobile
 - Check session/role before any write operations
+
+---
+
+## Monetization
+
+### Amazon Affiliate Links
+- `src/components/ui/amazon-affiliate-button.tsx` — renders an orange "Find on Amazon" button that searches Amazon Prime Video for the content title
+- Requires `NEXT_PUBLIC_AMAZON_AFFILIATE_TAG` env var; renders nothing if unset
+- Used on movie/TV/kids detail pages
+
+### Google AdSense
+- `src/components/ads/adsense-ad.tsx` — client component that renders an `<ins class="adsbygoogle">` block for a given ad slot
+- The AdSense script is loaded once globally in `src/app/layout.tsx` (conditionally on `NEXT_PUBLIC_ADSENSE_CLIENT`)
+- Renders nothing if `NEXT_PUBLIC_ADSENSE_CLIENT` is unset (safe to include without the env var)
+
+---
+
+## SEO & Sitemap
+
+- **`src/app/robots.ts`** — generates `robots.txt`; blocks `/api/`, `/admin/`, `/favorites/`
+- **`src/app/sitemap.xml/route.ts`** — dynamic XML sitemap
+  - Only indexes content with `reviewCount > 0` to prevent crawlers from hitting thousands of empty pages (controls server cost)
+  - CDN-cached for 24 hours via `Cache-Control: s-maxage=86400`
+  - Static pages + all reviewed content pages with accurate `lastmod` dates
+- **OG images** — `/api/og` generates dynamic Open Graph images
+- **Schema.org JSON-LD** — Organization schema injected in root `layout.tsx`
+- **Full metadata** in `layout.tsx`: title template, description, keywords, Open Graph, Twitter card, canonical URL, Google site verification
+
+---
+
+## Notifications & Badges
+
+### In-App Notifications
+- `src/lib/notifications.ts` — `createNotification({ userId, type, message, link })` writes to the `Notification` model
+- `src/components/layout/notification-bell.tsx` — navbar bell icon with unread count badge, fetched via SWR
+- API: `GET /api/notifications` (list + unread count), `PATCH /api/user/notifications` (mark read)
+
+### User Badges / Achievements
+- `src/lib/badges.ts` — defines 5 badge types and award logic:
+  - `FIRST_REVIEW`, `TEN_REVIEWS`, `FIFTY_REVIEWS` — triggered on review submit
+  - `FIRST_COMMENT` — triggered on comment submit
+  - `HELPFUL_REVIEWER` — triggered when a user's reviews receive 10+ likes
+- `checkReviewBadges(userId)`, `checkCommentBadges(userId)`, `checkHelpfulBadge(reviewAuthorId)` — call these after the relevant write operations
+- `BadgeDisplay` component shows earned badges on user profile pages
+
+---
+
+## Database
+
+**MongoDB** via **Prisma ORM**. The connection string must point to a MongoDB instance (Atlas recommended for production).
+
+### Key Models
+
+| Model | Purpose |
+|---|---|
+| `User` | Auth, roles (USER/MODERATOR/ADMIN), ban status, bio, email notification opt-in |
+| `Account` / `Session` | NextAuth adapter tables |
+| `Content` | Movies, TV shows, kids content (linked to TMDB ID, tracks `reviewCount`) |
+| `Review` | User rating (1–10), optional text, optional `guestName` (guest reviews supported) |
+| `Category` | Wokeness aspect categories (e.g., political, environmental) |
+| `ReviewCategory` | Junction: which categories a review tagged |
+| `CategoryScore` | Aggregated category scores per content item |
+| `Comment` | Threaded comments on content; supports soft-delete (`isDeleted`) |
+| `Genre` / `ContentGenre` | Genre data and explicit many-to-many mapping |
+| `ReviewReaction` | Like/dislike on reviews (one reaction per user per review) |
+| `Favorite` | User watchlist entries |
+| `ForumThread` | Community discussion threads |
+| `AuditLog` | Admin action history (bans, deletions, warnings) |
+| `Notification` | In-app notifications (type, message, link, read status) |
+| `Badge` | Badge definitions (key, name, description, icon) |
+| `UserBadge` | Junction: which users have earned which badges |
+| `VerificationToken` | Email verification tokens |
+| `PasswordResetToken` | Password reset tokens |
+
+After changing `prisma/schema.prisma`, always run `npx prisma generate` (and migrate if changing structure).
 
 ---
 
@@ -344,10 +463,11 @@ The admin dashboard is at `/admin` (middleware-protected, ADMIN role only).
 
 **Features:**
 - Content management — browse, search, delete content
-- User moderation — ban, warn, view user activity
-- Review management — view, delete reviews
-- Analytics dashboard — signups, reviews, content metrics
-- Audit log — all admin actions are logged to `AuditLog` model
+- User management — view users
+- Moderation — ban, warn users; delete reviews; view flagged users
+- Analytics dashboard — signups, reviews, content metrics (Recharts)
+- Forum management — view and delete forum threads
+- Audit log viewer — paginated history of all admin actions
 - Maintenance tools — cleanup, re-indexing
 
 **To create the first admin user:**
@@ -359,17 +479,21 @@ node scripts/makeAdmin.js user@example.com
 
 ## Deployment
 
-**Production:** Vercel at `wokeornot.net`
+**Production:** Railway at `wokeornot.net`, behind Cloudflare CDN
 
-**Vercel config** (`vercel.json`):
-- Cron job: `/api/cron/cleanup` runs daily at `2:00 AM UTC`
+**Infrastructure:**
+- **Railway** — hosts the Next.js app (Railpack builder, Node 22, us-east4 region)
+- **Railway cron service** — separate `cron-cleanup` service runs `/api/cron/cleanup` daily at `2:00 AM UTC`
+- **Cloudflare** — DNS, DDoS protection, Bot Fight Mode, WAF rate limiting
+- **Resend** — transactional email API (sending domain: `wokeornot.net`)
+
+**Deploys:** Railway auto-deploys from the `main` branch on GitHub push. No manual deploy step needed.
 
 **GitHub Actions:**
 - `ci.yml` — runs on push/PR to `main`, `develop`, `fix/*` branches
   - ESLint (non-blocking)
   - `npm run build` (uploads `.next` artifact)
   - Security audit (`npm audit` + Trivy)
-- `deploy.yml` — deploys to Vercel on push to `main`
 
 **Image domains allowed** (`next.config.js`):
 - `image.tmdb.org` — movie/show posters
@@ -388,17 +512,28 @@ No tests are currently implemented. The CI pipeline has a test placeholder (`npm
 | File | Purpose |
 |---|---|
 | `src/lib/auth.ts` | NextAuth config: providers, callbacks, session shape |
-| `src/middleware.ts` | Route guard: redirects non-ADMIN from `/admin` |
+| `src/lib/mobile-auth.ts` | Mobile JWT auth + `getAuthUser()` for web+mobile unified auth |
+| `src/middleware.ts` | 3-layer guard: AI crawler block → IP rate limit → /admin RBAC |
 | `src/lib/prisma.ts` | Prisma client singleton (import from here, never instantiate directly) |
-| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail) |
+| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail, providers) |
 | `src/lib/validation.ts` | Zod schemas + `sanitizeHTML` for XSS prevention |
 | `src/lib/wokeness-utils.ts` | Score → color/label/level helpers |
-| `src/lib/rateLimit.ts` | Sliding window rate limiter |
+| `src/lib/rateLimit.ts` | Sliding window rate limiter (API-level, separate from middleware rate limit) |
+| `src/lib/notifications.ts` | Write in-app notifications |
+| `src/lib/badges.ts` | Badge award logic — call after reviews/comments/reactions |
+| `src/lib/mailer.ts` | Resend API send helper (`sendEmail()`) |
+| `src/lib/email-templates.ts` | HTML email templates |
+| `src/lib/posthog-server.ts` | PostHog server-side client singleton |
+| `src/lib/analytics.ts` | GA4 event tracking helpers |
+| `src/components/ui/amazon-affiliate-button.tsx` | Amazon affiliate CTA (requires env var) |
+| `src/components/ads/adsense-ad.tsx` | Google AdSense ad unit (requires env var) |
+| `src/app/sitemap.xml/route.ts` | Dynamic XML sitemap (reviewed content only, CDN-cached) |
+| `src/app/robots.ts` | robots.txt generation |
 | `src/types/index.ts` | All shared TypeScript types |
 | `prisma/schema.prisma` | Complete DB schema |
-| `src/app/layout.tsx` | Root layout: SessionProvider, Navbar, Footer |
+| `src/app/layout.tsx` | Root layout: GA4, AdSense, PostHog, schema.org, SessionProvider |
 | `src/app/admin/layout.tsx` | Admin layout with sidebar navigation |
-| `vercel.json` | Vercel cron job configuration |
-| `next.config.js` | Image domains, standalone output, performance settings |
+| `vercel.json` | Legacy Vercel cron config (no longer active — cron runs on Railway) |
+| `next.config.js` | Image domains, security headers, PostHog proxy rewrites, performance settings |
 | `.github/workflows/ci.yml` | CI: lint, build, security audit |
-| `.github/workflows/deploy.yml` | CD: deploy to Vercel on main push |
+| `.github/workflows/ci.yml` | CI: lint, build, security audit |
