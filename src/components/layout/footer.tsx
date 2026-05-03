@@ -19,19 +19,19 @@ export const Footer = () => {
           {/* Quick Links */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               <li>
-                <Link href="/movies" className="text-gray-400 hover:text-white transition">
+                <Link href="/movies" className="block py-2 text-gray-400 hover:text-white transition">
                   Movies
                 </Link>
               </li>
               <li>
-                <Link href="/tv-shows" className="text-gray-400 hover:text-white transition">
+                <Link href="/tv-shows" className="block py-2 text-gray-400 hover:text-white transition">
                   TV Shows
                 </Link>
               </li>
               <li>
-                <Link href="/kids" className="text-gray-400 hover:text-white transition">
+                <Link href="/kids" className="block py-2 text-gray-400 hover:text-white transition">
                   Kids
                 </Link>
               </li>
@@ -48,19 +48,19 @@ export const Footer = () => {
           {/* Legal */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               <li>
-                <Link href="/terms" className="text-gray-400 hover:text-white transition">
+                <Link href="/terms" className="block py-2 text-gray-400 hover:text-white transition">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-400 hover:text-white transition">
+                <Link href="/privacy" className="block py-2 text-gray-400 hover:text-white transition">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/cookies" className="text-gray-400 hover:text-white transition">
+                <Link href="/cookies" className="block py-2 text-gray-400 hover:text-white transition">
                   Cookie Policy
                 </Link>
               </li>
@@ -70,14 +70,14 @@ export const Footer = () => {
           {/* Connect */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Connect</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white transition">
+                <Link href="/contact" className="block py-2 text-gray-400 hover:text-white transition">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-gray-400 hover:text-white transition">
+                <Link href="/about" className="block py-2 text-gray-400 hover:text-white transition">
                   About Us
                 </Link>
               </li>

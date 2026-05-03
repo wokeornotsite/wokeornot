@@ -141,7 +141,7 @@ export default function ReviewSection({ id }: { id: string }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-8 mt-8 rounded-3xl shadow-xl border border-white/10 bg-transparent">
+    <div className="max-w-2xl mx-auto p-4 sm:p-8 mt-4 sm:mt-8 rounded-3xl shadow-xl border border-white/10 bg-transparent">
       <h2 className="flex items-center justify-center gap-2 text-3xl font-extrabold mb-5 text-white tracking-tight text-center">
         <svg xmlns="http://www.w3.org/2000/svg" fill="#facc15" viewBox="0 0 24 24" width="32" height="32" className="inline-block -mt-1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
         Submit Your Review
@@ -163,7 +163,7 @@ export default function ReviewSection({ id }: { id: string }) {
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-[#1a1a2e]/60 border-2 border-blue-400/20 shadow-lg rounded-2xl p-8 text-white relative z-10">
+      <form onSubmit={handleSubmit} className="mb-8 space-y-6 bg-[#1a1a2e]/60 border-2 border-blue-400/20 shadow-lg rounded-2xl p-4 sm:p-8 text-white relative z-10">
         <input
           type="text"
           name="website"
