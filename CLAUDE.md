@@ -284,7 +284,7 @@ RATE_LIMIT_SHADOW="0"   # Shadow mode: log but don't block
 # Sentry error tracking
 NEXT_PUBLIC_SENTRY_DSN="https://..."
 
-# Cron job authentication (sent as Authorization header by Vercel)
+# Cron job authentication (sent as Authorization header by Railway cron service)
 CRON_SECRET="..."
 ```
 
@@ -533,7 +533,5 @@ No tests are currently implemented. The CI pipeline has a test placeholder (`npm
 | `prisma/schema.prisma` | Complete DB schema |
 | `src/app/layout.tsx` | Root layout: GA4, AdSense, PostHog, schema.org, SessionProvider |
 | `src/app/admin/layout.tsx` | Admin layout with sidebar navigation |
-| `vercel.json` | Legacy Vercel cron config (no longer active — cron runs on Railway) |
 | `next.config.js` | Image domains, security headers, PostHog proxy rewrites, performance settings |
-| `.github/workflows/ci.yml` | CI: lint, build, security audit |
 | `.github/workflows/ci.yml` | CI: lint, build, security audit |
