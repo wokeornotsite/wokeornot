@@ -28,6 +28,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getKidsContent } from '@/lib/content-fetch';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
+import { AmazonAffiliateButton } from '@/components/ui/amazon-affiliate-button';
+import { AdSenseAd } from '@/components/ads/adsense-ad';
 
 export const revalidate = 3600; // Cache kids detail pages for 1 hour
 
@@ -283,6 +285,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
               ))}
             </div>
             <div className="mt-2 text-xs text-gray-400">{reviewCount} Reviews</div>
+            <AmazonAffiliateButton title={movie.title} year={movie.release_date?.slice(0, 4)} />
           </div>
           {/* Main Content */}
           <div className="flex-1 w-full">
@@ -290,6 +293,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
             <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {movie.overview}
             </div>
+            <AdSenseAd slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTENT ?? ''} className="mt-6" />
             {/* Review Section */}
             <div className="mt-8">
               <ReviewTabsWrapper id={dbContent.id} />

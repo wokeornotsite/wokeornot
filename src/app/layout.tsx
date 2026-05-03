@@ -86,6 +86,7 @@ export const viewport: Viewport = {
   themeColor: '#8b5cf6',
 };
 
+import Script from 'next/script';
 import Analytics from './analytics';
 
 export default function RootLayout({
@@ -116,6 +117,14 @@ export default function RootLayout({
           <ClientLayout>{children}</ClientLayout>
         </MUIProvider>
         <Analytics />
+        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

@@ -24,6 +24,8 @@ import { CategoryIcon } from '@/components/ui/category-icon';
 
 import { prisma } from '@/lib/prisma';
 import { getMovieContent } from '@/lib/content-fetch';
+import { AmazonAffiliateButton } from '@/components/ui/amazon-affiliate-button';
+import { AdSenseAd } from '@/components/ads/adsense-ad';
 import ReviewTabsWrapper from '@/components/review/review-tabs-wrapper';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
@@ -336,6 +338,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
                 <WatchProviders providers={watchProviders} />
               </div>
             ) : null}
+            <AmazonAffiliateButton title={movie.title} year={movie.release_date?.slice(0, 4)} />
           </div>
           {/* Main Content */}
           <div className="flex-1 w-full">
@@ -343,6 +346,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {movie.overview}
             </div>
+            <AdSenseAd slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTENT ?? ''} className="mt-6" />
             {/* Review Tabs: Submit Review / User Reviews */}
             <div className="mt-6">
               <ReviewTabsWrapper id={dbContent.id} />
