@@ -108,6 +108,9 @@ export const Footer = () => {
           <p className="mt-2">
             This site uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.
           </p>
+          <p className="mt-2">
+            WokeOrNot participates in affiliate programs including the Amazon Associates Program. As an Amazon Associate we earn from qualifying purchases. Affiliate links are marked with &ldquo;sponsored&rdquo; and help support the site at no extra cost to you.
+          </p>
         </div>
       </div>
     </footer>

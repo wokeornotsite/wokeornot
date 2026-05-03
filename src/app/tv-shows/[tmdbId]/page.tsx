@@ -331,7 +331,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             {/* Where to Watch - compact sidebar */}
             {(watchProviders.flatrate?.length || watchProviders.rent?.length || watchProviders.buy?.length) ? (
               <div className="mt-4 pt-4 border-t border-white/10">
-                <WatchProviders providers={watchProviders} />
+                <WatchProviders providers={watchProviders} title={tvShow.name} year={tvShow.first_air_date?.slice(0, 4)} />
               </div>
             ) : null}
             <AmazonAffiliateButton title={tvShow.name} year={tvShow.first_air_date?.slice(0, 4)} />

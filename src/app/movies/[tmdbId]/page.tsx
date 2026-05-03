@@ -335,7 +335,7 @@ export default async function MovieDetailPage({ params }: { params: { tmdbId: st
             {/* Where to Watch - compact sidebar */}
             {(watchProviders.flatrate?.length || watchProviders.rent?.length || watchProviders.buy?.length) ? (
               <div className="mt-4 pt-4 border-t border-white/10">
-                <WatchProviders providers={watchProviders} />
+                <WatchProviders providers={watchProviders} title={movie.title} year={movie.release_date?.slice(0, 4)} />
               </div>
             ) : null}
             <AmazonAffiliateButton title={movie.title} year={movie.release_date?.slice(0, 4)} />

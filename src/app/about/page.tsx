@@ -84,6 +84,9 @@ export default function AboutPage() {
           <h2 className="text-2xl font-semibold text-white mt-8 mb-4">Get Involved</h2>
           <p>Join our community by creating an account and sharing your perspectives on the latest movies and shows. Your reviews help others make informed viewing decisions.</p>
 
+          <h2 className="text-2xl font-semibold text-white mt-8 mb-4">Affiliate Disclosure</h2>
+          <p>WokeOrNot participates in affiliate advertising programs designed to provide a means for us to earn fees by linking to affiliated sites. This includes the Amazon Associates Program — as an Amazon Associate we earn from qualifying purchases. Affiliate links are clearly marked and clicking them helps support the site at no extra cost to you.</p>
+
           <h2 className="text-2xl font-semibold text-white mt-8 mb-4">Contact Us</h2>
           <p>Have questions, suggestions, or feedback? We'd love to hear from you at <a href="mailto:wokeornot.site@gmail.com" className="text-pink-400 hover:text-pink-300">wokeornot.site@gmail.com</a></p>
         </div>

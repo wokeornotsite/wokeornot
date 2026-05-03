@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://wokeornot.net'),
   verification: {
     google: '2JlXhEUOlDPwwJzFXkryHKUaXPYU1aOfF0jOixcEBN0',
+    // AdSense site verification: replace value with the data-ad-client token from your AdSense dashboard
+    // other: { 'google-adsense-account': ['ca-pub-XXXXXXXXXXXXXXXX'] },
   },
   title: {
     default: 'WokeOrNot — Community Wokeness Ratings for Movies & TV Shows',
