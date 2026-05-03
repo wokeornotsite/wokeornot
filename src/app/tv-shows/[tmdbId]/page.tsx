@@ -26,6 +26,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getTVShowContent } from '@/lib/content-fetch';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
+import { AmazonAffiliateButton } from '@/components/ui/amazon-affiliate-button';
+import { AdSenseAd } from '@/components/ads/adsense-ad';
 
 export const revalidate = 3600; // Cache TV detail pages for 1 hour
 
@@ -329,9 +331,10 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             {/* Where to Watch - compact sidebar */}
             {(watchProviders.flatrate?.length || watchProviders.rent?.length || watchProviders.buy?.length) ? (
               <div className="mt-4 pt-4 border-t border-white/10">
-                <WatchProviders providers={watchProviders} />
+                <WatchProviders providers={watchProviders} title={tvShow.name} year={tvShow.first_air_date?.slice(0, 4)} />
               </div>
             ) : null}
+            <AmazonAffiliateButton title={tvShow.name} year={tvShow.first_air_date?.slice(0, 4)} />
           </div>
           {/* Main Content */}
           <div className="flex-1 w-full">
@@ -339,6 +342,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {tvShow.overview}
             </div>
+            <AdSenseAd slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTENT ?? ''} className="mt-6" />
             {/* Review Tabs: Submit Review / User Reviews */}
             <div className="mt-6">
               <ReviewTabsWrapper id={dbContent.id} />

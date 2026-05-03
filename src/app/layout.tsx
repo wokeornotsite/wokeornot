@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://wokeornot.net'),
   verification: {
     google: '2JlXhEUOlDPwwJzFXkryHKUaXPYU1aOfF0jOixcEBN0',
+    // AdSense site verification: replace value with the data-ad-client token from your AdSense dashboard
+    // other: { 'google-adsense-account': ['ca-pub-XXXXXXXXXXXXXXXX'] },
   },
   title: {
     default: 'WokeOrNot — Community Wokeness Ratings for Movies & TV Shows',
@@ -86,6 +88,7 @@ export const viewport: Viewport = {
   themeColor: '#8b5cf6',
 };
 
+import Script from 'next/script';
 import Analytics from './analytics';
 
 export default function RootLayout({
@@ -116,6 +119,14 @@ export default function RootLayout({
           <ClientLayout>{children}</ClientLayout>
         </MUIProvider>
         <Analytics />
+        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

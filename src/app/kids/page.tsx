@@ -4,6 +4,7 @@ import type { ContentItem } from '@/types';
 import { ClientContentCard } from '@/components/ui/client-content-card';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Pagination, PaginationInfo } from '@/components/ui/pagination';
+import { AdSenseAd } from '@/components/ads/adsense-ad';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -226,6 +227,8 @@ export default function KidsPage() {
           </>
         )}
       </div>
+
+      <AdSenseAd slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_LIST ?? ''} className="max-w-7xl mx-auto px-4 mt-6" />
 
       {/* Pagination */}
       {sortedContent.length > 0 && (
