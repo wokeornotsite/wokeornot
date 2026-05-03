@@ -232,6 +232,13 @@ export default function ModerationUsersTable() {
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 2, minWidth: 200 },
     {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 140,
+      renderCell: (params: any) => params.value || <span style={{ color: '#6b7280' }}>—</span>,
+    },
+    {
       field: 'role',
       headerName: 'Role',
       width: 130,
