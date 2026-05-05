@@ -88,7 +88,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
                       />
                       <span className="absolute left-1.5 top-0 text-[10px] text-white font-bold h-4 flex items-center drop-shadow-sm">{cs.percentage}%</span>
                     </div>
-                    <span className="w-10 text-[10px] text-white font-medium text-right drop-shadow-sm flex-shrink-0">{cs.count}v</span>
+                    <span className="w-12 text-[10px] text-white font-medium text-right drop-shadow-sm flex-shrink-0">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                   </div>
                 ))}
               </div>

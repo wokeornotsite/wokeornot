@@ -271,7 +271,7 @@ export default async function KidsContentDetailPage({ params }: { params: { tmdb
                           />
                           <span className="absolute left-2 top-0 text-xs text-white font-bold h-5 flex items-center drop-shadow-sm">{Math.round(cs.percentage)}%</span>
                         </div>
-                        <span className="w-10 text-[10px] text-gray-300 font-medium text-right flex-shrink-0">{cs.count}v</span>
+                        <span className="w-14 text-xs text-gray-300 font-medium text-right flex-shrink-0">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
                     ))}
                 </div>

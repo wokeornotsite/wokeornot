@@ -30,7 +30,7 @@ export function MobileBottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center flex-1 gap-1 transition-colors duration-150 min-w-0
+              className={`relative flex flex-col items-center justify-center flex-1 gap-1 transition-colors duration-150 min-w-0
                 ${active
                   ? 'text-violet-400'
                   : 'text-gray-500 hover:text-gray-300 active:text-violet-400'
@@ -45,7 +45,7 @@ export function MobileBottomNav() {
                 {label}
               </span>
               {active && (
-                <span className="absolute bottom-0 w-8 h-0.5 bg-violet-400 rounded-full" aria-hidden="true" />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-violet-400 rounded-full" aria-hidden="true" />
               )}
             </Link>
           );
