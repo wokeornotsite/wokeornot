@@ -10,6 +10,7 @@ const ITEMS_PER_PAGE = 20;
 
 export default function KidsPage() {
   const [allKids, setAllKids] = useState<ContentItem[]>([]);
+  const [tmdbTotalPages, setTmdbTotalPages] = useState(1);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState('');
@@ -29,13 +30,15 @@ export default function KidsPage() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
+        params.append('page', String(currentPage));
         const [kidsRes, genresRes] = await Promise.all([
           fetch(`/api/kids?${params.toString()}`),
           fetch('/api/genres?type=movie'),
         ]);
-        const kids = await kidsRes.json();
+        const data = await kidsRes.json();
         const genres = await genresRes.json();
-        setAllKids(kids);
+        setAllKids(data.results ?? []);
+        setTmdbTotalPages(Math.min(data.total_pages ?? 1, 500));
         setGenres(genres);
       } catch {
         setError('Failed to load kids content.');
@@ -44,7 +47,7 @@ export default function KidsPage() {
       }
     }
     fetchData();
-  }, [genre, year, language]);
+  }, [genre, year, language, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -71,9 +74,7 @@ export default function KidsPage() {
     }
   });
 
-  const totalPages = Math.ceil(sortedContent.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedContent = sortedContent.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = tmdbTotalPages;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -219,7 +220,7 @@ export default function KidsPage() {
               <div className="text-center text-blue-200 text-lg mt-8">No results found. Try a different filter.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {paginatedContent.map(content => (
+                {sortedContent.map(content => (
                   <ClientContentCard key={content.id} content={content} />
                 ))}
               </div>
@@ -237,7 +238,7 @@ export default function KidsPage() {
             <PaginationInfo
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={sortedContent.length}
+              totalItems={totalPages * ITEMS_PER_PAGE}
               itemsPerPage={ITEMS_PER_PAGE}
               className="text-center"
             />

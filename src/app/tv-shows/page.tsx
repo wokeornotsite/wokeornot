@@ -15,6 +15,7 @@ function TVShowsPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const [allTVShows, setAllTVShows] = useState<ContentItem[]>([]);
+  const [tmdbTotalPages, setTmdbTotalPages] = useState(1);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [genre, setGenre] = useState(() => searchParams.get('genre') || '');
   const [year, setYear] = useState(() => searchParams.get('year') || '');
@@ -48,13 +49,15 @@ function TVShowsPageInner() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
+        params.append('page', String(currentPage));
         const [showsRes, genresRes] = await Promise.all([
           fetch(`/api/tv-shows?${params.toString()}`),
           fetch('/api/genres?type=tv'),
         ]);
-        const shows = await showsRes.json();
+        const data = await showsRes.json();
         const genres = await genresRes.json();
-        setAllTVShows(shows);
+        setAllTVShows(data.results ?? []);
+        setTmdbTotalPages(Math.min(data.total_pages ?? 1, 500));
         setGenres(genres);
       } catch {
         setError('Failed to load TV shows.');
@@ -63,7 +66,7 @@ function TVShowsPageInner() {
       }
     }
     fetchData();
-  }, [genre, year, language]);
+  }, [genre, year, language, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -90,9 +93,7 @@ function TVShowsPageInner() {
     }
   });
 
-  const totalPages = Math.ceil(sortedShows.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedShows = sortedShows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = tmdbTotalPages;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -260,7 +261,7 @@ function TVShowsPageInner() {
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {paginatedShows.map(show => (
+                {sortedShows.map(show => (
                   <ClientContentCard key={show.id} content={show} />
                 ))}
               </div>
@@ -278,7 +279,7 @@ function TVShowsPageInner() {
             <PaginationInfo
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={sortedShows.length}
+              totalItems={totalPages * ITEMS_PER_PAGE}
               itemsPerPage={ITEMS_PER_PAGE}
               className="text-center"
             />

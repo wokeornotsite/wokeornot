@@ -31,7 +31,11 @@ export async function GET(req: NextRequest) {
       backdropPath: movie.backdrop_path || null
     };
   });
-  return NextResponse.json(results, {
+  return NextResponse.json({
+    results,
+    total_results: data.total_results ?? 0,
+    total_pages: data.total_pages ?? 1,
+  }, {
     headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600' },
   });
 }

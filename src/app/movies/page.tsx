@@ -15,6 +15,7 @@ function MoviesPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const [allMovies, setAllMovies] = useState<ContentItem[]>([]);
+  const [tmdbTotalPages, setTmdbTotalPages] = useState(1);
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [genre, setGenre] = useState(() => searchParams.get('genre') || '');
   const [year, setYear] = useState(() => searchParams.get('year') || '');
@@ -48,13 +49,15 @@ function MoviesPageInner() {
         if (genre) params.append('genre', genre);
         if (year) params.append('year', year);
         if (language) params.append('language', language);
+        params.append('page', String(currentPage));
         const [moviesRes, genresRes] = await Promise.all([
           fetch(`/api/movies?${params.toString()}`),
           fetch('/api/genres?type=movie'),
         ]);
-        const movies = await moviesRes.json();
+        const data = await moviesRes.json();
         const genres = await genresRes.json();
-        setAllMovies(movies);
+        setAllMovies(data.results ?? []);
+        setTmdbTotalPages(Math.min(data.total_pages ?? 1, 500));
         setGenres(genres);
       } catch {
         setError('Failed to load movies.');
@@ -63,7 +66,7 @@ function MoviesPageInner() {
       }
     }
     fetchData();
-  }, [genre, year, language]);
+  }, [genre, year, language, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -90,9 +93,7 @@ function MoviesPageInner() {
     }
   });
 
-  const totalPages = Math.ceil(sortedMovies.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedMovies = sortedMovies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = tmdbTotalPages;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -260,7 +261,7 @@ function MoviesPageInner() {
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {paginatedMovies.map(movie => (
+                {sortedMovies.map(movie => (
                   <ClientContentCard key={movie.id} content={movie} />
                 ))}
               </div>
@@ -277,7 +278,7 @@ function MoviesPageInner() {
           <PaginationInfo
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={sortedMovies.length}
+            totalItems={totalPages * ITEMS_PER_PAGE}
             itemsPerPage={ITEMS_PER_PAGE}
             className="text-center"
           />

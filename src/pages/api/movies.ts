@@ -62,7 +62,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'Cache-Control',
       'public, s-maxage=300, stale-while-revalidate=600'
     );
-    res.status(200).json(movies);
+    res.status(200).json({
+      results: movies,
+      total_results: moviesData.total_results ?? 0,
+      total_pages: moviesData.total_pages ?? 1,
+    });
   } catch (err) {
     res.status(500).json([]);
   }
