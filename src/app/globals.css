@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* iOS safe-area support for bottom nav and notch */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Minimum touch target size for interactive elements */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Custom dark scrollbar for carousel */
 .trending-carousel-scrollbar::-webkit-scrollbar {
   height: 8px;

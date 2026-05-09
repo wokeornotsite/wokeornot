@@ -192,7 +192,7 @@ export default function SearchPage() {
 
       {/* Search Bar and Filters */}
       <form onSubmit={handleSearch} className="mb-12 max-w-5xl mx-auto px-4">
-        <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-8 flex flex-col gap-6">
+        <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-4 sm:p-8 flex flex-col gap-6">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             {/* Search input with autocomplete */}
             <div className="flex-1 relative" ref={containerRef}>

@@ -47,12 +47,12 @@ export default function Home() {
         {/* Animated particles/stars effect */}
         <div className="absolute inset-0 z-0 opacity-30 bg-[radial-gradient(white,_rgba(255,255,255,.2)_2px,_transparent_40px)] bg-[length:50px_50px]"></div>
         
-        <div className="container mx-auto px-6 py-28 md:py-40 relative z-20">
+        <div className="container mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-40 relative z-20">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 sm:mb-6 tracking-tight">
               Your Guide to Woke & Non-woke Entertainment
             </h1>
-            <p className="text-xl text-gray-300 mb-10 leading-relaxed max-w-2xl">
+            <p className="text-base sm:text-xl text-gray-300 mb-7 sm:mb-10 leading-relaxed max-w-2xl">
               Explore, rate, and discuss movies, TV shows, and kids’ content—make informed viewing choices with our community.
             </p>
             
@@ -116,8 +116,8 @@ export default function Home() {
               <span className="absolute -bottom-2 left-1/4 right-1/4 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded-full"></span>
             </span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-[#1a1a2e] rounded-xl p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
+            <div className="bg-[#1a1a2e] rounded-xl p-6 md:p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-purple-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -127,7 +127,7 @@ export default function Home() {
               <p className="text-gray-400 text-center">Search for your favorite movies and TV shows or browse our extensive catalog of entertainment media.</p>
             </div>
             
-            <div className="bg-[#1a1a2e] rounded-xl p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
+            <div className="bg-[#1a1a2e] rounded-xl p-6 md:p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
               <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-purple-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -137,7 +137,7 @@ export default function Home() {
               <p className="text-gray-400 text-center">Rate the wokeness level and provide detailed reviews with category tagging for different aspects.</p>
             </div>
             
-            <div className="bg-[#1a1a2e] rounded-xl p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
+            <div className="bg-[#1a1a2e] rounded-xl p-6 md:p-8 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/10 border border-purple-500/10">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-purple-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />

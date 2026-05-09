@@ -28,6 +28,7 @@ import { getTVShowContent } from '@/lib/content-fetch';
 import { getWokenessLabel, getWokenessBadgeBg } from '@/lib/wokeness-utils';
 import { AmazonAffiliateButton } from '@/components/ui/amazon-affiliate-button';
 import { AdSenseAd } from '@/components/ads/adsense-ad';
+import { MobileRateButton } from '@/components/ui/mobile-rate-button';
 
 export const revalidate = 3600; // Cache TV detail pages for 1 hour
 
@@ -188,6 +189,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <MobileRateButton />
       <div className="relative min-h-screen bg-gradient-to-b from-[#1a1a2e] via-[#232946] to-[#121212] text-white">
         {/* Hero Section with Backdrop */}
       <div className="relative h-64 md:h-96 w-full overflow-hidden flex items-end justify-center">
@@ -251,11 +253,11 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
         </div>
       </div>
       {/* Info Panel & Main Content */}
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'TV Shows', href: '/tv-shows' }, { label: tvShow.name }]} />
-        <div className="flex flex-col md:flex-row gap-10 items-start">
-          {/* Info Card (match Movie layout) */}
-          <div className="w-full md:w-80 bg-[#232946] rounded-2xl shadow-lg border border-white/10 p-6 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+          {/* Info Card — order-2 on mobile so overview/reviews show first */}
+          <div className="w-full md:w-80 order-2 md:order-1 bg-[#232946] rounded-2xl shadow-lg border border-white/10 p-4 md:p-6 flex flex-col gap-4">
             <WokenessBar score={wokeScore} />
             <div>
               <h4 className="text-xs font-bold text-blue-300 mb-1 tracking-wide uppercase">Woke Reasons</h4>
@@ -265,14 +267,14 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                     .filter(cs => cs.count > 0)
                     .sort((a, b) => b.percentage !== a.percentage ? b.percentage - a.percentage : (a.category?.name || '').localeCompare(b.category?.name || ''))
                     .map((cs, i) => (
-                      <div key={cs.categoryId} className="flex items-center gap-2 w-full">
-                        <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
+                      <div key={cs.categoryId} className="flex items-center gap-1.5 w-full">
+                        <span className="w-24 md:w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center gap-0.5 flex-shrink-0">
                           {categoryIcons[cs.category?.name || ''] || <FaQuestionCircle className="text-gray-400" />}
-                          {cs.category?.name || ''}
+                          <span className="truncate">{cs.category?.name || ''}</span>
                         </span>
-                        <div className="flex-1 bg-blue-100 rounded-full h-6 relative overflow-hidden">
+                        <div className="flex-1 bg-blue-100 rounded-full h-5 relative overflow-hidden min-w-0">
                           <div
-                            className="h-6 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
+                            className="h-5 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
                             style={{
                               width: `${Math.round(cs.percentage)}%`,
                               transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -280,9 +282,9 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                               animationDelay: `${0.1 * i}s`
                             }}
                           />
-                          <span className="absolute left-3 top-0 text-xs text-white font-bold h-6 flex items-center drop-shadow-sm">{Math.round(cs.percentage)}%</span>
+                          <span className="absolute left-2 top-0 text-xs text-white font-bold h-5 flex items-center drop-shadow-sm">{Math.round(cs.percentage)}%</span>
                         </div>
-                        <span className="w-14 text-xs text-gray-300 font-medium text-right">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
+                        <span className="w-14 text-xs text-gray-300 font-medium text-right flex-shrink-0">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                       </div>
                     ))}
                 </div>
@@ -336,15 +338,15 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
             ) : null}
             <AmazonAffiliateButton title={tvShow.name} year={tvShow.first_air_date?.slice(0, 4)} />
           </div>
-          {/* Main Content */}
-          <div className="flex-1 w-full">
+          {/* Main Content — order-1 on mobile so it shows above sidebar */}
+          <div className="flex-1 w-full order-1 md:order-2">
             {/* Overview */}
-            <div className="mt-2 text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
+            <div className="mt-2 text-base md:text-lg text-gray-100 leading-relaxed bg-black/30 p-4 rounded-xl shadow-inner">
               {tvShow.overview}
             </div>
             <AdSenseAd slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTENT ?? ''} className="mt-6" />
             {/* Review Tabs: Submit Review / User Reviews */}
-            <div className="mt-6">
+            <div id="review-section" className="mt-6">
               <ReviewTabsWrapper id={dbContent.id} />
             </div>
           </div>
@@ -352,7 +354,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
         {/* Similar Shows Carousel */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-4 text-blue-200">Similar Shows</h2>
-          <div className="flex gap-6 overflow-x-auto pb-2">
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
             {similarShows.slice(0, 8).map((show: any) => {
               const genreNames = getGenreNames(show.genre_ids || [], 'tv');
               const genres = (show.genre_ids || []).map((gid: number, idx: number) => ({ id: gid, name: genreNames[idx] || '' }));
@@ -370,7 +372,7 @@ export default async function TvShowDetailPage({ params }: { params: { tmdbId: s
                 genres,
               };
               return (
-                <div key={show.id} className="min-w-[200px] max-w-[220px]">
+                <div key={show.id} className="min-w-[160px] sm:min-w-[200px] max-w-[180px] sm:max-w-[220px]">
                   <ClientContentCard content={contentItem} />
                 </div>
               );

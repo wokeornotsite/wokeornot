@@ -72,23 +72,23 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, loading }) =>
             {content.categoryScores && content.categoryScores.length > 0 ? (
               <div className="w-full flex flex-col gap-1">
                 {content.categoryScores.filter(cs => cs.count > 0).sort((a, b) => b.percentage - a.percentage).map(cs => (
-                  <div key={cs.categoryId} className="flex items-center gap-2 w-full">
-                    <span className="w-32 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center">
+                  <div key={cs.categoryId} className="flex items-center gap-1.5 w-full">
+                    <span className="w-20 sm:w-28 text-xs font-semibold text-white truncate drop-shadow-sm flex items-center gap-0.5 flex-shrink-0">
                       <CategoryIcon name={cs.category?.name} />
-                      {cs.category?.name || ''}
+                      <span className="truncate">{cs.category?.name || ''}</span>
                     </span>
-                    <div className="flex-1 bg-blue-100 rounded-full h-5 relative overflow-hidden">
+                    <div className="flex-1 bg-blue-100 rounded-full h-4 relative overflow-hidden min-w-0">
                       <div
-                        className="h-5 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
-                        style={{ 
-                          width: `${cs.percentage}%`, 
-                          transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)', 
-                          animationDuration: '0.6s' 
+                        className="h-4 rounded-full bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 animate-fadeIn"
+                        style={{
+                          width: `${cs.percentage}%`,
+                          transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                          animationDuration: '0.6s'
                         }}
                       />
-                      <span className="absolute left-2 top-0 text-xs text-white font-bold h-5 flex items-center drop-shadow-sm">{cs.percentage}%</span>
+                      <span className="absolute left-1.5 top-0 text-[10px] text-white font-bold h-4 flex items-center drop-shadow-sm">{cs.percentage}%</span>
                     </div>
-                    <span className="w-14 text-xs text-white font-medium text-right drop-shadow-sm">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
+                    <span className="w-12 text-[10px] text-white font-medium text-right drop-shadow-sm flex-shrink-0">{cs.count} vote{cs.count !== 1 ? 's' : ''}</span>
                   </div>
                 ))}
               </div>

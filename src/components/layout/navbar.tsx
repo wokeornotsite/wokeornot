@@ -127,7 +127,7 @@ export const Navbar = () => {
           {session ? (
             <UserDropdownMenu session={session} />
           ) : (
-            <Link href="/login" className="px-5 py-2 rounded-full font-semibold shadow-lg border-2 border-white bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 transition-colors duration-200">Sign In</Link>
+            <Link href="/login" className="hidden md:inline-flex px-5 py-2 rounded-full font-semibold shadow-lg border-2 border-white bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 transition-colors duration-200">Sign In</Link>
           )}
         </div>
         {/* Mobile Hamburger */}
@@ -169,8 +169,18 @@ export const Navbar = () => {
               </Link>
             )}
             {!session && (
-              <Link href="/login" className={styles.mobileMenuLink} onClick={() => setMobileOpen(false)}>
-                Sign In
+              <>
+                <Link href="/login" className={styles.mobileMenuLink} onClick={() => setMobileOpen(false)}>
+                  Sign In
+                </Link>
+                <Link href="/register" className={`${styles.mobileMenuLink} text-violet-400`} onClick={() => setMobileOpen(false)}>
+                  Create Account
+                </Link>
+              </>
+            )}
+            {session && (
+              <Link href="/favorites" className={styles.mobileMenuLink} onClick={() => setMobileOpen(false)}>
+                My Favorites
               </Link>
             )}
           </div>
