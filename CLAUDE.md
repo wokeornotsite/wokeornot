@@ -4,6 +4,37 @@ Developer reference for working on this project. Keep this file up to date as th
 
 ---
 
+## ⚠️ CRITICAL WORKING RULES — READ FIRST
+
+These rules are non-negotiable. Follow them on every task, every session.
+
+### 1. This is a live production site
+`wokeornot.net` is live and receiving real traffic behind Cloudflare + Railway. Any breakage affects real users immediately.
+
+**Before making any change:**
+- Identify what existing functionality could be affected
+- Verify the change preserves desktop layout and all existing features
+- If there is any doubt about breakage, stop and ask — do not guess
+
+### 2. Every major change must be on a new branch
+- **Never commit directly to `main`** for feature work, refactors, or anything non-trivial
+- Create a branch: `git checkout -b <descriptive-name>`
+- Keep commits clean and scoped to the task
+
+**What counts as "major":** new features, UI changes, schema changes, middleware changes, API changes, dependency updates, layout refactors, anything touching more than 2 files.
+
+**What can go directly on main:** typo fixes, single-line copy changes, documentation-only updates.
+
+### 3. Never merge to `main` without explicit instruction
+- Do **not** merge or push to `main` unless the user says words like "merge to main", "merge it", "push to main", or "deploy"
+- Do **not** assume that "looks good" or "that works" is approval to merge
+- After work on a branch is done, stop and wait for the user's explicit merge instruction
+
+### 4. Railway auto-deploys from `main`
+Pushing to `main` on GitHub immediately triggers a production deploy via Railway. There is no staging environment — merging = deploying.
+
+---
+
 ## Project Purpose
 
 **WokeOrNot** is a community-driven platform for rating the "wokeness" of movies, TV shows, and kids content. Users rate content on a 1–10 scale, tag reviews with specific woke-aspect categories, leave comments, and participate in a community forum. The wokeness score is visualized with a color-coded bar (green = not woke, yellow = moderate, red = very woke).
@@ -53,7 +84,7 @@ wokeornot/
 │   │   ├── layout.tsx              # Root layout (GA4, AdSense script, SessionProvider, PostHog, schema.org JSON-LD)
 │   │   ├── analytics.tsx           # GA4 <Script> component (hardcoded ID G-C1RWGTWZ61)
 │   │   ├── page.tsx                # Home page (hero + trending + recently rated)
-│   │   ├── globals.css             # Global styles
+│   │   ├── globals.css             # Global styles + iOS safe-area utility classes (.pb-safe, .pt-safe)
 │   │   ├── robots.ts               # robots.txt (blocks /api, /admin, /favorites)
 │   │   ├── sitemap.xml/route.ts    # Dynamic XML sitemap — only reviewed content; CDN-cached 24h
 │   │   ├── api/                    # API routes (App Router)
@@ -101,7 +132,8 @@ wokeornot/
 │   ├── components/
 │   │   ├── ui/                     # Reusable UI components
 │   │   │   ├── amazon-affiliate-button.tsx  # Amazon affiliate "Find on Amazon" button
-│   │   │   ├── content-card.tsx    # Content card (poster, score, genres)
+│   │   │   ├── content-card.tsx    # Content card (poster, score, genres, category bars)
+│   │   │   ├── mobile-rate-button.tsx       # Floating "Rate This" FAB on mobile detail pages (md:hidden)
 │   │   │   ├── wokeness-bar.tsx    # Color-coded wokeness score bar
 │   │   │   ├── genre-badges.tsx    # Genre tag pills
 │   │   │   ├── social-share-buttons.tsx     # Share to Twitter/Facebook/copy link
@@ -124,6 +156,8 @@ wokeornot/
 │   │   ├── auth/                   # register-form, reset-password-form, login-form, etc.
 │   │   ├── admin/                  # AdminSidebar, AdminDashboardStats, RecentReviewsTable, etc.
 │   │   ├── layout/                 # Navbar, Footer, NotificationBell, ClientLayout
+│   │   │   ├── mobile-bottom-nav.tsx        # Fixed mobile bottom nav bar (md:hidden, 5 tabs)
+│   │   │   └── client-layout.tsx            # Wraps main content; adds pb-16 md:pb-0 for bottom nav clearance
 │   │   ├── analytics/              # PageViewTracker, PosthogUserIdentifier
 │   │   ├── theme/                  # MUIProvider, EmotionCacheProvider
 │   │   └── error-boundary.tsx
@@ -133,15 +167,15 @@ wokeornot/
 │   │   ├── admin-auth.ts           # Admin authorization helpers
 │   │   ├── mobile-auth.ts          # JWT Bearer auth for mobile: sign/verify token, getAuthUser()
 │   │   ├── prisma.ts               # Prisma client singleton
-│   │   ├── tmdb.ts                 # TMDB API integration
+│   │   ├── tmdb.ts                 # TMDB API integration (with 1-hour in-memory cache)
 │   │   ├── validation.ts           # Zod schemas + sanitizeHTML (XSS prevention)
-│   │   ├── wokeness-utils.ts       # Score colors, labels, level helpers
+│   │   ├── wokeness-utils.ts       # Score colors, labels, level helpers — always use this, never hardcode
 │   │   ├── rateLimit.ts            # Sliding window rate limiter (API-level)
 │   │   ├── analytics.ts            # GA4 event tracking helpers
 │   │   ├── posthog-server.ts       # PostHog server-side client singleton
 │   │   ├── notifications.ts        # createNotification() — write in-app notifications
 │   │   ├── badges.ts               # Badge award logic: checkReviewBadges, checkHelpfulBadge, etc.
-│   │   ├── mailer.ts               # Nodemailer transport + sendMail()
+│   │   ├── mailer.ts               # Resend API send helper — sendEmail() (NOT Nodemailer)
 │   │   ├── email-templates.ts      # HTML email templates (verification, reset, etc.)
 │   │   ├── cleanup.ts              # DB cleanup logic
 │   │   ├── content-fetch.ts        # Server-side content fetch helpers
@@ -255,7 +289,7 @@ TMDB_API_KEY="..."
 ### Email (required for password reset and email verification)
 
 ```env
-# Resend API (https://resend.com) — replaces SMTP, works on Railway
+# Resend API (https://resend.com) — the email provider used in production
 RESEND_API_KEY="re_..."
 EMAIL_FROM="WokeOrNot <noreply@wokeornot.net>"
 ```
@@ -321,6 +355,34 @@ Handled by **NextAuth.js 4** (`src/lib/auth.ts`) for web, and JWT Bearer tokens 
 - Middleware protects `/admin/*` (see above)
 - Admin API routes additionally call helpers from `src/lib/admin-auth.ts`
 - Roles: `USER`, `MODERATOR`, `ADMIN`
+
+---
+
+## Mobile UX
+
+The site has a dedicated mobile layer built on top of the desktop layout. All mobile-only components use `md:hidden` to be invisible on desktop — **do not remove these classes**.
+
+### Mobile Bottom Navigation (`src/components/layout/mobile-bottom-nav.tsx`)
+- Fixed bottom bar with 5 tabs: Home / Movies / TV / Kids / Search
+- `md:hidden` — only renders on mobile
+- Uses `pb-safe` (iOS safe-area bottom inset) from `globals.css`
+- Active tab shows violet color + underline indicator
+- `client-layout.tsx` adds `pb-16 md:pb-0` to `<main>` so content clears the bar on mobile but is unaffected on desktop
+
+### Floating Rate Button (`src/components/ui/mobile-rate-button.tsx`)
+- Appears on scroll (>300px) on all detail pages (movies, TV, kids)
+- `md:hidden` — only renders on mobile
+- Tapping scrolls to `#review-section` anchor
+- Position: `fixed bottom-20 right-4` (above the bottom nav bar)
+
+### Detail Page Layout on Mobile
+- On mobile, content is reordered using CSS `order` property: overview + reviews appear **above** the sidebar (so users see the content description first, not the sidebar)
+- On desktop: `md:order-1` / `md:order-2` restores original sidebar-left + content-right layout
+- The `#review-section` anchor div must remain on all detail pages for the floating button to work
+
+### iOS Safe-Area
+- `globals.css` defines `.pb-safe { padding-bottom: env(safe-area-inset-bottom) }` and `.pt-safe`
+- These are used by `MobileBottomNav` to avoid content sitting behind the home indicator on notched iPhones
 
 ---
 
@@ -454,6 +516,7 @@ After changing `prisma/schema.prisma`, always run `npx prisma generate` (and mig
 - Tailwind CSS utility classes — no separate CSS modules unless truly necessary
 - Design tokens/constants in `src/lib/design-system.ts`
 - Wokeness score colors and labels always go through `src/lib/wokeness-utils.ts` — never hardcode them
+- Mobile-first: use `md:` breakpoint to restore desktop values when overriding for mobile
 
 ---
 
@@ -487,7 +550,7 @@ node scripts/makeAdmin.js user@example.com
 - **Cloudflare** — DNS, DDoS protection, Bot Fight Mode, WAF rate limiting
 - **Resend** — transactional email API (sending domain: `wokeornot.net`)
 
-**Deploys:** Railway auto-deploys from the `main` branch on GitHub push. No manual deploy step needed.
+**Deploys:** Railway auto-deploys from the `main` branch on GitHub push. **Pushing to `main` = immediate production deploy.** No manual step needed.
 
 **GitHub Actions:**
 - `ci.yml` — runs on push/PR to `main`, `develop`, `fix/*` branches
@@ -498,6 +561,17 @@ node scripts/makeAdmin.js user@example.com
 **Image domains allowed** (`next.config.js`):
 - `image.tmdb.org` — movie/show posters
 - `lh3.googleusercontent.com` — Google profile pictures
+
+---
+
+## Known Pre-existing Issues (not bugs to fix)
+
+These issues exist in the codebase but are pre-existing and unrelated to any recent changes. Do not spend time investigating them unless explicitly asked.
+
+| Issue | Notes |
+|---|---|
+| `[TMDB] TMDB_API_KEY is not set` console error | `TMDB_API_KEY` has no `NEXT_PUBLIC_` prefix so it's undefined when `tmdb.ts` is imported by a client component (`client-content-card.tsx`). Server-side TMDB calls work correctly. Pre-existing. |
+| Build error on `/api/auth/forgot` | Resend API key not available during local build; identical on `main`. Does not affect production where the env var is set. Pre-existing. |
 
 ---
 
@@ -515,17 +589,20 @@ No tests are currently implemented. The CI pipeline has a test placeholder (`npm
 | `src/lib/mobile-auth.ts` | Mobile JWT auth + `getAuthUser()` for web+mobile unified auth |
 | `src/middleware.ts` | 3-layer guard: AI crawler block → IP rate limit → /admin RBAC |
 | `src/lib/prisma.ts` | Prisma client singleton (import from here, never instantiate directly) |
-| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail, providers) |
+| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail, providers) with 1h cache |
 | `src/lib/validation.ts` | Zod schemas + `sanitizeHTML` for XSS prevention |
 | `src/lib/wokeness-utils.ts` | Score → color/label/level helpers |
 | `src/lib/rateLimit.ts` | Sliding window rate limiter (API-level, separate from middleware rate limit) |
 | `src/lib/notifications.ts` | Write in-app notifications |
 | `src/lib/badges.ts` | Badge award logic — call after reviews/comments/reactions |
-| `src/lib/mailer.ts` | Resend API send helper (`sendEmail()`) |
+| `src/lib/mailer.ts` | Resend API send helper (`sendEmail()`) — NOT Nodemailer |
 | `src/lib/email-templates.ts` | HTML email templates |
 | `src/lib/posthog-server.ts` | PostHog server-side client singleton |
 | `src/lib/analytics.ts` | GA4 event tracking helpers |
 | `src/components/ui/amazon-affiliate-button.tsx` | Amazon affiliate CTA (requires env var) |
+| `src/components/ui/mobile-rate-button.tsx` | Floating mobile "Rate This" FAB (md:hidden) |
+| `src/components/layout/mobile-bottom-nav.tsx` | Mobile bottom nav bar (md:hidden) |
+| `src/components/layout/client-layout.tsx` | Root client layout — adds pb-16 md:pb-0 for mobile nav |
 | `src/components/ads/adsense-ad.tsx` | Google AdSense ad unit (requires env var) |
 | `src/app/sitemap.xml/route.ts` | Dynamic XML sitemap (reviewed content only, CDN-cached) |
 | `src/app/robots.ts` | robots.txt generation |

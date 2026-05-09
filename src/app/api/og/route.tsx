@@ -215,12 +215,16 @@ export async function GET(req: NextRequest) {
         {/* Tagline */}
         <div
           style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '6px',
             fontSize: '18px',
             color: '#9ca3af',
-            textAlign: 'center',
           }}
         >
-          Rate content on{' '}
+          <span>Rate content on</span>
           <span style={{ color: '#ec4899', fontWeight: '600' }}>WokeOrNot.net</span>
         </div>
       </div>
