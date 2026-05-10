@@ -67,7 +67,7 @@ export default async function RecentlyRatedSection() {
             <span className="absolute -bottom-2 left-0 right-1/2 h-1 bg-gradient-to-r from-purple-500 to-transparent rounded-full"></span>
           </span>
         </h2>
-        <div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide">
+        <div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide trending-carousel-scrollbar">
           {items.map((item: any) => (
             <div key={item.id} className="min-w-[200px] max-w-[220px] flex flex-col gap-2">
               <ClientContentCard
