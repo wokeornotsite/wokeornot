@@ -97,12 +97,11 @@ export default function TrendingCarousel({ items, type, wokeScores }: TrendingCa
                       </span>
                     );
                   })()
-                ) : item.vote_average !== undefined ? (
-                  <span className="flex items-center gap-1 bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded-full font-semibold shadow" title="TMDb User Rating">
-                    <span className="font-bold">{item.vote_average.toFixed(1)}</span>
-                    <span className="ml-1 bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest">TMDb</span>
+                ) : (
+                  <span className="flex items-center gap-1 bg-gray-700/80 text-gray-300 text-xs px-2 py-1 rounded-full font-semibold shadow">
+                    Not yet rated
                   </span>
-                ) : null}
+                )}
               </div>
             </div>
             <div className="mt-2 text-xs sm:text-sm text-center text-gray-100 truncate">
