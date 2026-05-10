@@ -30,17 +30,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       select: {
         tmdbId: true,
         wokeScore: true,
+        reviewCount: true,
       },
     });
     // Map for quick lookup
-    const wokeScoreMap = new Map<number, number | null>();
+    const scoreMap = new Map<number, { wokeScore: number | null; reviewCount: number }>();
     localScores.forEach((entry) => {
-      wokeScoreMap.set(entry.tmdbId, entry.wokeScore);
+      scoreMap.set(entry.tmdbId, { wokeScore: entry.wokeScore, reviewCount: entry.reviewCount });
     });
-    // Merge wokeScore into results
+    // Merge wokeScore and reviewCount into results
     const mergedResults = results.map((item: any) => ({
       ...item,
-      wokeScore: wokeScoreMap.has(item.id) ? wokeScoreMap.get(item.id) : undefined,
+      wokeScore: scoreMap.has(item.id) ? scoreMap.get(item.id)!.wokeScore : undefined,
+      reviewCount: scoreMap.has(item.id) ? scoreMap.get(item.id)!.reviewCount : 0,
     }));
 
     // Cache for 10 minutes (trending data changes less frequently)

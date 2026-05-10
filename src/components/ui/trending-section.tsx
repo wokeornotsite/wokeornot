@@ -80,7 +80,7 @@ export default function TrendingSection() {
               <TrendingCarousel 
                 items={trendingMovies}
                 type="movie"
-                wokeScores={Object.fromEntries(trendingMovies.filter((item: any) => typeof item.wokeScore === 'number').map((item: any) => [item.id, item.wokeScore]))}
+                wokeScores={Object.fromEntries(trendingMovies.filter((item: any) => typeof item.wokeScore === 'number' && item.reviewCount > 0).map((item: any) => [item.id, item.wokeScore]))}
               />
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function TrendingSection() {
               <TrendingCarousel 
                 items={trendingTV}
                 type="tv"
-                wokeScores={Object.fromEntries(trendingTV.filter((item: any) => typeof item.wokeScore === 'number').map((item: any) => [item.id, item.wokeScore]))}
+                wokeScores={Object.fromEntries(trendingTV.filter((item: any) => typeof item.wokeScore === 'number' && item.reviewCount > 0).map((item: any) => [item.id, item.wokeScore]))}
               />
             </div>
           </div>
