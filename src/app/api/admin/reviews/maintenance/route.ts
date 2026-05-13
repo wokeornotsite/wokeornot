@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAPI } from '@/lib/admin-auth';
+import { writeAuditLog } from '@/lib/audit';
 
 const objectIdHex = /^[a-f\d]{24}$/i;
 
@@ -113,7 +114,15 @@ export async function POST(req: NextRequest) {
     const ids: string[] = Array.isArray(body?.ids) ? body.ids : [];
     if (!ids.length) return NextResponse.json({ error: 'No review IDs provided' }, { status: 400 });
 
+    const kind: string = typeof body?.kind === 'string' ? body.kind : 'bad';
     const res = await prisma.review.deleteMany({ where: { id: { in: ids } } });
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action: kind === 'duplicates' ? 'MAINTENANCE_PURGE_DUPLICATE_REVIEWS' : 'MAINTENANCE_PURGE_BAD_REVIEWS',
+      targetId: 'reviews',
+      targetType: 'Maintenance',
+      details: `Deleted ${res.count || 0} review(s) (${kind})`,
+    });
     return NextResponse.json({ deleted: res.count || 0 });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to delete reviews' }, { status: 500 });

@@ -51,11 +51,6 @@ export default function ForumThreadsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_FORUM_THREAD', targetId: row.id, targetType: 'ForumThread', details: row.title }),
-      });
       setSnackbar({ open: true, message: 'Thread deleted' });
       mutate();
     } catch {

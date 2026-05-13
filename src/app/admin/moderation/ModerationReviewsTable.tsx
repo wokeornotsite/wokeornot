@@ -77,11 +77,6 @@ export default function ModerationReviewsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, text: editText }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'EDIT_REVIEW', targetId: row.id, targetType: 'Review', details: `Edited review text` }),
-      });
       setSnackbar({ open: true, message: 'Review updated' });
       mutate();
     } catch {
@@ -99,11 +94,6 @@ export default function ModerationReviewsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, isHidden: nextHidden }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: nextHidden ? 'HIDE_REVIEW' : 'UNHIDE_REVIEW', targetId: row.id, targetType: 'Review' }),
-      });
       setSnackbar({ open: true, message: nextHidden ? 'Review hidden' : 'Review unhidden' });
       mutate();
     } catch {
@@ -117,11 +107,6 @@ export default function ModerationReviewsTable() {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: reviewId }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_REVIEW', targetId: reviewId, targetType: 'Review' }),
       });
       setSnackbar({ open: true, message: 'Review deleted' });
       mutate();

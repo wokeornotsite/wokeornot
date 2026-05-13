@@ -1,27 +1,34 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Button } from '@mui/material';
+import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Button, TextField } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { useAuditLog } from './useAuditLog';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DownloadIcon from '@mui/icons-material/Download';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 const ACTION_LABELS: Record<string, string> = {
   BAN_USER: 'Banned User',
   UNBAN_USER: 'Unbanned User',
   WARN_USER: 'Warned User',
   DELETE_USER: 'Deleted User',
+  PROMOTE_USER: 'Role Promotion',
   PROMOTE_ADMIN: 'Promoted to Admin',
   PROMOTE_MODERATOR: 'Promoted to Moderator',
   DEMOTE_USER: 'Demoted to User',
   DELETE_REVIEW: 'Deleted Review',
   HIDE_REVIEW: 'Hid Review',
   UNHIDE_REVIEW: 'Unhid Review',
+  EDIT_REVIEW: 'Edited Review',
   DELETE_MOVIE: 'Deleted Content',
+  DELETE_CONTENT: 'Deleted Content',
+  EDIT_CONTENT: 'Edited Content',
   BULK_DELETE_CONTENT: 'Bulk Deleted Content',
   DELETE_FORUM_THREAD: 'Deleted Forum Thread',
   REMOVE_WARNING: 'Removed Warning',
+  MAINTENANCE_PURGE_BAD_REVIEWS: 'Purged Bad Reviews',
+  MAINTENANCE_PURGE_DUPLICATE_REVIEWS: 'Purged Duplicate Reviews',
 };
 
 // Color per action (red = destructive, green = restorative, amber = warn, blue = role change)
@@ -30,12 +37,18 @@ const ACTION_COLORS: Record<string, string> = {
   DELETE_USER: '#ef4444',
   DELETE_REVIEW: '#ef4444',
   DELETE_MOVIE: '#ef4444',
+  DELETE_CONTENT: '#ef4444',
   BULK_DELETE_CONTENT: '#ef4444',
   DELETE_FORUM_THREAD: '#ef4444',
+  MAINTENANCE_PURGE_BAD_REVIEWS: '#ef4444',
+  MAINTENANCE_PURGE_DUPLICATE_REVIEWS: '#ef4444',
   HIDE_REVIEW: '#f97316',
+  EDIT_REVIEW: '#f97316',
+  EDIT_CONTENT: '#f97316',
   WARN_USER: '#fbbf24',
   UNBAN_USER: '#22c55e',
   UNHIDE_REVIEW: '#22c55e',
+  PROMOTE_USER: '#38bdf8',
   PROMOTE_ADMIN: '#38bdf8',
   PROMOTE_MODERATOR: '#a78bfa',
   DEMOTE_USER: '#9ca3af',
@@ -46,11 +59,13 @@ const TARGET_TYPE_COLORS: Record<string, string> = {
   User: '#38bdf8',
   Review: '#a78bfa',
   Movie: '#e879f9',
+  Content: '#e879f9',
   ForumThread: '#fbbf24',
+  Maintenance: '#9ca3af',
 };
 
 const ACTION_OPTIONS = Object.keys(ACTION_LABELS);
-const TARGET_TYPE_OPTIONS = ['User', 'Review', 'Movie', 'ForumThread'];
+const TARGET_TYPE_OPTIONS = ['User', 'Review', 'Content', 'Movie', 'ForumThread', 'Maintenance'];
 
 export default function AuditLogTable() {
   const router = useRouter();
@@ -60,6 +75,8 @@ export default function AuditLogTable() {
   const [targetType, setTargetType] = React.useState('');
   const [startDate, setStartDate] = React.useState('');
   const [endDate, setEndDate] = React.useState('');
+  const [adminEmail, setAdminEmail] = React.useState('');
+  const dAdminEmail = useDebouncedValue(adminEmail, 300);
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   // Initialize from URL
@@ -70,6 +87,7 @@ export default function AuditLogTable() {
     setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 25 : pageSize });
     setAction(qp.get('action') || '');
     setTargetType(qp.get('targetType') || '');
+    setAdminEmail(qp.get('adminEmail') || '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,14 +98,16 @@ export default function AuditLogTable() {
     if (paginationModel.pageSize !== 25) qp.set('pageSize', String(paginationModel.pageSize));
     if (action) qp.set('action', action);
     if (targetType) qp.set('targetType', targetType);
+    if (dAdminEmail) qp.set('adminEmail', dAdminEmail);
     router.replace(`?${qp.toString()}`);
-  }, [action, targetType, paginationModel.page, paginationModel.pageSize, router]);
+  }, [action, targetType, dAdminEmail, paginationModel.page, paginationModel.pageSize, router]);
 
   const { rows, total, isLoading, error } = useAuditLog({
     page: paginationModel.page,
     pageSize: paginationModel.pageSize,
     action: action || undefined,
     targetType: targetType || undefined,
+    adminEmail: dAdminEmail || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
   });
@@ -204,6 +224,14 @@ export default function AuditLogTable() {
             ))}
           </Select>
         </FormControl>
+        <TextField
+          size="small"
+          value={adminEmail}
+          onChange={(e) => { setAdminEmail(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          placeholder="Filter by admin email…"
+          InputProps={{ sx: { color: '#fff' } }}
+          sx={{ minWidth: 220 }}
+        />
         <input
           type="date"
           value={startDate}

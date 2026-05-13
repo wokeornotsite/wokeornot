@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdminAPI } from '@/lib/admin-auth';
+import { requireAdminAPI, requireStaffAPI } from '@/lib/admin-auth';
 import { sendEmail } from '@/lib/mailer';
 import { getWarnNotificationEmailHtml, getBanNotificationEmailHtml } from '@/lib/email-templates';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminAPI();
+  // Staff can read users (for moderation lookups); destructive actions below
+  // still require ADMIN.
+  const auth = await requireStaffAPI();
   if ('error' in auth) return auth.error;
 
   try {
@@ -101,9 +104,16 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
-    const existing = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true } });
     if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
     await prisma.user.delete({ where: { id } });
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action: 'DELETE_USER',
+      targetId: id,
+      targetType: 'User',
+      details: existing.email,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
@@ -145,14 +155,12 @@ async function applySingleUserPatch(
       data: { isBanned: true, banReason: 'Automatically banned after 3 warnings' },
       select: { id: true, email: true, name: true, role: true, isBanned: true, banReason: true, warnCount: true },
     });
-    await prisma.auditLog.create({
-      data: {
-        adminId,
-        action: 'BAN_USER',
-        targetId: id,
-        targetType: 'User',
-        details: `${updated.email} | Automatically banned after 3 warnings`,
-      },
+    await writeAuditLog({
+      adminId,
+      action: 'BAN_USER',
+      targetId: id,
+      targetType: 'User',
+      details: `${updated.email} | Automatically banned after 3 warnings`,
     });
     // Send auto-ban email
     try {
@@ -201,31 +209,33 @@ async function applySingleUserPatch(
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAdminAPI();
+  // Staff can warn users; ban/promote/demote/manual-warn-count actions still
+  // require ADMIN. We re-check below once we know what was requested.
+  const auth = await requireStaffAPI();
   if ('error' in auth) return auth.error;
   try {
     const body = await req.json();
     const adminId = auth.session.user.id as string;
+    const callerIsAdmin = auth.session.user.role === 'ADMIN';
 
     // Bulk operation support
     if (Array.isArray(body.ids)) {
       const { ids, action, banReason } = body as { ids: string[]; action: 'ban' | 'warn'; banReason?: string };
       if (!ids.length) return NextResponse.json({ error: 'No IDs provided' }, { status: 400 });
+      if (action === 'ban' && !callerIsAdmin) {
+        return NextResponse.json({ error: 'Forbidden: Admin access required to ban users' }, { status: 403 });
+      }
 
       const results = await Promise.all(
         ids.map(async (id) => {
           try {
             if (action === 'ban') {
               const updated = await applySingleUserPatch(id, { isBanned: true, banReason: banReason || null }, adminId);
-              await prisma.auditLog.create({
-                data: { adminId, action: 'BAN_USER', targetId: id, targetType: 'User', details: `${updated.email} | ${banReason || ''}` },
-              });
+              await writeAuditLog({ adminId, action: 'BAN_USER', targetId: id, targetType: 'User', details: `${updated.email} | ${banReason || ''}` });
               return { id, success: true };
             } else if (action === 'warn') {
               const updated = await applySingleUserPatch(id, { warnDelta: 1 }, adminId);
-              await prisma.auditLog.create({
-                data: { adminId, action: 'WARN_USER', targetId: id, targetType: 'User', details: updated.email },
-              });
+              await writeAuditLog({ adminId, action: 'WARN_USER', targetId: id, targetType: 'User', details: updated.email });
               try {
                 await sendEmail({
                   to: updated.email,
@@ -264,11 +274,66 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: `Invalid role: "${role}". Must be USER, MODERATOR, or ADMIN.` }, { status: 400 });
     }
 
+    // Moderators may only warn users; ban/role-change/manual-warn-count edits
+    // are admin-only.
+    if (!callerIsAdmin) {
+      const adminOnlyAction =
+        typeof role !== 'undefined' ||
+        typeof isBanned !== 'undefined' ||
+        typeof banReason !== 'undefined' ||
+        typeof warnCount === 'number';
+      if (adminOnlyAction) {
+        return NextResponse.json({ error: 'Forbidden: Admin access required for this action' }, { status: 403 });
+      }
+    }
+
     // Verify user exists
-    const existingUser = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    const existingUser = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true, role: true } });
     if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const updated = await applySingleUserPatch(id, { role, isBanned, banReason, warnDelta, warnCount, warnReason }, adminId);
+
+    // Server-side audit for the single-user PATCH path. The auto-ban-after-3-warns
+    // branch inside applySingleUserPatch logs its own BAN_USER entry; here we
+    // log the explicit action(s) the admin requested.
+    if (typeof isBanned === 'boolean') {
+      await writeAuditLog({
+        adminId,
+        action: isBanned ? 'BAN_USER' : 'UNBAN_USER',
+        targetId: id,
+        targetType: 'User',
+        details: `${updated.email}${banReason ? ` | ${banReason}` : ''}`,
+      });
+    }
+    if (typeof role !== 'undefined' && role !== existingUser.role) {
+      await writeAuditLog({
+        adminId,
+        action: role === 'USER' ? 'DEMOTE_USER' : 'PROMOTE_USER',
+        targetId: id,
+        targetType: 'User',
+        details: `${updated.email} | ${existingUser.role} → ${role}`,
+      });
+    }
+    if (typeof warnDelta === 'number' && warnDelta > 0) {
+      // Note: if this warn pushed the user to 3+ warns, applySingleUserPatch
+      // will additionally log an auto-BAN_USER entry. Both are intentional —
+      // they capture the admin's intent (warn) and the system's reaction (ban).
+      await writeAuditLog({
+        adminId,
+        action: 'WARN_USER',
+        targetId: id,
+        targetType: 'User',
+        details: warnReason ? `${updated.email} | ${warnReason}` : updated.email,
+      });
+    } else if (typeof warnDelta === 'number' && warnDelta < 0) {
+      await writeAuditLog({
+        adminId,
+        action: 'REMOVE_WARNING',
+        targetId: id,
+        targetType: 'User',
+        details: updated.email,
+      });
+    }
     return NextResponse.json({ data: updated });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });

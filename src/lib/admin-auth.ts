@@ -3,21 +3,49 @@ import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { authOptions } from './auth';
 
+type Session = Awaited<ReturnType<typeof getServerSession>>;
+
+export function isAdmin(session: Session | { user?: { role?: string } } | null | undefined) {
+  return (session as any)?.user?.role === 'ADMIN';
+}
+
+export function isStaff(session: Session | { user?: { role?: string } } | null | undefined) {
+  const role = (session as any)?.user?.role;
+  return role === 'ADMIN' || role === 'MODERATOR';
+}
+
 /**
  * Require admin role for server components/pages
  * Redirects to login or home if unauthorized
  */
 export async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user) {
     redirect('/login?error=You+must+be+logged+in');
   }
-  
+
   if (session.user.role !== 'ADMIN') {
     redirect('/?error=You+do+not+have+permission+to+access+this+page');
   }
-  
+
+  return session;
+}
+
+/**
+ * Require staff role (ADMIN or MODERATOR) for server components/pages.
+ */
+export async function requireStaff() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect('/login?error=You+must+be+logged+in');
+  }
+
+  if (!isStaff(session)) {
+    redirect('/?error=You+do+not+have+permission+to+access+this+page');
+  }
+
   return session;
 }
 
@@ -27,7 +55,7 @@ export async function requireAdmin() {
  */
 export async function requireAdminAPI(): Promise<{ session: any } | { error: NextResponse }> {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user) {
     return {
       error: NextResponse.json(
@@ -36,7 +64,7 @@ export async function requireAdminAPI(): Promise<{ session: any } | { error: Nex
       )
     };
   }
-  
+
   if (session.user.role !== 'ADMIN') {
     return {
       error: NextResponse.json(
@@ -45,6 +73,33 @@ export async function requireAdminAPI(): Promise<{ session: any } | { error: Nex
       )
     };
   }
-  
+
+  return { session };
+}
+
+/**
+ * Require staff role (ADMIN or MODERATOR) for API routes.
+ */
+export async function requireStaffAPI(): Promise<{ session: any } | { error: NextResponse }> {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return {
+      error: NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    };
+  }
+
+  if (!isStaff(session)) {
+    return {
+      error: NextResponse.json(
+        { error: 'Forbidden: Staff access required' },
+        { status: 403 }
+      )
+    };
+  }
+
   return { session };
 }

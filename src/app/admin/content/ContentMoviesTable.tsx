@@ -1,9 +1,10 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Button } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import EditIcon from '@mui/icons-material/Edit';
 import { useMovies } from './useMovies';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -18,6 +19,10 @@ export default function ContentMoviesTable() {
   const dq = useDebouncedValue(q, 300);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [bulkDeleteDialog, setBulkDeleteDialog] = React.useState(false);
+  const [editDialog, setEditDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
+  const [editForm, setEditForm] = React.useState<{ title: string; overview: string; releaseDate: string; posterPath: string; backdropPath: string }>({ title: '', overview: '', releaseDate: '', posterPath: '', backdropPath: '' });
+  const [editLoading, setEditLoading] = React.useState(false);
+  const [editError, setEditError] = React.useState<string | null>(null);
   const [rowSelectionModel, setRowSelectionModel] = React.useState<GridRowSelectionModel>({ type: 'include', ids: new Set<string>() });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
@@ -58,17 +63,62 @@ export default function ContentMoviesTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_MOVIE', targetId: row.id, targetType: 'Movie', details: row.title }),
-      });
       setSnackbar({ open: true, message: 'Content deleted' });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error deleting content' });
     }
     setDeleteDialog({ open: false, row: null });
+  }
+
+  function openEdit(row: any) {
+    setEditError(null);
+    setEditForm({
+      title: row.title ?? '',
+      overview: row.overview ?? '',
+      releaseDate: row.releaseDate ? new Date(row.releaseDate).toISOString().slice(0, 10) : '',
+      posterPath: row.posterPath ?? '',
+      backdropPath: row.backdropPath ?? '',
+    });
+    setEditDialog({ open: true, row });
+  }
+
+  async function saveEdit() {
+    const row = editDialog.row;
+    if (!row) return;
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      const payload: any = { id: row.id };
+      if (editForm.title.trim() !== (row.title ?? '')) payload.title = editForm.title.trim();
+      if (editForm.overview !== (row.overview ?? '')) payload.overview = editForm.overview;
+      const currentDate = row.releaseDate ? new Date(row.releaseDate).toISOString().slice(0, 10) : '';
+      if (editForm.releaseDate !== currentDate) payload.releaseDate = editForm.releaseDate || null;
+      if (editForm.posterPath !== (row.posterPath ?? '')) payload.posterPath = editForm.posterPath || null;
+      if (editForm.backdropPath !== (row.backdropPath ?? '')) payload.backdropPath = editForm.backdropPath || null;
+
+      if (Object.keys(payload).length === 1) {
+        setEditDialog({ open: false, row: null });
+        return;
+      }
+
+      const res = await fetch('/api/admin/movies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || 'Save failed');
+      }
+      setSnackbar({ open: true, message: 'Content updated' });
+      setEditDialog({ open: false, row: null });
+      mutate();
+    } catch (e: any) {
+      setEditError(e?.message || 'Save failed');
+    } finally {
+      setEditLoading(false);
+    }
   }
 
   async function confirmBulkDelete() {
@@ -79,11 +129,6 @@ export default function ContentMoviesTable() {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'BULK_DELETE_CONTENT', targetType: 'Movie', details: `Deleted ${ids.length} items` }),
       });
       setSnackbar({ open: true, message: `${ids.length} item${ids.length > 1 ? 's' : ''} deleted` });
       setRowSelectionModel({ type: 'include', ids: new Set<string>() });
@@ -109,8 +154,9 @@ export default function ContentMoviesTable() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 90,
+      width: 120,
       getActions: (params) => [
+        <GridActionsCellItem icon={<EditIcon sx={{ color: '#38bdf8' }} />} label="Edit" onClick={() => openEdit(params.row)} />,
         <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, row: params.row })} />,
       ],
     },
@@ -207,6 +253,90 @@ export default function ContentMoviesTable() {
           </div>
         </div>
       )}
+      <Dialog
+        open={editDialog.open}
+        onClose={() => !editLoading && setEditDialog({ open: false, row: null })}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { background: '#232336', color: '#fff' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#38bdf8' }}>
+          Edit Content {editDialog.row ? `— ${editDialog.row.title}` : ''}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Title"
+              size="small"
+              value={editForm.title}
+              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+              InputProps={{ sx: { color: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#9ca3af' } }}
+              fullWidth
+            />
+            <TextField
+              label="Overview"
+              size="small"
+              value={editForm.overview}
+              onChange={(e) => setEditForm((f) => ({ ...f, overview: e.target.value }))}
+              InputProps={{ sx: { color: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#9ca3af' } }}
+              multiline
+              minRows={4}
+              maxRows={10}
+              fullWidth
+            />
+            <TextField
+              label="Release date (YYYY-MM-DD)"
+              size="small"
+              value={editForm.releaseDate}
+              onChange={(e) => setEditForm((f) => ({ ...f, releaseDate: e.target.value }))}
+              InputProps={{ sx: { color: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#9ca3af' } }}
+              placeholder="2024-05-13"
+            />
+            <TextField
+              label="Poster path (TMDB)"
+              size="small"
+              value={editForm.posterPath}
+              onChange={(e) => setEditForm((f) => ({ ...f, posterPath: e.target.value }))}
+              InputProps={{ sx: { color: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#9ca3af' } }}
+              placeholder="/abc123.jpg"
+            />
+            <TextField
+              label="Backdrop path (TMDB)"
+              size="small"
+              value={editForm.backdropPath}
+              onChange={(e) => setEditForm((f) => ({ ...f, backdropPath: e.target.value }))}
+              InputProps={{ sx: { color: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#9ca3af' } }}
+              placeholder="/xyz789.jpg"
+            />
+            <Box sx={{ color: '#9ca3af', fontSize: 12 }}>
+              Woke score is derived from reviews and cannot be edited here.
+            </Box>
+            {editError && <Box sx={{ color: '#ef4444', fontSize: 13 }}>{editError}</Box>}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setEditDialog({ open: false, row: null })}
+            disabled={editLoading}
+            sx={{ color: '#a78bfa' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={saveEdit}
+            disabled={editLoading || !editForm.title.trim()}
+            variant="contained"
+            sx={{ background: '#38bdf8', color: '#000', '&:hover': { background: '#22d3ee' } }}
+          >
+            {editLoading ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       {bulkDeleteDialog && (
         <div style={{
           position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',

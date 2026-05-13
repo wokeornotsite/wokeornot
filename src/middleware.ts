@@ -84,10 +84,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 3. Protect /admin routes — non-ADMIN users are redirected to home.
+  // 3. Protect /admin routes — non-staff users are redirected to home.
+  //    Staff = ADMIN or MODERATOR. Page- and API-level guards then enforce
+  //    finer-grained capabilities (e.g., bans/deletes are ADMIN-only).
   if (req.nextUrl.pathname.startsWith('/admin')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token || token.role !== 'ADMIN') {
+    if (!token || (token.role !== 'ADMIN' && token.role !== 'MODERATOR')) {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }

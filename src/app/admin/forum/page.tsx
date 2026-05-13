@@ -2,8 +2,10 @@ import React from 'react';
 import { Typography, Box, Paper, Divider } from '@mui/material';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 import ForumThreadsTable from './ForumThreadsTable';
+import { requireAdmin } from '@/lib/admin-auth';
 
-export default function ForumModerationPage() {
+export default async function ForumModerationPage() {
+  await requireAdmin();
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 3 } }}>
       <AdminBreadcrumbs items={[{ label: 'Admin', href: '/admin' }, { label: 'Forum' }]} />

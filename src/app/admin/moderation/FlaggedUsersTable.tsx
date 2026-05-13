@@ -25,11 +25,6 @@ export default function FlaggedUsersTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, isBanned: false, banReason: null }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'UNBAN_USER', targetId: row.id, targetType: 'User', details: row.email }),
-      });
       setSnackbar({ open: true, message: 'User unbanned' });
       mutate();
     } catch {
@@ -43,11 +38,6 @@ export default function FlaggedUsersTable() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, warnDelta: -1 }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'REMOVE_WARNING', targetId: row.id, targetType: 'User', details: row.email }),
       });
       setSnackbar({ open: true, message: 'Warning removed' });
       mutate();

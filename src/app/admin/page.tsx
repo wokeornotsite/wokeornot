@@ -2,16 +2,17 @@ import React from 'react';
 import styles from './admin.module.css';
 import { Typography, Grid, Paper, Box, Divider, Button } from '@mui/material';
 import Link from 'next/link';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requireStaff } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats';
 import RecentReviewsTable from '@/components/admin/RecentReviewsTable';
 import RecentSignupsTable from '@/components/admin/RecentSignupsTable';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
+import DashboardInsights from '@/components/admin/DashboardInsights';
 
 export default async function AdminDashboardPage() {
   // Protect route: Only allow admins
-  const session = await requireAdmin();
+  const session = await requireStaff();
   
   // Fetch dashboard stats
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -97,7 +98,10 @@ export default async function AdminDashboardPage() {
         weeklyUsers={weeklyUsers}
         weeklyReviews={weeklyReviews}
       />
-      
+
+      {/* Moderation health widgets */}
+      <DashboardInsights />
+
       <Box mt={4} mb={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
           <Typography variant="h5" component="h2" style={{ fontWeight: 700, color: '#38bdf8' }}>

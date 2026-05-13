@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdminAPI } from '@/lib/admin-auth';
+import { requireStaffAPI } from '@/lib/admin-auth';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminAPI();
+  const auth = await requireStaffAPI();
   if ('error' in auth) return auth.error;
   try {
     const { searchParams } = new URL(req.url);
@@ -101,14 +102,26 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const auth = await requireAdminAPI();
+  const auth = await requireStaffAPI();
   if ('error' in auth) return auth.error;
   try {
     const { id } = await req.json();
     if (!id) {
       return NextResponse.json({ error: 'Review ID required' }, { status: 400 });
     }
+    // Read a snapshot for the audit detail before deletion.
+    const snapshot = await prisma.review.findUnique({
+      where: { id },
+      select: { id: true, userId: true, rating: true, contentId: true },
+    });
     await prisma.review.delete({ where: { id } });
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action: 'DELETE_REVIEW',
+      targetId: id,
+      targetType: 'Review',
+      details: snapshot ? `userId=${snapshot.userId ?? 'guest'} rating=${snapshot.rating} contentId=${snapshot.contentId ?? ''}` : null,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 });
@@ -116,7 +129,7 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAdminAPI();
+  const auth = await requireStaffAPI();
   if ('error' in auth) return auth.error;
   try {
     const body = await req.json();
@@ -127,6 +140,26 @@ export async function PATCH(req: NextRequest) {
     if (typeof rating === 'number') data.rating = rating;
     if (typeof isHidden === 'boolean') data.isHidden = isHidden;
     const updated = await prisma.review.update({ where: { id }, data });
+
+    // Pick the most specific action for the audit log.
+    let action: 'HIDE_REVIEW' | 'UNHIDE_REVIEW' | 'EDIT_REVIEW' = 'EDIT_REVIEW';
+    let details: string | undefined;
+    if (typeof isHidden === 'boolean' && typeof text === 'undefined' && typeof rating === 'undefined') {
+      action = isHidden ? 'HIDE_REVIEW' : 'UNHIDE_REVIEW';
+    } else {
+      const parts: string[] = [];
+      if (typeof text !== 'undefined') parts.push('text');
+      if (typeof rating === 'number') parts.push(`rating=${rating}`);
+      if (typeof isHidden === 'boolean') parts.push(`isHidden=${isHidden}`);
+      details = parts.length ? `Edited ${parts.join(', ')}` : undefined;
+    }
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action,
+      targetId: id,
+      targetType: 'Review',
+      details,
+    });
     return NextResponse.json({ data: updated });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update review' }, { status: 500 });

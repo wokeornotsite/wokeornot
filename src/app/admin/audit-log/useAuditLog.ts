@@ -6,6 +6,7 @@ export function useAuditLog(params?: {
   pageSize?: number;
   action?: string;
   targetType?: string;
+  adminEmail?: string;
   startDate?: string;
   endDate?: string;
 }) {
@@ -14,6 +15,7 @@ export function useAuditLog(params?: {
   if (params?.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
   if (params?.action) query.set('action', params.action);
   if (params?.targetType) query.set('targetType', params.targetType);
+  if (params?.adminEmail) query.set('adminEmail', params.adminEmail);
   if (params?.startDate) query.set('startDate', params.startDate);
   if (params?.endDate) query.set('endDate', params.endDate);
 

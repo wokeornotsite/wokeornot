@@ -78,6 +78,8 @@ export async function GET(req: NextRequest) {
     const pageSize = Math.min(Number(searchParams.get('pageSize') || '50'), 100);
     const action = searchParams.get('action') || '';
     const targetType = searchParams.get('targetType') || '';
+    const adminId = searchParams.get('adminId') || '';
+    const adminEmail = searchParams.get('adminEmail')?.trim() || '';
 
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -88,6 +90,22 @@ export async function GET(req: NextRequest) {
     if (targetType) where.targetType = targetType;
     if (startDate) where.createdAt = { ...where.createdAt, gte: new Date(startDate) };
     if (endDate) where.createdAt = { ...where.createdAt, lte: new Date(endDate + 'T23:59:59Z') };
+
+    if (adminId) {
+      where.adminId = adminId;
+    } else if (adminEmail) {
+      // Resolve email substring → admin user IDs, then filter audit log.
+      const matchingAdmins = await prisma.user.findMany({
+        where: { email: { contains: adminEmail, mode: 'insensitive' } },
+        select: { id: true },
+        take: 100,
+      });
+      if (matchingAdmins.length === 0) {
+        // No matches: short-circuit to empty result rather than running a no-op query.
+        return NextResponse.json({ data: [], total: 0 });
+      }
+      where.adminId = { in: matchingAdmins.map((u) => u.id) };
+    }
 
     const [data, total] = await Promise.all([
       prisma.auditLog.findMany({

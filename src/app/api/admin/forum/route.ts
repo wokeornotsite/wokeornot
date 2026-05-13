@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAPI } from '@/lib/admin-auth';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdminAPI();
@@ -51,7 +52,18 @@ export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'Thread ID required' }, { status: 400 });
+    const snapshot = await prisma.forumThread.findUnique({
+      where: { id },
+      select: { title: true, userId: true },
+    });
     await prisma.forumThread.delete({ where: { id } });
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action: 'DELETE_FORUM_THREAD',
+      targetId: id,
+      targetType: 'ForumThread',
+      details: snapshot ? `"${snapshot.title}" (userId=${snapshot.userId ?? 'unknown'})` : null,
+    });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to delete forum thread' }, { status: 500 });

@@ -16,7 +16,9 @@ import HistoryIcon from '@mui/icons-material/History';
 import ForumIcon from '@mui/icons-material/Forum';
 import { Button, Drawer, Divider, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 
-const navGroups = [
+type NavLink = { href: string; icon: React.ReactNode; label: string; exact: boolean; adminOnly?: boolean };
+
+const navGroups: { groupLabel: string | null; links: NavLink[] }[] = [
   {
     groupLabel: null,
     links: [
@@ -28,7 +30,7 @@ const navGroups = [
     links: [
       { href: '/admin/moderation', icon: <ReviewsIcon />, label: 'Moderation', exact: false },
       { href: '/admin/content', icon: <ManageSearchIcon />, label: 'Content', exact: false },
-      { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false },
+      { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false, adminOnly: true },
     ],
   },
   {
@@ -41,12 +43,12 @@ const navGroups = [
   {
     groupLabel: 'System',
     links: [
-      { href: '/admin/maintenance', icon: <BuildIcon />, label: 'Maintenance', exact: false },
+      { href: '/admin/maintenance', icon: <BuildIcon />, label: 'Maintenance', exact: false, adminOnly: true },
     ],
   },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isAdmin = true }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -70,7 +72,10 @@ export default function AdminSidebar() {
       <div className={styles.adminLogo}>WokeOrNot Admin</div>
       <nav style={{ flex: 1 }}>
         <ul className={styles.adminNavList} style={{ padding: 0, margin: 0 }}>
-          {navGroups.map((group, gi) => (
+          {navGroups.map((group, gi) => {
+            const visibleLinks = group.links.filter((l) => isAdmin || !l.adminOnly);
+            if (visibleLinks.length === 0) return null;
+            return (
             <React.Fragment key={gi}>
               {gi > 0 && (
                 <>
@@ -84,7 +89,7 @@ export default function AdminSidebar() {
                   )}
                 </>
               )}
-              {group.links.map((link) => {
+              {visibleLinks.map((link) => {
                 const active = isActive(link.href, link.exact);
                 return (
                   <li key={link.href}>
@@ -100,7 +105,8 @@ export default function AdminSidebar() {
                 );
               })}
             </React.Fragment>
-          ))}
+            );
+          })}
         </ul>
       </nav>
       <Button

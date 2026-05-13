@@ -14,6 +14,7 @@ import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserActivityDialog from './UserActivityDialog';
+import { WARN_TEMPLATES, BAN_TEMPLATES } from '@/lib/moderation-templates';
 
 export default function ModerationUsersTable() {
   const router = useRouter();
@@ -88,11 +89,6 @@ export default function ModerationUsersTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, isBanned: true, banReason: banReason || undefined }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'BAN_USER', targetId: row.id, targetType: 'User', details: `${row.email} | ${banReason || ''}` }),
-      });
       setSnackbar({ open: true, message: 'User banned' });
       mutate();
     } catch {
@@ -108,11 +104,6 @@ export default function ModerationUsersTable() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, isBanned: false, banReason: null }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'UNBAN_USER', targetId: row.id, targetType: 'User', details: row.email }),
       });
       setSnackbar({ open: true, message: 'User unbanned' });
       mutate();
@@ -130,11 +121,6 @@ export default function ModerationUsersTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, warnDelta: 1, warnReason: warnReason || undefined }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'WARN_USER', targetId: row.id, targetType: 'User', details: row.email + (warnReason ? ` | ${warnReason}` : '') }),
-      });
       setSnackbar({ open: true, message: 'Warning issued' });
       mutate();
     } catch {
@@ -151,11 +137,6 @@ export default function ModerationUsersTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, warnDelta: -1 }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'REMOVE_WARNING', targetId: row.id, targetType: 'User', details: row.email }),
-      });
       setSnackbar({ open: true, message: 'Warning removed' });
       mutate();
     } catch {
@@ -171,11 +152,6 @@ export default function ModerationUsersTable() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, role: 'MODERATOR' }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'PROMOTE_MODERATOR', targetId: row.id, targetType: 'User', details: row.email }),
       });
       setSnackbar({ open: true, message: 'User promoted to moderator' });
       mutate();
@@ -194,11 +170,6 @@ export default function ModerationUsersTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, role: 'USER' }),
       });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DEMOTE_USER', targetId: row.id, targetType: 'User', details: row.email }),
-      });
       setSnackbar({ open: true, message: 'User demoted to User role' });
       mutate();
     } catch {
@@ -215,11 +186,6 @@ export default function ModerationUsersTable() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: row.id, role: 'ADMIN' }),
-      });
-      await fetch('/api/admin/auditlog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'PROMOTE_ADMIN', targetId: row.id, targetType: 'User', details: row.email }),
       });
       setSnackbar({ open: true, message: 'User promoted to admin' });
       mutate();
@@ -460,19 +426,36 @@ export default function ModerationUsersTable() {
       />
 
       {/* Ban dialog */}
-      <Dialog open={banDialog.open} onClose={() => setBanDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+      <Dialog open={banDialog.open} onClose={() => setBanDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 420 } }}>
         <DialogTitle sx={{ fontWeight: 700 }}>Ban {banDialog.row?.email}</DialogTitle>
         <DialogContent>
+          <FormControl size="small" fullWidth sx={{ mt: 1, mb: 2 }}>
+            <InputLabel sx={{ color: '#9ca3af' }}>Template (optional)</InputLabel>
+            <Select
+              label="Template (optional)"
+              value=""
+              onChange={(e) => {
+                const tmpl = BAN_TEMPLATES.find((t) => t.key === e.target.value);
+                if (tmpl) setBanReason(tmpl.body);
+              }}
+              sx={{ color: '#fff' }}
+            >
+              {BAN_TEMPLATES.map((t) => (
+                <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             autoFocus
             fullWidth
             size="small"
+            multiline
+            minRows={3}
             label="Reason (optional)"
             value={banReason}
             onChange={(e) => setBanReason(e.target.value)}
             InputProps={{ sx: { color: '#fff' } }}
             InputLabelProps={{ sx: { color: '#9ca3af' } }}
-            sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
@@ -482,19 +465,36 @@ export default function ModerationUsersTable() {
       </Dialog>
 
       {/* Warn dialog */}
-      <Dialog open={warnDialog.open} onClose={() => setWarnDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+      <Dialog open={warnDialog.open} onClose={() => setWarnDialog({ open: false, row: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 420 } }}>
         <DialogTitle sx={{ fontWeight: 700 }}>Warn {warnDialog.row?.email}</DialogTitle>
         <DialogContent>
+          <FormControl size="small" fullWidth sx={{ mt: 1, mb: 2 }}>
+            <InputLabel sx={{ color: '#9ca3af' }}>Template (optional)</InputLabel>
+            <Select
+              label="Template (optional)"
+              value=""
+              onChange={(e) => {
+                const tmpl = WARN_TEMPLATES.find((t) => t.key === e.target.value);
+                if (tmpl) setWarnReason(tmpl.body);
+              }}
+              sx={{ color: '#fff' }}
+            >
+              {WARN_TEMPLATES.map((t) => (
+                <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             autoFocus
             fullWidth
             size="small"
+            multiline
+            minRows={3}
             label="Reason (optional)"
             value={warnReason}
             onChange={(e) => setWarnReason(e.target.value)}
             InputProps={{ sx: { color: '#fff' } }}
             InputLabelProps={{ sx: { color: '#9ca3af' } }}
-            sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
