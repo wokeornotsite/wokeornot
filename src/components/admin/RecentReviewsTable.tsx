@@ -24,7 +24,22 @@ interface Review {
   content: {
     title: string;
     contentType: string;
+    tmdbId?: number | null;
   } | null;
+}
+
+function getContentHref(contentType?: string | null, tmdbId?: number | null): string | null {
+  if (!tmdbId) return null;
+  switch (contentType) {
+    case 'MOVIE':
+      return `/movies/${tmdbId}`;
+    case 'TV_SHOW':
+      return `/tv-shows/${tmdbId}`;
+    case 'KIDS':
+      return `/kids/${tmdbId}`;
+    default:
+      return null;
+  }
 }
 
 interface RecentReviewsTableProps {
@@ -186,9 +201,29 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                   fontSize: '0.9rem',
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ color: '#e2e8f0' }}>
-                      {review.content?.title || 'Unknown content'}
-                    </Typography>
+                    {(() => {
+                      const href = getContentHref(review.content?.contentType, review.content?.tmdbId);
+                      const title = review.content?.title || 'Unknown content';
+                      return href ? (
+                        <Link
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#38bdf8', textDecoration: 'none' }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ color: '#38bdf8', '&:hover': { textDecoration: 'underline' } }}
+                          >
+                            {title}
+                          </Typography>
+                        </Link>
+                      ) : (
+                        <Typography variant="body2" sx={{ color: '#e2e8f0' }}>
+                          {title}
+                        </Typography>
+                      );
+                    })()}
                     <Chip 
                       label={getContentTypeLabel(review.content?.contentType || '')} 
                       size="small"
