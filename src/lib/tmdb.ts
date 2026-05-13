@@ -4,17 +4,29 @@ import { TMDBMovie, TMDBTVShow, TMDBGenre, TMDBResponse } from '@/types';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-const tmdbCache = new Map<string, { data: unknown; expiresAt: number }>();
 const TMDB_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const TMDB_CACHE_MAX = 500; // LRU cap — evict oldest entry when exceeded
+
+const tmdbCache = new Map<string, { data: unknown; expiresAt: number }>();
 
 function getCached<T>(key: string): T | null {
   const entry = tmdbCache.get(key);
-  if (entry && Date.now() < entry.expiresAt) return entry.data as T;
+  if (!entry) return null;
+  if (Date.now() >= entry.expiresAt) {
+    tmdbCache.delete(key);
+    return null;
+  }
+  // Refresh insertion order so frequently-accessed entries survive longest.
   tmdbCache.delete(key);
-  return null;
+  tmdbCache.set(key, entry);
+  return entry.data as T;
 }
 
 function setCache(key: string, data: unknown): void {
+  if (tmdbCache.size >= TMDB_CACHE_MAX) {
+    // Map preserves insertion order — first key is the least-recently-used entry.
+    tmdbCache.delete(tmdbCache.keys().next().value!);
+  }
   tmdbCache.set(key, { data, expiresAt: Date.now() + TMDB_CACHE_TTL });
 }
 
