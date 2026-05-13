@@ -75,7 +75,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tmdbId: s
       type: 'video.tv_show',
       images: ogImages,
     },
-    twitter: { card: 'summary_large_image', images: [ogImageUrl] },
+    twitter: { card: 'summary_large_image', images: [ogImageUrl, ...(fallbackImageUrl ? [fallbackImageUrl] : [])] },
   };
 }
 
