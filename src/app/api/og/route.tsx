@@ -1,8 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
-
 // Inline score-color logic (mirrors wokeness-utils.ts, safe for edge)
 function getScoreColor(score: number): { bg: string; label: string } {
   if (score <= 0) return { bg: '#4b5563', label: 'Not Rated' };

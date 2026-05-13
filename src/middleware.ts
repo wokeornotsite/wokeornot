@@ -11,7 +11,6 @@ const BLOCKED_UA_PATTERNS = [
   'google-extended',
   'ccbot',
   'omgili',
-  'facebookbot',
   'bytespider',
 ];
 
@@ -100,6 +99,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Match all routes except static files and Next.js internals
-    '/((?!_next/static|_next/image|favicon.ico|images/|avatars/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images/|avatars/|api/og).*)',
   ],
 };
