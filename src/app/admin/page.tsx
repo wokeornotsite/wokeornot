@@ -62,10 +62,10 @@ export default async function AdminDashboardPage() {
   const contents = validContentIds.length
     ? await prisma.content.findMany({
         where: { id: { in: validContentIds } },
-        select: { id: true, title: true, contentType: true },
+        select: { id: true, title: true, contentType: true, tmdbId: true },
       })
     : [];
-  const contentMap = new Map(contents.map(c => [c.id, { title: c.title, contentType: c.contentType }]));
+  const contentMap = new Map(contents.map(c => [c.id, { title: c.title, contentType: c.contentType, tmdbId: c.tmdbId }]));
 
   const recentReviews = baseReviews.map(r => ({
     id: r.id,
