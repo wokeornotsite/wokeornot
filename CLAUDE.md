@@ -167,7 +167,7 @@ wokeornot/
 │   │   ├── admin-auth.ts           # Admin authorization helpers
 │   │   ├── mobile-auth.ts          # JWT Bearer auth for mobile: sign/verify token, getAuthUser()
 │   │   ├── prisma.ts               # Prisma client singleton
-│   │   ├── tmdb.ts                 # TMDB API integration (with 1-hour in-memory cache)
+│   │   ├── tmdb.ts                 # TMDB API integration (with 1-hour in-memory LRU cache, max 500 entries)
 │   │   ├── validation.ts           # Zod schemas + sanitizeHTML (XSS prevention)
 │   │   ├── wokeness-utils.ts       # Score colors, labels, level helpers — always use this, never hardcode
 │   │   ├── rateLimit.ts            # Sliding window rate limiter (API-level)
@@ -589,10 +589,10 @@ No tests are currently implemented. The CI pipeline has a test placeholder (`npm
 | `src/lib/mobile-auth.ts` | Mobile JWT auth + `getAuthUser()` for web+mobile unified auth |
 | `src/middleware.ts` | 3-layer guard: AI crawler block → IP rate limit → /admin RBAC |
 | `src/lib/prisma.ts` | Prisma client singleton (import from here, never instantiate directly) |
-| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail, providers) with 1h cache |
+| `src/lib/tmdb.ts` | All TMDB API calls (movies, shows, search, detail, providers) with 1h LRU cache (max 500 entries — **do not remove the cap**, it prevents OOM crashes) |
 | `src/lib/validation.ts` | Zod schemas + `sanitizeHTML` for XSS prevention |
 | `src/lib/wokeness-utils.ts` | Score → color/label/level helpers |
-| `src/lib/rateLimit.ts` | Sliding window rate limiter (API-level, separate from middleware rate limit) |
+| `src/lib/rateLimit.ts` | Sliding window rate limiter (API-level, separate from middleware rate limit); prunes expired entries at >5k to prevent unbounded memory growth |
 | `src/lib/notifications.ts` | Write in-app notifications |
 | `src/lib/badges.ts` | Badge award logic — call after reviews/comments/reactions |
 | `src/lib/mailer.ts` | Resend API send helper (`sendEmail()`) — NOT Nodemailer |

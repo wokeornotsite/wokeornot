@@ -41,6 +41,13 @@ export function rateLimitCheck(req: NextRequest, opts: LimitOptions): LimitResul
   const windowMs = Math.max(1000, opts.windowMs);
   const limit = Math.max(1, opts.limit);
 
+  // Prune expired entries to prevent unbounded growth.
+  if (memoryStore.size > 5_000) {
+    for (const [k, b] of memoryStore) {
+      if (b.resetAt <= now) memoryStore.delete(k);
+    }
+  }
+
   const bucket = memoryStore.get(key);
   if (!bucket || bucket.resetAt <= now) {
     memoryStore.set(key, { tokens: limit - 1, resetAt: now + windowMs });
