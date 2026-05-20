@@ -67,19 +67,25 @@ export async function middleware(req: NextRequest) {
   //    Only applies to /movies/:id, /tv-shows/:id, /kids/:id — not browse or
   //    search pages, which real users legitimately paginate through quickly.
   if (CONTENT_PAGE_RE.test(req.nextUrl.pathname)) {
-    // x-forwarded-for is set by Vercel's edge network; first entry is the
-    // real client IP even behind multiple proxies.
-    const ip =
-      req.headers.get('cf-connecting-ip') ??
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      req.headers.get('x-real-ip') ??
-      'unknown';
+    // Next.js prefetches linked pages automatically — skip the counter for
+    // those. Real scrapers never send this header, so the protection still
+    // holds against actual crawl traffic.
+    const isPrefetch = req.headers.get('Next-Router-Prefetch') === '1';
+    if (!isPrefetch) {
+      // x-forwarded-for is set by Vercel's edge network; first entry is the
+      // real client IP even behind multiple proxies.
+      const ip =
+        req.headers.get('cf-connecting-ip') ??
+        req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+        req.headers.get('x-real-ip') ??
+        'unknown';
 
-    if (isRateLimited(ip)) {
-      return new NextResponse('Too Many Requests', {
-        status: 429,
-        headers: { 'Retry-After': '60' },
-      });
+      if (isRateLimited(ip)) {
+        return new NextResponse('Too Many Requests', {
+          status: 429,
+          headers: { 'Retry-After': '60' },
+        });
+      }
     }
   }
 

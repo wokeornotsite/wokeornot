@@ -41,6 +41,7 @@ export function NotificationBell() {
 
   const { data, mutate } = useSWR<NotificationsResponse>('/api/notifications', fetcher, {
     refreshInterval: 120_000,
+    revalidateOnFocus: false,
   });
 
   const notifications = data?.notifications ?? [];
