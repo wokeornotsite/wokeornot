@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireStaffAPI } from '@/lib/admin-auth';
 import { writeAuditLog } from '@/lib/audit';
+import { recalculateContentScores } from '@/lib/recalculate-content-scores';
 
 export async function GET(req: NextRequest) {
   const auth = await requireStaffAPI();
@@ -115,6 +116,9 @@ export async function DELETE(req: NextRequest) {
       select: { id: true, userId: true, rating: true, contentId: true },
     });
     await prisma.review.delete({ where: { id } });
+    if (snapshot?.contentId) {
+      await recalculateContentScores(snapshot.contentId);
+    }
     await writeAuditLog({
       adminId: auth.session.user.id,
       action: 'DELETE_REVIEW',

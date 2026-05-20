@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAPI } from '@/lib/admin-auth';
 import { writeAuditLog } from '@/lib/audit';
+import { recalculateContentScores } from '@/lib/recalculate-content-scores';
 
 const objectIdHex = /^[a-f\d]{24}$/i;
 
@@ -115,7 +116,18 @@ export async function POST(req: NextRequest) {
     if (!ids.length) return NextResponse.json({ error: 'No review IDs provided' }, { status: 400 });
 
     const kind: string = typeof body?.kind === 'string' ? body.kind : 'bad';
+
+    // Fetch contentIds before deletion so we can recalculate scores after
+    const toDelete = await prisma.review.findMany({
+      where: { id: { in: ids } },
+      select: { contentId: true },
+    });
+    const contentIds = [...new Set(toDelete.map(r => r.contentId).filter((id): id is string => Boolean(id)))];
+
     const res = await prisma.review.deleteMany({ where: { id: { in: ids } } });
+
+    await Promise.all(contentIds.map(cid => recalculateContentScores(cid)));
+
     await writeAuditLog({
       adminId: auth.session.user.id,
       action: kind === 'duplicates' ? 'MAINTENANCE_PURGE_DUPLICATE_REVIEWS' : 'MAINTENANCE_PURGE_BAD_REVIEWS',
