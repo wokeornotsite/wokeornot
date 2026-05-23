@@ -142,6 +142,13 @@ export default function ModerationReviewsTable() {
         body: JSON.stringify({ id: reviewId }),
       });
       setSnackbar({ open: true, message: 'Review deleted' });
+      // Remove from selection if it was checked, so the bulk-delete count stays accurate
+      setSelectedIds(prev => {
+        if (!prev.ids.has(reviewId)) return prev;
+        const next = new Set(prev.ids);
+        next.delete(reviewId);
+        return { ...prev, ids: next };
+      });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error deleting review' });

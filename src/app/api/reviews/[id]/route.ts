@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/request';
 import { error as httpError } from '@/lib/http';
 import { checkReviewBadges } from '@/lib/badges';
 import { getPostHogClient } from '@/lib/posthog-server';
@@ -166,9 +167,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const safeText = text ? sanitizePlainText(text) : '';
     const session = await getServerSession(authOptions);
 
-    // Daily guest IP rate limit — 3 guest reviews per IP per 24 hours (authenticated users exempt)
+    // Daily guest IP rate limit — 3 guest reviews per IP per 24 hours (authenticated users exempt).
+    // Uses a distinct key so the 24h bucket isn't reset by the 60s per-minute limiter above.
     if (!session?.user) {
-      const guestDailyRl = rateLimitCheck(req, { limit: 3, windowMs: 24 * 60 * 60_000, route: 'guest_review_daily' });
+      const guestIp = getClientIp(req);
+      const guestDailyRl = rateLimitCheck(req, {
+        limit: 3,
+        windowMs: 24 * 60 * 60_000,
+        key: `guest-review-daily:${guestIp}`,
+        route: 'guest_review_daily',
+      });
       if (!guestDailyRl.allowed && !guestDailyRl.shadowed) {
         return NextResponse.json(
           { error: 'You have reached the daily limit for anonymous reviews. Please sign in to continue rating.' },
