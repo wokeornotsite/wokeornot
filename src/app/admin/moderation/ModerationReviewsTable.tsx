@@ -1,11 +1,23 @@
 "use client";
 import React from 'react';
-import { DataGrid, GridColDef, GridActionsCellItem, GridSortModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import {
+  DataGrid,
+  GridColDef,
+  GridActionsCellItem,
+  GridSortModel,
+  GridRowSelectionModel,
+  GridRowId,
+} from '@mui/x-data-grid';
+import {
+  Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert,
+  Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, FormControlLabel, Switch, Badge,
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import EditIcon from '@mui/icons-material/Edit';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -19,7 +31,19 @@ export default function ModerationReviewsTable() {
   const [sortModel, setSortModel] = React.useState<GridSortModel>([]);
   const [q, setQ] = React.useState('');
   const [contentType, setContentType] = React.useState<string>('');
+  const [minRating, setMinRating] = React.useState<string>('');
+  const [maxRating, setMaxRating] = React.useState<string>('');
+  const [dateFrom, setDateFrom] = React.useState<string>('');
+  const [dateTo, setDateTo] = React.useState<string>('');
+  const [ipHashFilter, setIpHashFilter] = React.useState<string>('');
+  const [guestOnly, setGuestOnly] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
+  const emptySelection = (): GridRowSelectionModel => ({ type: 'include', ids: new Set<GridRowId>() });
+  const [selectedIds, setSelectedIds] = React.useState<GridRowSelectionModel>(emptySelection);
+  const [bulkDeleteDialog, setBulkDeleteDialog] = React.useState(false);
   const dq = useDebouncedValue(q, 300);
+  const dMinRating = useDebouncedValue(minRating, 400);
+  const dMaxRating = useDebouncedValue(maxRating, 400);
 
   // Initialize from URL
   React.useEffect(() => {
@@ -30,9 +54,11 @@ export default function ModerationReviewsTable() {
     const ct0 = qp.get('contentType') || '';
     const sortBy0 = qp.get('sortBy');
     const sortOrder0 = (qp.get('sortOrder') as 'asc' | 'desc') || undefined;
+    const ipHash0 = qp.get('ipHash') || '';
     setPaginationModel({ page: isNaN(page) ? 0 : page, pageSize: isNaN(pageSize) ? 10 : pageSize });
     setQ(q0);
     setContentType(ct0);
+    if (ipHash0) { setIpHashFilter(ipHash0); setShowFilters(true); }
     if (sortBy0 && sortOrder0) setSortModel([{ field: sortBy0, sort: sortOrder0 } as any]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -44,12 +70,13 @@ export default function ModerationReviewsTable() {
     if (paginationModel.pageSize !== 10) qp.set('pageSize', String(paginationModel.pageSize));
     if (dq) qp.set('q', dq);
     if (contentType) qp.set('contentType', contentType);
+    if (ipHashFilter) qp.set('ipHash', ipHashFilter);
     const sf = sortModel[0]?.field;
     const sd = sortModel[0]?.sort;
     if (sf && sd) { qp.set('sortBy', String(sf)); qp.set('sortOrder', String(sd)); }
     const query = qp.toString();
     router.replace(`?${query}`);
-  }, [dq, contentType, paginationModel.page, paginationModel.pageSize, sortModel, router]);
+  }, [dq, contentType, paginationModel.page, paginationModel.pageSize, sortModel, router, ipHashFilter]);
 
   const sortField = sortModel[0]?.field;
   const sortDir = (sortModel[0]?.sort || 'desc') as 'asc' | 'desc';
@@ -62,6 +89,12 @@ export default function ModerationReviewsTable() {
     sortOrder: sortDir,
     q: dq || undefined,
     contentType: contentType || undefined,
+    minRating: dMinRating !== '' ? Number(dMinRating) : undefined,
+    maxRating: dMaxRating !== '' ? Number(dMaxRating) : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    ipHash: ipHashFilter || undefined,
+    guestOnly,
   });
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; reviewId: string | null }>({ open: false, reviewId: null });
@@ -114,6 +147,34 @@ export default function ModerationReviewsTable() {
       setSnackbar({ open: true, message: 'Error deleting review' });
     }
     setDeleteDialog({ open: false, reviewId: null });
+  }
+
+  async function handleBulkDelete() {
+    try {
+      const ids = Array.from(selectedIds.ids);
+      const res = await fetch('/api/admin/reviews/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSnackbar({ open: true, message: `Deleted ${data.deleted} review(s)` });
+        setSelectedIds(emptySelection());
+        mutate();
+      } else {
+        setSnackbar({ open: true, message: data.error || 'Error deleting reviews' });
+      }
+    } catch {
+      setSnackbar({ open: true, message: 'Error deleting reviews' });
+    }
+    setBulkDeleteDialog(false);
+  }
+
+  function handleFilterByIpHash(ipHash: string) {
+    setIpHashFilter(ipHash);
+    setShowFilters(true);
+    setPaginationModel(p => ({ ...p, page: 0 }));
   }
 
   const columns: GridColDef[] = [
@@ -173,6 +234,34 @@ export default function ModerationReviewsTable() {
       sortable: true,
     },
     {
+      field: 'ipHashCount',
+      headerName: 'IP Reviews',
+      width: 110,
+      sortable: false,
+      renderCell: (params: any) => {
+        const count = params.row?.ipHashCount;
+        const ipHash = params.row?.ipHash;
+        if (!ipHash) return <span style={{ color: '#4b5563', fontSize: 12 }}>—</span>;
+        return (
+          <Tooltip title={`${count} review(s) from this IP — click to filter`} arrow>
+            <Chip
+              label={`${count} from IP`}
+              size="small"
+              onClick={() => handleFilterByIpHash(ipHash)}
+              sx={{
+                cursor: 'pointer',
+                fontSize: 11,
+                background: count > 2 ? '#7f1d1d' : '#1c1c2e',
+                color: count > 2 ? '#fca5a5' : '#9ca3af',
+                border: count > 2 ? '1px solid #ef4444' : '1px solid #374151',
+                '&:hover': { background: count > 2 ? '#991b1b' : '#2d2d44' },
+              }}
+            />
+          </Tooltip>
+        );
+      },
+    },
+    {
       field: 'isHidden',
       headerName: 'Status',
       width: 100,
@@ -187,18 +276,19 @@ export default function ModerationReviewsTable() {
       headerName: 'Actions',
       width: 120,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
-        <GridActionsCellItem icon={<EditIcon sx={{ color: '#38bdf8' }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
+        <GridActionsCellItem key="edit" icon={<EditIcon sx={{ color: '#38bdf8' }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
         params.row.isHidden
-          ? <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
-          : <GridActionsCellItem icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
-        <GridActionsCellItem icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} showInMenu={false} />,
+          ? <GridActionsCellItem key="unhide" icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
+          : <GridActionsCellItem key="hide" icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
+        <GridActionsCellItem key="delete" icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} showInMenu={false} />,
       ],
     },
   ];
 
+  const hasActiveFilters = minRating || maxRating || dateFrom || dateTo || ipHashFilter || guestOnly;
+
   return (
     <Box sx={{
-      height: 560,
       width: '100%',
       background: 'rgba(24,24,27,0.98)',
       borderRadius: 2,
@@ -214,16 +304,18 @@ export default function ModerationReviewsTable() {
           Failed to load reviews. Please try again.
         </Alert>
       )}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+      {/* Primary filter row */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           value={q}
           onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
           placeholder="Search text, user, title..."
           InputProps={{ sx: { color: '#fff' } }}
-          sx={{ minWidth: 280 }}
+          sx={{ minWidth: 260 }}
         />
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel id="ctype-label" sx={{ color: '#fff' }}>Content Type</InputLabel>
           <Select
             labelId="ctype-label"
@@ -238,71 +330,188 @@ export default function ModerationReviewsTable() {
             <MenuItem value="KIDS">KIDS</MenuItem>
           </Select>
         </FormControl>
+        <Badge badgeContent={hasActiveFilters ? '!' : 0} color="warning">
+          <Button
+            size="small"
+            startIcon={<FilterListIcon />}
+            onClick={() => setShowFilters(f => !f)}
+            variant={showFilters ? 'contained' : 'outlined'}
+            sx={{ color: showFilters ? '#000' : '#a78bfa', borderColor: '#a78bfa', background: showFilters ? '#a78bfa' : 'transparent', minWidth: 110 }}
+          >
+            Filters
+          </Button>
+        </Badge>
+        {selectedIds.ids.size > 0 && (
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => setBulkDeleteDialog(true)}
+            sx={{ ml: 'auto' }}
+          >
+            Delete {selectedIds.ids.size} selected
+          </Button>
+        )}
       </Box>
-      <DataGrid
-        rows={reviews}
-        columns={columns}
-        rowCount={total}
-        paginationMode="server"
-        sortingMode="server"
-        loading={isLoading}
-        slots={{ noRowsOverlay: () => (<Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box>) }}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        onSortModelChange={(model) => setSortModel(model)}
-        pageSizeOptions={[10, 20, 50]}
-        autoHeight={false}
-        disableRowSelectionOnClick
-        sx={{
-          fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 16,
-          color: '#fff',
-          background: '#101014',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': {
+
+      {/* Advanced filters panel */}
+      {showFilters && (
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center', background: '#1a1a2e', borderRadius: 1, p: 1.5 }}>
+          <FormControl size="small" sx={{ minWidth: 110 }}>
+            <InputLabel sx={{ color: '#9ca3af' }}>Min Rating</InputLabel>
+            <Select
+              label="Min Rating"
+              value={minRating}
+              onChange={(e) => { setMinRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }}
+              sx={{ color: '#fff' }}
+            >
+              <MenuItem value="">Any</MenuItem>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 110 }}>
+            <InputLabel sx={{ color: '#9ca3af' }}>Max Rating</InputLabel>
+            <Select
+              label="Max Rating"
+              value={maxRating}
+              onChange={(e) => { setMaxRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }}
+              sx={{ color: '#fff' }}
+            >
+              <MenuItem value="">Any</MenuItem>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true, sx: { color: '#9ca3af' } }}
+            InputProps={{ sx: { color: '#fff' } }}
+            sx={{ minWidth: 145 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true, sx: { color: '#9ca3af' } }}
+            InputProps={{ sx: { color: '#fff' } }}
+            sx={{ minWidth: 145 }}
+          />
+          <TextField
+            size="small"
+            value={ipHashFilter}
+            onChange={(e) => { setIpHashFilter(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
+            placeholder="Filter by IP hash..."
+            InputProps={{ sx: { color: '#fff', fontSize: 12 } }}
+            sx={{ minWidth: 220 }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={guestOnly}
+                onChange={(e) => { setGuestOnly(e.target.checked); setPaginationModel(p => ({ ...p, page: 0 })); }}
+                sx={{ '& .MuiSwitch-thumb': { background: guestOnly ? '#a78bfa' : '#6b7280' } }}
+              />
+            }
+            label={<span style={{ color: '#9ca3af', fontSize: 13 }}>Guest only</span>}
+          />
+          {hasActiveFilters && (
+            <Button
+              size="small"
+              onClick={() => {
+                setMinRating(''); setMaxRating(''); setDateFrom(''); setDateTo('');
+                setIpHashFilter(''); setGuestOnly(false);
+                setPaginationModel(p => ({ ...p, page: 0 }));
+              }}
+              sx={{ color: '#ef4444', fontSize: 12 }}
+            >
+              Clear filters
+            </Button>
+          )}
+        </Box>
+      )}
+
+      <Box sx={{ height: 520 }}>
+        <DataGrid
+          rows={reviews}
+          columns={columns}
+          rowCount={total}
+          paginationMode="server"
+          sortingMode="server"
+          loading={isLoading}
+          checkboxSelection
+          rowSelectionModel={selectedIds}
+          onRowSelectionModelChange={(model) => setSelectedIds(model)}
+          slots={{ noRowsOverlay: () => (<Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box>) }}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          onSortModelChange={(model) => setSortModel(model)}
+          pageSizeOptions={[10, 20, 50]}
+          autoHeight={false}
+          disableRowSelectionOnClick
+          sx={{
+            fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+            fontSize: 16,
             color: '#fff',
-            background: '#191927',
-            borderBottom: '1px solid #232336',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            background: '#232336',
-            color: '#fbbf24',
-            fontWeight: 700,
-            borderBottom: '2px solid #fbbf24',
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            color: '#fbbf24',
-            fontWeight: 700,
-          },
-          '& .MuiDataGrid-row': {
-            transition: 'background 0.2s',
-            '&:hover': {
-              backgroundColor: '#37376b',
+            background: '#101014',
+            borderRadius: 2,
+            boxShadow: '0 2px 12px #0004',
+            '& .MuiDataGrid-cell': {
+              color: '#fff',
+              background: '#191927',
+              borderBottom: '1px solid #232336',
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              background: '#232336',
+              color: '#fbbf24',
+              fontWeight: 700,
+              borderBottom: '2px solid #fbbf24',
+            },
+            '& .MuiDataGrid-columnHeaderTitle': {
+              color: '#fbbf24',
+              fontWeight: 700,
+            },
+            '& .MuiDataGrid-row': {
+              transition: 'background 0.2s',
+              '&:hover': {
+                backgroundColor: '#37376b',
+                color: '#fff',
+              },
+            },
+            '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
+            '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
+            '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
+            '& .MuiSvgIcon-root, & .MuiButtonBase-root': {
+              color: '#fff !important',
+              opacity: 1,
+            },
+            '& .MuiDataGrid-iconButtonContainer': {
               color: '#fff',
             },
-          },
-          '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-          '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-          '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-          '& .MuiSvgIcon-root, & .MuiButtonBase-root': {
-            color: '#fff !important',
-            opacity: 1,
-          },
-          '& .MuiDataGrid-iconButtonContainer': {
-            color: '#fff',
-          },
-          '& .MuiDataGrid-actionsCell': {
-            color: '#fff',
-          },
-        }}
-      />
+            '& .MuiDataGrid-actionsCell': {
+              color: '#fff',
+            },
+            '& .MuiDataGrid-checkboxInput': {
+              color: '#a78bfa !important',
+            },
+          }}
+        />
+      </Box>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ open: false, message: '' })}
         message={snackbar.message}
       />
+
+      {/* Single delete confirmation */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, reviewId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
         <DialogTitle sx={{ fontWeight: 700 }}>Delete Review</DialogTitle>
         <DialogContent>
@@ -311,6 +520,21 @@ export default function ModerationReviewsTable() {
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, reviewId: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={() => handleDelete(deleteDialog.reviewId!)} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk delete confirmation */}
+      <Dialog open={bulkDeleteDialog} onClose={() => setBulkDeleteDialog(false)} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#ef4444' }}>Bulk Delete Reviews</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>
+            You are about to permanently delete <strong style={{ color: '#fca5a5' }}>{selectedIds.ids.size} review(s)</strong>.
+            This will recalculate the woke scores for all affected content. This cannot be undone.
+          </p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDeleteDialog(false)} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={handleBulkDelete} variant="contained" color="error">Delete {selectedIds.ids.size} reviews</Button>
         </DialogActions>
       </Dialog>
 

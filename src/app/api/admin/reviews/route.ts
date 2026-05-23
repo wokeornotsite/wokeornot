@@ -15,11 +15,29 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     const q = searchParams.get('q')?.trim() || '';
     const contentType = searchParams.get('contentType') || '';
+    const minRating = searchParams.get('minRating') ? Number(searchParams.get('minRating')) : undefined;
+    const maxRating = searchParams.get('maxRating') ? Number(searchParams.get('maxRating')) : undefined;
+    const dateFrom = searchParams.get('dateFrom') || '';
+    const dateTo = searchParams.get('dateTo') || '';
+    const ipHashFilter = searchParams.get('ipHash')?.trim() || '';
+    const guestOnly = searchParams.get('guestOnly') === '1';
 
     const objectIdHex = /^[a-f\d]{24}$/i;
 
     // Build review where without relation filters
     const whereReviews: any = {};
+
+    if (typeof minRating === 'number' && !isNaN(minRating)) whereReviews.rating = { ...whereReviews.rating, gte: minRating };
+    if (typeof maxRating === 'number' && !isNaN(maxRating)) whereReviews.rating = { ...whereReviews.rating, lte: maxRating };
+    if (dateFrom) whereReviews.createdAt = { ...whereReviews.createdAt, gte: new Date(dateFrom) };
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      whereReviews.createdAt = { ...whereReviews.createdAt, lte: end };
+    }
+    if (ipHashFilter) whereReviews.ipHash = ipHashFilter;
+    if (guestOnly) whereReviews.userId = null;
+
     if (q) {
       whereReviews.OR = [
         { text: { contains: q, mode: 'insensitive' } },
@@ -54,7 +72,7 @@ export async function GET(req: NextRequest) {
       if (contentType) contentWhere.contentType = contentType;
       const contents = await prisma.content.findMany({ where: contentWhere, select: { id: true }, take: 500 });
       if (contents.length || contentType) {
-        whereReviews.contentId = { in: contents.map(c => c.id).filter(id => objectIdHex.test(id)) };
+        whereReviews.contentId = { in: contents.map(c => c.id).filter((id: string) => objectIdHex.test(id)) };
       }
     }
 
@@ -68,6 +86,7 @@ export async function GET(req: NextRequest) {
           isHidden: true,
           createdAt: true,
           guestName: true,
+          ipHash: true,
           user: { select: { email: true, name: true } },
           contentId: true,
         },
@@ -77,6 +96,20 @@ export async function GET(req: NextRequest) {
       }),
       prisma.review.count({ where: whereReviews }),
     ]);
+
+    // For guest reviews, count how many total reviews share the same ipHash
+    const guestIpHashes = Array.from(new Set(base.map(r => (r as any).ipHash).filter(Boolean)));
+    const ipHashCounts: Record<string, number> = {};
+    if (guestIpHashes.length > 0) {
+      const groups = await (prisma.review as any).groupBy({
+        by: ['ipHash'],
+        where: { ipHash: { in: guestIpHashes } },
+        _count: { _all: true },
+      });
+      for (const g of groups) {
+        if (g.ipHash) ipHashCounts[g.ipHash] = g._count._all;
+      }
+    }
 
     // Safely join content by fetching only valid ObjectId-like ids
     const validIds = Array.from(new Set(base.map(r => r.contentId).filter((id): id is string => Boolean(id) && objectIdHex.test(id as string))));
@@ -92,6 +125,8 @@ export async function GET(req: NextRequest) {
       isHidden: r.isHidden,
       createdAt: r.createdAt,
       guestName: r.guestName,
+      ipHash: (r as any).ipHash ?? null,
+      ipHashCount: (r as any).ipHash ? (ipHashCounts[(r as any).ipHash] ?? 1) : null,
       user: r.user,
       content: contentMap.get(r.contentId) ?? null,
     }));

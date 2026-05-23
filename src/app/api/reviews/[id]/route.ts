@@ -165,6 +165,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const safeText = text ? sanitizePlainText(text) : '';
     const session = await getServerSession(authOptions);
+
+    // Daily guest IP rate limit — 3 guest reviews per IP per 24 hours (authenticated users exempt)
+    if (!session?.user) {
+      const guestDailyRl = rateLimitCheck(req, { limit: 3, windowMs: 24 * 60 * 60_000, route: 'guest_review_daily' });
+      if (!guestDailyRl.allowed && !guestDailyRl.shadowed) {
+        return NextResponse.json(
+          { error: 'You have reached the daily limit for anonymous reviews. Please sign in to continue rating.' },
+          { status: 429 }
+        );
+      }
+    }
+
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
     
