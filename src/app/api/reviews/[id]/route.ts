@@ -168,17 +168,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const safeText = text ? sanitizePlainText(text) : '';
     const session = await getServerSession(authOptions);
 
-    // Daily guest IP rate limit — 3 guest reviews per IP per 24 hours (authenticated users exempt).
-    // Uses a distinct key so the 24h bucket isn't reset by the 60s per-minute limiter above.
+    // Compute guest IP hash early — used for both the daily rate limit check and storing on the review.
+    let ipHash: string | undefined;
     if (!session?.user) {
-      const guestIp = getClientIp(req);
-      const guestDailyRl = rateLimitCheck(req, {
-        limit: 3,
-        windowMs: 24 * 60 * 60_000,
-        key: `guest-review-daily:${guestIp}`,
-        route: 'guest_review_daily',
+      ipHash = crypto.createHash('sha256').update(getClientIp(req)).digest('hex');
+    }
+
+    // Daily guest IP rate limit — DB-backed so it survives restarts and works across multiple instances.
+    // In-memory limiters reset on deploy; a Prisma count against stored ipHash is the reliable alternative.
+    if (!session?.user) {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentCount = await prisma.review.count({
+        where: { ipHash, userId: null, createdAt: { gte: oneDayAgo } },
       });
-      if (!guestDailyRl.allowed && !guestDailyRl.shadowed) {
+      if (recentCount >= 3) {
         return NextResponse.json(
           { error: 'You\'ve reached the daily limit for anonymous ratings. Register for free to keep rating titles!' },
           { status: 429 }
@@ -187,7 +190,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       // reCAPTCHA v3 verification for guests only (logged-in users bypass entirely).
       // Helper returns ok=true if the secret isn't configured, so the feature is safely optional.
-      const recaptcha = await verifyRecaptchaToken(body.recaptchaToken, guestIp);
+      const recaptcha = await verifyRecaptchaToken(body.recaptchaToken, getClientIp(req));
       if (!recaptcha.ok) {
         return NextResponse.json(
           { error: 'Verification failed. Please refresh the page and try again.' },
@@ -198,7 +201,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const resolvedParams = await params;
     const { id: contentId } = resolvedParams;
-    
+
     // Get review count before adding new review
     const reviewCountBefore = await prisma.review.findMany({ where: { contentId } }).then((reviews: { length: number }) => reviews.length);
 
@@ -212,7 +215,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
       userId = user.id;
-      
+
       // Check if the user has already reviewed this content
       const existingReview = await prisma.review.findFirst({
         where: {
@@ -223,12 +226,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (existingReview) {
         return NextResponse.json({ error: 'You have already reviewed this content' }, { status: 400 });
       }
-    }
-    // Hash the IP address for guest review spam tracking (privacy-preserving)
-    let ipHash: string | undefined;
-    if (!userId) {
-      const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
-      ipHash = crypto.createHash('sha256').update(ip).digest('hex');
     }
 
     // Create the review
