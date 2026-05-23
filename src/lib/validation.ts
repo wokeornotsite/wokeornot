@@ -49,6 +49,7 @@ export const schemas = {
     text: z.string().max(5000).optional().default(''),
     categoryIds: z.array(z.string()).max(20).optional().default([]),
     guestName: z.string().trim().max(32).optional(),
+    recaptchaToken: z.string().max(4000).optional(),
   }),
   reviewUpdate: z.object({
     rating: z.number().min(0).max(10).optional(),

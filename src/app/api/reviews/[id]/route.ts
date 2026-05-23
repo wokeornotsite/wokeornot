@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { parseJson, schemas, sanitizePlainText } from '@/lib/validation';
 import { rateLimitCheck, setRateLimitHeaders } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/request';
+import { verifyRecaptchaToken } from '@/lib/recaptcha';
 import { error as httpError } from '@/lib/http';
 import { checkReviewBadges } from '@/lib/badges';
 import { getPostHogClient } from '@/lib/posthog-server';
@@ -181,6 +182,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json(
           { error: 'You have reached the daily limit for anonymous reviews. Please sign in to continue rating.' },
           { status: 429 }
+        );
+      }
+
+      // reCAPTCHA v3 verification for guests only (logged-in users bypass entirely).
+      // Helper returns ok=true if the secret isn't configured, so the feature is safely optional.
+      const recaptcha = await verifyRecaptchaToken(body.recaptchaToken, guestIp);
+      if (!recaptcha.ok) {
+        return NextResponse.json(
+          { error: 'Verification failed. Please refresh the page and try again.' },
+          { status: 400 }
         );
       }
     }

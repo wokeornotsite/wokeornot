@@ -5,6 +5,18 @@ import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import posthog from 'posthog-js';
 
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>;
+    };
+  }
+}
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '';
+const RECAPTCHA_SCRIPT_ID = 'recaptcha-v3-script';
+
 interface Category {
   id: string;
   name: string;
@@ -84,6 +96,37 @@ export default function ReviewSection({ id }: { id: string }) {
     axios.get('/api/categories').then(res => setCategories(res.data));
   }, []);
 
+  // Load reCAPTCHA v3 script for guests only (logged-in users never pay this perf cost).
+  // Skips entirely if the site key isn't configured, so the feature degrades gracefully.
+  useEffect(() => {
+    if (session) return;
+    if (!RECAPTCHA_SITE_KEY) return;
+    if (document.getElementById(RECAPTCHA_SCRIPT_ID)) return;
+    const s = document.createElement('script');
+    s.id = RECAPTCHA_SCRIPT_ID;
+    s.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+  }, [session]);
+
+  async function getRecaptchaToken(): Promise<string | undefined> {
+    if (session) return undefined;
+    if (!RECAPTCHA_SITE_KEY) return undefined;
+    if (!window.grecaptcha) return undefined;
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        window.grecaptcha!.ready(() => {
+          window.grecaptcha!.execute(RECAPTCHA_SITE_KEY, { action: 'submit_review' })
+            .then(resolve)
+            .catch(reject);
+        });
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -101,7 +144,8 @@ export default function ReviewSection({ id }: { id: string }) {
     }
     try {
       const trimmedName = guestName.trim();
-      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined), honeypot, formLoadedAt: formLoadedAt.current });
+      const recaptchaToken = await getRecaptchaToken();
+      await axios.post(`/api/reviews/${id}`, { rating, text, categoryIds: selectedCategories, guestName: session ? undefined : (trimmedName || undefined), honeypot, formLoadedAt: formLoadedAt.current, recaptchaToken });
       try { posthog.capture('review_form_submitted', { content_id: id, rating, category_count: selectedCategories.length, has_text: text.trim().length > 0, is_guest: !session }); } catch {}
       setRating(0);
       setText('');
