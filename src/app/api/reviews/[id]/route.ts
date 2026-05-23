@@ -180,7 +180,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
       if (!guestDailyRl.allowed && !guestDailyRl.shadowed) {
         return NextResponse.json(
-          { error: 'You have reached the daily limit for anonymous reviews. Please sign in to continue rating.' },
+          { error: 'You\'ve reached the daily limit for anonymous ratings. Register for free to keep rating titles!' },
           { status: 429 }
         );
       }
