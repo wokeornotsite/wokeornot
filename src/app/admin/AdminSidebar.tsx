@@ -14,6 +14,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import HistoryIcon from '@mui/icons-material/History';
 import ForumIcon from '@mui/icons-material/Forum';
+import PeopleIcon from '@mui/icons-material/PeopleAlt';
 import { Button, Drawer, Divider, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 
 type NavLink = { href: string; icon: React.ReactNode; label: string; exact: boolean; adminOnly?: boolean };
@@ -37,6 +38,7 @@ const navGroups: { groupLabel: string | null; links: NavLink[] }[] = [
     groupLabel: 'Insights',
     links: [
       { href: '/admin/analytics', icon: <BarChartIcon />, label: 'Analytics', exact: false },
+      { href: '/admin/users', icon: <PeopleIcon />, label: 'Users', exact: false },
       { href: '/admin/audit-log', icon: <HistoryIcon />, label: 'Audit Log', exact: false },
     ],
   },

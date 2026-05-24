@@ -63,33 +63,100 @@ export async function GET(req: NextRequest) {
     const page = Number(searchParams.get('page') || '0'); // 0-based
     const pageSize = Math.min(Number(searchParams.get('pageSize') || '10'), 100);
     const explicitSortBy = searchParams.get('sortBy');
-    const sortBy = (explicitSortBy || 'createdAt') as 'email' | 'createdAt' | 'role';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     const q = searchParams.get('q') || '';
     const role = searchParams.get('role') || '';
     const flagged = searchParams.get('flagged') === 'true';
+    const includeStats = searchParams.get('includeStats') === 'true';
+
+    const statSortFields = new Set(['reviewCount', 'avgRating', 'lastReview']);
+    const isStatSort = includeStats && explicitSortBy && statSortFields.has(explicitSortBy);
+    const sortBy = (explicitSortBy && !isStatSort ? explicitSortBy : 'createdAt') as 'email' | 'createdAt' | 'role';
 
     const where: any = {};
     if (q) where.OR = [{ email: { contains: q, mode: 'insensitive' } }, { name: { contains: q, mode: 'insensitive' } }];
     if (role) where.role = role;
     if (flagged) where.OR = [{ isBanned: true }, { warnCount: { gt: 0 } }];
 
+    const userSelect = { id: true, email: true, name: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true };
+
+    // Helper to fetch review stats for a list of user IDs
+    async function fetchStatsForIds(ids: string[]) {
+      if (!ids.length) return new Map<string, { reviewCount: number; avgRating: number | null; firstReview: Date | null; lastReview: Date | null }>();
+      const statsRaw = await (prisma.review as any).groupBy({
+        by: ['userId'],
+        where: { userId: { in: ids } },
+        _count: { _all: true },
+        _avg: { rating: true },
+        _min: { createdAt: true },
+        _max: { createdAt: true },
+      });
+      return new Map(statsRaw.map((s: any) => [s.userId, {
+        reviewCount: s._count._all,
+        avgRating: s._avg.rating ? Math.round(s._avg.rating * 10) / 10 : null,
+        firstReview: s._min.createdAt ?? null,
+        lastReview: s._max.createdAt ?? null,
+      }]));
+    }
+
+    // Stat-based sort: fetch all matching IDs, compute stats, sort+paginate in JS
+    if (isStatSort) {
+      const allIds = await prisma.user.findMany({ where, select: { id: true }, take: 10000 });
+      const ids = allIds.map((u: any) => u.id);
+      const statsMap = await fetchStatsForIds(ids);
+
+      const withStats = ids.map((id: string) => {
+        const s = statsMap.get(id);
+        return { id, reviewCount: s?.reviewCount ?? 0, avgRating: s?.avgRating ?? null, lastReview: s?.lastReview ?? null, firstReview: s?.firstReview ?? null };
+      });
+
+      withStats.sort((a: any, b: any) => {
+        let av: any, bv: any;
+        if (explicitSortBy === 'reviewCount') { av = a.reviewCount; bv = b.reviewCount; }
+        else if (explicitSortBy === 'avgRating') { av = a.avgRating ?? -1; bv = b.avgRating ?? -1; }
+        else { av = a.lastReview ? new Date(a.lastReview).getTime() : 0; bv = b.lastReview ? new Date(b.lastReview).getTime() : 0; }
+        return sortOrder === 'asc' ? av - bv : bv - av;
+      });
+
+      const pageSlice = withStats.slice(page * pageSize, (page + 1) * pageSize);
+      const pageIds = pageSlice.map((u: any) => u.id);
+      const users = await prisma.user.findMany({ where: { id: { in: pageIds } }, select: userSelect });
+      const userMap = new Map(users.map((u: any) => [u.id, u]));
+
+      const data = pageSlice.map((s: any) => ({
+        ...userMap.get(s.id),
+        reviewCount: s.reviewCount,
+        avgRating: s.avgRating,
+        firstReview: s.firstReview,
+        lastReview: s.lastReview,
+      })).filter((u: any) => u.id);
+
+      return NextResponse.json({ data, total: ids.length });
+    }
+
     const orderBy: any = flagged && !explicitSortBy
       ? [{ isBanned: 'desc' }, { warnCount: 'desc' }]
       : { [sortBy]: sortOrder };
 
-    const [data, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: { id: true, email: true, name: true, role: true, createdAt: true, isBanned: true, banReason: true, warnCount: true },
-        orderBy,
-        skip: page * pageSize,
-        take: pageSize,
-      }),
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({ where, select: userSelect, orderBy, skip: page * pageSize, take: pageSize }),
       prisma.user.count({ where }),
     ]);
 
-    // Keep createdAt in data, clients can ignore if unused
+    if (!includeStats) {
+      return NextResponse.json({ data: users, total });
+    }
+
+    // Standard sort + stats: fetch stats just for this page's users
+    const statsMap = await fetchStatsForIds(users.map((u: any) => u.id));
+    const data = users.map((u: any) => ({
+      ...u,
+      reviewCount: statsMap.get(u.id)?.reviewCount ?? 0,
+      avgRating: statsMap.get(u.id)?.avgRating ?? null,
+      firstReview: statsMap.get(u.id)?.firstReview ?? null,
+      lastReview: statsMap.get(u.id)?.lastReview ?? null,
+    }));
+
     return NextResponse.json({ data, total });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
