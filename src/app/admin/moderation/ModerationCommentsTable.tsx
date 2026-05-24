@@ -22,7 +22,7 @@ import { useComments } from './useComments';
 
 const DATAGRID_SX = {
   fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 13,
+  fontSize: 14,
   color: '#fff',
   background: '#101014',
   borderRadius: 2,
@@ -147,7 +147,7 @@ export default function ModerationCommentsTable() {
       field: 'user',
       headerName: 'Author',
       flex: 0.9,
-      minWidth: 110,
+      minWidth: 130,
       valueGetter: (_v: any, row: any) => row?.user?.email || '',
       renderCell: (params: any) => (
         <span style={{ color: '#a78bfa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
@@ -159,7 +159,7 @@ export default function ModerationCommentsTable() {
       field: 'text',
       headerName: 'Comment',
       flex: 2.0,
-      minWidth: 120,
+      minWidth: 200,
       renderCell: (params: any) => (
         <Tooltip title={params.value || ''} arrow placement="top">
           <span style={{
@@ -178,7 +178,7 @@ export default function ModerationCommentsTable() {
       field: 'content',
       headerName: 'Content',
       flex: 1.1,
-      minWidth: 110,
+      minWidth: 140,
       valueGetter: (_v: any, row: any) => row?.content?.title || '',
       renderCell: (params: any) => {
         const title = params.row?.content?.title;
@@ -198,7 +198,7 @@ export default function ModerationCommentsTable() {
     {
       field: 'parentId',
       headerName: 'Type',
-      width: 78,
+      width: 85,
       renderCell: (params: any) => (
         <Chip
           label={params.row?.parentId ? 'Reply' : 'Comment'}
@@ -232,7 +232,7 @@ export default function ModerationCommentsTable() {
     {
       field: 'isDeleted',
       headerName: 'Status',
-      width: 80,
+      width: 85,
       renderCell: (params: any) =>
         params.row.isDeleted
           ? <Chip label="Deleted" size="small" sx={{ background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', fontWeight: 700 }} />
@@ -325,7 +325,6 @@ export default function ModerationCommentsTable() {
           columns={columns}
           rowCount={total}
           paginationMode="server"
-          density="compact"
           loading={isLoading}
           checkboxSelection
           rowSelectionModel={selectedIds}

@@ -27,7 +27,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 const DATAGRID_SX = {
   fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 13,
+  fontSize: 14,
   color: '#fff',
   background: '#101014',
   borderRadius: 2,
@@ -259,13 +259,13 @@ export default function ModerationReviewsTable() {
     {
       field: 'user',
       headerName: 'User',
-      flex: 0.9,
-      minWidth: 110,
+      flex: 1.0,
+      minWidth: 150,
       valueGetter: (_value: any, row: any) => row?.user?.email || row?.guestName || '',
       renderCell: (params: any) => {
         const email = params.row?.user?.email || params.row?.guestName;
         return (
-          <span style={{ color: params.row?.user?.email ? '#a78bfa' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', fontSize: 12 }}>
+          <span style={{ color: params.row?.user?.email ? '#a78bfa' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', fontSize: 13 }}>
             {email || 'Anonymous'}
           </span>
         );
@@ -274,8 +274,8 @@ export default function ModerationReviewsTable() {
     {
       field: 'contentTitle',
       headerName: 'Content',
-      flex: 1.0,
-      minWidth: 110,
+      flex: 1.2,
+      minWidth: 160,
       valueGetter: (_value: any, row: any) => row?.content?.title || '',
       renderCell: (params: any) => {
         const title = params.row?.content?.title;
@@ -283,7 +283,7 @@ export default function ModerationReviewsTable() {
         const c = typeColor[type] || '#9ca3af';
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', overflow: 'hidden' }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0', fontSize: 12, minWidth: 0 }}>{title || '—'}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0', fontSize: 13, minWidth: 0 }}>{title || '—'}</span>
             {type && <span style={{ fontSize: 9, fontWeight: 700, color: c, background: `${c}22`, border: `1px solid ${c}44`, borderRadius: 3, padding: '1px 4px', flexShrink: 0, lineHeight: '14px' }}>{type.replace('_', ' ')}</span>}
           </span>
         );
@@ -292,11 +292,11 @@ export default function ModerationReviewsTable() {
     {
       field: 'text',
       headerName: 'Review',
-      flex: 1.7,
-      minWidth: 110,
+      flex: 2.0,
+      minWidth: 200,
       renderCell: (params: any) => (
         <Tooltip title={params.value || 'No text review'} arrow placement="top">
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', color: params.value ? '#e2e8f0' : '#4b5563', fontStyle: params.value ? 'normal' : 'italic', fontSize: 12 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', color: params.value ? '#e2e8f0' : '#4b5563', fontStyle: params.value ? 'normal' : 'italic', fontSize: 13 }}>
             {params.value || 'No text'}
           </span>
         </Tooltip>
@@ -305,7 +305,7 @@ export default function ModerationReviewsTable() {
     {
       field: 'rating',
       headerName: 'Rating',
-      width: 62,
+      width: 65,
       sortable: true,
       renderCell: (params: any) => {
         const r = params.value;
@@ -316,14 +316,14 @@ export default function ModerationReviewsTable() {
     {
       field: 'createdAt',
       headerName: 'Date',
-      width: 82,
+      width: 85,
       sortable: true,
       renderCell: (params: any) => fmtDate(params.row?.createdAt),
     },
     {
       field: 'ipHashCount',
       headerName: 'IP',
-      width: 78,
+      width: 85,
       sortable: false,
       renderCell: (params: any) => {
         const count = params.row?.ipHashCount;
@@ -353,7 +353,7 @@ export default function ModerationReviewsTable() {
     {
       field: 'isHidden',
       headerName: 'Status',
-      width: 80,
+      width: 85,
       renderCell: (params: any) => {
         if (params.row.isHidden) {
           const reason = params.row.hideReason;
@@ -369,7 +369,7 @@ export default function ModerationReviewsTable() {
       field: 'actions',
       type: 'actions',
       headerName: '',
-      width: 106,
+      width: 110,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
         <GridActionsCellItem key="edit" icon={<EditIcon sx={{ color: '#38bdf8', fontSize: 18 }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
         params.row.isHidden
@@ -486,12 +486,11 @@ export default function ModerationReviewsTable() {
           rowCount={total}
           paginationMode="server"
           sortingMode="server"
-          density="compact"
           loading={isLoading}
           checkboxSelection
           rowSelectionModel={selectedIds}
           onRowSelectionModelChange={(model) => setSelectedIds(model)}
-          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af', fontSize: 13 }}>No reviews found</Box> }}
+          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box> }}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           onSortModelChange={(model) => setSortModel(model)}

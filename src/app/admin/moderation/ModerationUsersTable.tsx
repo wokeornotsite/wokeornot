@@ -199,7 +199,7 @@ export default function ModerationUsersTable() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'email', headerName: 'Email', flex: 1.6, minWidth: 150,
+    { field: 'email', headerName: 'Email', flex: 1.6, minWidth: 160,
       renderCell: (params: any) => <span style={{ color: '#a78bfa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', fontSize: 12 }}>{params.value}</span>,
     },
     {
@@ -212,7 +212,7 @@ export default function ModerationUsersTable() {
     {
       field: 'role',
       headerName: 'Role',
-      width: 105,
+      width: 110,
       renderCell: (params: any) => {
         const roleColor: Record<string, string> = { ADMIN: '#a855f7', MODERATOR: '#3b82f6', USER: '#6b7280' };
         const c = roleColor[params.value] || '#9ca3af';
@@ -233,7 +233,7 @@ export default function ModerationUsersTable() {
     {
       field: 'createdAt',
       headerName: 'Joined',
-      width: 82,
+      width: 90,
       renderCell: (params: any) => {
         if (!params.value) return <span style={{ color: '#4b5563' }}>—</span>;
         const d = new Date(params.value);
@@ -244,7 +244,7 @@ export default function ModerationUsersTable() {
     {
       field: 'isBanned',
       headerName: 'Status',
-      width: 85,
+      width: 90,
       renderCell: (params: any) => {
         if (params.row.isBanned) {
           return (
@@ -379,7 +379,6 @@ export default function ModerationUsersTable() {
         rowCount={total}
         paginationMode="server"
         sortingMode="server"
-        density="compact"
         slots={{ noRowsOverlay: NoRows }}
         loading={isLoading}
         paginationModel={paginationModel}
@@ -391,7 +390,7 @@ export default function ModerationUsersTable() {
         onRowSelectionModelChange={(model) => setSelectedIds(model)}
         sx={{
           fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 13,
+          fontSize: 14,
           color: '#fff',
           background: '#101014',
           borderRadius: 2,
