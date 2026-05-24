@@ -33,6 +33,16 @@ These rules are non-negotiable. Follow them on every task, every session.
 ### 4. Railway auto-deploys from `main`
 Pushing to `main` on GitHub immediately triggers a production deploy via Railway. There is no staging environment — merging = deploying.
 
+### 5. Self-review every implementation before declaring it done
+After finishing any implementation — before committing, and before reporting the work as complete — read back every file you created or modified in full. For each change, verify:
+- **Correctness:** Does the logic actually do what it's supposed to? Check for missing `res.ok` / error checks on `fetch()` calls, off-by-one errors, wrong variable references, stale state, unhandled edge cases.
+- **Type safety:** Are types correct at runtime, not just on paper? A `as SomeType` cast that hides a real mismatch is a bug.
+- **No false positives:** Success messages, UI state changes, and mutations must only happen when the operation actually succeeded — not unconditionally after the request is fired.
+- **No breakage to existing features:** Trace how existing code paths interact with the change. If a shared utility, API route, schema field, or component was modified, check every caller.
+- **Pre-existing bugs touched by the change:** If the change sits next to or builds on broken pre-existing code, fix the pre-existing bug too — don't layer new code on top of a known defect.
+
+Do not rely on "it compiled" or "TypeScript didn't complain" as a substitute for this review. Build success with `ignoreBuildErrors: true` means nothing. Read the code.
+
 ---
 
 ## Project Purpose
