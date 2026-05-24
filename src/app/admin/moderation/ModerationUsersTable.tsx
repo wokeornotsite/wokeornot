@@ -19,7 +19,9 @@ import { WARN_TEMPLATES, BAN_TEMPLATES } from '@/lib/moderation-templates';
 export default function ModerationUsersTable() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string | null; email?: string }>({ open: false, userId: null });
+  const [bulkBanDialog, setBulkBanDialog] = React.useState(false);
+  const [bulkWarnDialog, setBulkWarnDialog] = React.useState(false);
   const [banDialog, setBanDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
   const [banReason, setBanReason] = React.useState('');
   const [promoteDialog, setPromoteDialog] = React.useState<{ open: boolean; row: any | null }>({ open: false, row: null });
@@ -209,7 +211,7 @@ export default function ModerationUsersTable() {
       headerName: 'Role',
       width: 130,
       renderCell: (params: any) => {
-        const roleColor: Record<string, string> = { ADMIN: '#ef4444', MODERATOR: '#a78bfa', USER: '#38bdf8' };
+        const roleColor: Record<string, string> = { ADMIN: '#a855f7', MODERATOR: '#3b82f6', USER: '#6b7280' };
         const c = roleColor[params.value] || '#9ca3af';
         return <Chip label={params.value} size="small" sx={{ background: `${c}20`, color: c, fontWeight: 700, fontSize: '0.72rem' }} />;
       },
@@ -303,7 +305,7 @@ export default function ModerationUsersTable() {
           <GridActionsCellItem
             icon={<DeleteIcon color="error" />}
             label="Delete"
-            onClick={() => setDeleteDialog({ open: true, userId: params.row.id })}
+            onClick={() => setDeleteDialog({ open: true, userId: params.row.id, email: params.row.email })}
             showInMenu
           />
         );
@@ -528,14 +530,19 @@ export default function ModerationUsersTable() {
       </Dialog>
 
       {/* Delete dialog */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, userId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
-        <DialogTitle sx={{ fontWeight: 700 }}>Delete User</DialogTitle>
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, userId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 380 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#ef4444' }}>Delete User</DialogTitle>
         <DialogContent>
-          <p style={{ margin: 0 }}>Are you sure you want to permanently delete this user? This action cannot be undone.</p>
+          {deleteDialog.email && (
+            <p style={{ margin: '0 0 12px', color: '#fca5a5' }}>
+              <strong>{deleteDialog.email}</strong>
+            </p>
+          )}
+          <p style={{ margin: 0 }}>This will <strong>permanently delete</strong> this account and all associated data. This action cannot be undone.</p>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, userId: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
-          <Button onClick={() => handleDelete(deleteDialog.userId!)} variant="contained" color="error">Delete</Button>
+          <Button onClick={() => handleDelete(deleteDialog.userId!)} variant="contained" color="error">Delete Permanently</Button>
         </DialogActions>
       </Dialog>
 
@@ -548,6 +555,61 @@ export default function ModerationUsersTable() {
         <DialogActions>
           <Button onClick={() => setDemoteDialog({ open: false, row: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={confirmDemote} variant="contained" color="error">Demote</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk ban confirmation */}
+      <Dialog open={bulkBanDialog} onClose={() => setBulkBanDialog(false)} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 380 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#ef4444' }}>Ban {selectedIds.length} Users</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>This will ban <strong style={{ color: '#fca5a5' }}>{selectedIds.length} selected user(s)</strong>. They will be blocked from logging in and a notification email will be sent to each.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkBanDialog(false)} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              await fetch('/api/admin/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedIds, action: 'ban' }),
+              });
+              setSnackbar({ open: true, message: `Banned ${selectedIds.length} users` });
+              setSelectedIds([]);
+              setBulkBanDialog(false);
+              mutate();
+            }}
+            variant="contained" color="error"
+          >
+            Ban {selectedIds.length} Users
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk warn confirmation */}
+      <Dialog open={bulkWarnDialog} onClose={() => setBulkWarnDialog(false)} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 380 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#fbbf24' }}>Warn {selectedIds.length} Users</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>This will issue a warning to <strong style={{ color: '#fde68a' }}>{selectedIds.length} selected user(s)</strong>. Each user will receive a warning email. Users with 3 warnings are auto-banned.</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkWarnDialog(false)} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              await fetch('/api/admin/users', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedIds, action: 'warn' }),
+              });
+              setSnackbar({ open: true, message: `Warned ${selectedIds.length} users` });
+              setSelectedIds([]);
+              setBulkWarnDialog(false);
+              mutate();
+            }}
+            variant="contained"
+            sx={{ background: '#fbbf24', '&:hover': { background: '#d97706' }, color: '#000' }}
+          >
+            Warn {selectedIds.length} Users
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -582,17 +644,7 @@ export default function ModerationUsersTable() {
             color="error"
             size="small"
             sx={{ fontWeight: 700, textTransform: 'none' }}
-            onClick={async () => {
-              if (!window.confirm(`Ban ${selectedIds.length} users?`)) return;
-              await fetch('/api/admin/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: selectedIds, action: 'ban' }),
-              });
-              setSnackbar({ open: true, message: `Banned ${selectedIds.length} users` });
-              setSelectedIds([]);
-              mutate();
-            }}
+            onClick={() => setBulkBanDialog(true)}
           >
             Ban Selected ({selectedIds.length})
           </Button>
@@ -600,17 +652,7 @@ export default function ModerationUsersTable() {
             variant="contained"
             size="small"
             sx={{ background: '#fbbf24', '&:hover': { background: '#d97706' }, fontWeight: 700, textTransform: 'none', color: '#000' }}
-            onClick={async () => {
-              if (!window.confirm(`Warn ${selectedIds.length} users?`)) return;
-              await fetch('/api/admin/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: selectedIds, action: 'warn' }),
-              });
-              setSnackbar({ open: true, message: `Warned ${selectedIds.length} users` });
-              setSelectedIds([]);
-              mutate();
-            }}
+            onClick={() => setBulkWarnDialog(true)}
           >
             Warn Selected ({selectedIds.length})
           </Button>

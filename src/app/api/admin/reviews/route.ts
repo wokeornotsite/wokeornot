@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
           text: true,
           rating: true,
           isHidden: true,
+          hideReason: true,
           createdAt: true,
           guestName: true,
           ipHash: true,
@@ -123,6 +124,7 @@ export async function GET(req: NextRequest) {
       text: r.text,
       rating: r.rating,
       isHidden: r.isHidden,
+      hideReason: (r as any).hideReason ?? null,
       createdAt: r.createdAt,
       guestName: r.guestName,
       ipHash: (r as any).ipHash ?? null,
@@ -172,12 +174,13 @@ export async function PATCH(req: NextRequest) {
   if ('error' in auth) return auth.error;
   try {
     const body = await req.json();
-    const { id, text, rating, isHidden } = body as { id?: string; text?: string | null; rating?: number; isHidden?: boolean };
+    const { id, text, rating, isHidden, hideReason } = body as { id?: string; text?: string | null; rating?: number; isHidden?: boolean; hideReason?: string | null };
     if (!id) return NextResponse.json({ error: 'Review ID required' }, { status: 400 });
     const data: any = {};
     if (typeof text !== 'undefined') data.text = text;
     if (typeof rating === 'number') data.rating = rating;
     if (typeof isHidden === 'boolean') data.isHidden = isHidden;
+    if (typeof hideReason !== 'undefined') data.hideReason = hideReason || null;
     const updated = await prisma.review.update({ where: { id }, data });
 
     // Pick the most specific action for the audit log.

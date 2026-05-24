@@ -183,6 +183,7 @@ model Review {
   rating      Int             @default(0) // 1-10 scale
   text        String?
   isHidden    Boolean         @default(false)
+  hideReason  String?
   ipHash      String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
