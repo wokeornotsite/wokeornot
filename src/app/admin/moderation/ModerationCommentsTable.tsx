@@ -63,11 +63,12 @@ export default function ModerationCommentsTable() {
 
   async function handleSoftDelete(id: string, currentIsDeleted: boolean) {
     try {
-      await fetch('/api/admin/comments', {
+      const res = await fetch('/api/admin/comments', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, isDeleted: !currentIsDeleted }),
       });
+      if (!res.ok) throw new Error('Request failed');
       setSnackbar({ open: true, message: currentIsDeleted ? 'Comment restored' : 'Comment soft-deleted' });
       mutate();
     } catch {
@@ -77,11 +78,12 @@ export default function ModerationCommentsTable() {
 
   async function handleHardDelete(id: string) {
     try {
-      await fetch('/api/admin/comments', {
+      const res = await fetch('/api/admin/comments', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
+      if (!res.ok) throw new Error('Request failed');
       setSnackbar({ open: true, message: 'Comment permanently deleted' });
       setSelectedIds(prev => {
         if (!prev.ids.has(id)) return prev;

@@ -142,6 +142,7 @@ export default function ModerationReviewsTable() {
     if (!ipHashFilter) return;
     try {
       const allForIp = await fetch(`/api/admin/reviews?ipHash=${encodeURIComponent(ipHashFilter)}&pageSize=500`);
+      if (!allForIp.ok) throw new Error('Failed to load reviews for IP');
       const data = await allForIp.json();
       const ids: string[] = (data?.data ?? []).filter((r: any) => !r.isHidden).map((r: any) => r.id);
       if (ids.length === 0) {
