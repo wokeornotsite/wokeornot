@@ -22,7 +22,7 @@ import { useComments } from './useComments';
 
 const DATAGRID_SX = {
   fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 16,
+  fontSize: 13,
   color: '#fff',
   background: '#101014',
   borderRadius: 2,
@@ -146,8 +146,8 @@ export default function ModerationCommentsTable() {
     {
       field: 'user',
       headerName: 'Author',
-      flex: 1,
-      minWidth: 160,
+      flex: 0.9,
+      minWidth: 110,
       valueGetter: (_v: any, row: any) => row?.user?.email || '',
       renderCell: (params: any) => (
         <span style={{ color: '#a78bfa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
@@ -158,8 +158,8 @@ export default function ModerationCommentsTable() {
     {
       field: 'text',
       headerName: 'Comment',
-      flex: 2.5,
-      minWidth: 200,
+      flex: 2.0,
+      minWidth: 120,
       renderCell: (params: any) => (
         <Tooltip title={params.value || ''} arrow placement="top">
           <span style={{
@@ -177,8 +177,8 @@ export default function ModerationCommentsTable() {
     {
       field: 'content',
       headerName: 'Content',
-      flex: 1.5,
-      minWidth: 160,
+      flex: 1.1,
+      minWidth: 110,
       valueGetter: (_v: any, row: any) => row?.content?.title || '',
       renderCell: (params: any) => {
         const title = params.row?.content?.title;
@@ -198,7 +198,7 @@ export default function ModerationCommentsTable() {
     {
       field: 'parentId',
       headerName: 'Type',
-      width: 90,
+      width: 78,
       renderCell: (params: any) => (
         <Chip
           label={params.row?.parentId ? 'Reply' : 'Comment'}
@@ -216,14 +216,23 @@ export default function ModerationCommentsTable() {
     {
       field: 'createdAt',
       headerName: 'Date',
-      width: 150,
-      type: 'dateTime',
-      valueGetter: (_v: any, row: any) => (row?.createdAt ? new Date(row.createdAt) : null),
+      width: 82,
+      renderCell: (params: any) => {
+        const val = params.row?.createdAt;
+        if (!val) return <span style={{ color: '#4b5563' }}>—</span>;
+        const d = new Date(val);
+        const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
+        if (daysAgo === 0) return <span style={{ color: '#4ade80', fontSize: 12 }}>Today</span>;
+        if (daysAgo === 1) return <span style={{ color: '#86efac', fontSize: 12 }}>Yesterday</span>;
+        if (daysAgo < 7) return <span style={{ fontSize: 12, color: '#94a3b8' }}>{daysAgo}d ago</span>;
+        const isThisYear = d.getFullYear() === new Date().getFullYear();
+        return <span style={{ color: '#94a3b8', fontSize: 12 }}>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(isThisYear ? {} : { year: '2-digit' }) })}</span>;
+      },
     },
     {
       field: 'isDeleted',
       headerName: 'Status',
-      width: 110,
+      width: 80,
       renderCell: (params: any) =>
         params.row.isDeleted
           ? <Chip label="Deleted" size="small" sx={{ background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', fontWeight: 700 }} />
@@ -232,8 +241,8 @@ export default function ModerationCommentsTable() {
     {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
-      width: 110,
+      headerName: '',
+      width: 90,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
         params.row.isDeleted
           ? <GridActionsCellItem key="restore" icon={<RestoreIcon sx={{ color: '#4ade80' }} />} label="Restore" onClick={() => handleSoftDelete(params.row.id, true)} showInMenu={false} />
@@ -310,17 +319,18 @@ export default function ModerationCommentsTable() {
         )}
       </Box>
 
-      <Box sx={{ height: 520 }}>
+      <Box sx={{ height: 540 }}>
         <DataGrid
           rows={rows}
           columns={columns}
           rowCount={total}
           paginationMode="server"
+          density="compact"
           loading={isLoading}
           checkboxSelection
           rowSelectionModel={selectedIds}
           onRowSelectionModelChange={(model) => setSelectedIds(model)}
-          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No comments found</Box> }}
+          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af', fontSize: 13 }}>No comments found</Box> }}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[20, 50, 100]}

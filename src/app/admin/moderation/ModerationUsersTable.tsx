@@ -199,61 +199,68 @@ export default function ModerationUsersTable() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'email', headerName: 'Email', flex: 2, minWidth: 200 },
+    { field: 'email', headerName: 'Email', flex: 1.6, minWidth: 150,
+      renderCell: (params: any) => <span style={{ color: '#a78bfa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', fontSize: 12 }}>{params.value}</span>,
+    },
     {
       field: 'name',
       headerName: 'Name',
-      flex: 1,
-      minWidth: 140,
-      renderCell: (params: any) => params.value || <span style={{ color: '#6b7280' }}>—</span>,
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params: any) => <span style={{ color: '#e2e8f0', fontSize: 12 }}>{params.value || <span style={{ color: '#4b5563', fontStyle: 'italic' }}>—</span>}</span>,
     },
     {
       field: 'role',
       headerName: 'Role',
-      width: 130,
+      width: 105,
       renderCell: (params: any) => {
         const roleColor: Record<string, string> = { ADMIN: '#a855f7', MODERATOR: '#3b82f6', USER: '#6b7280' };
         const c = roleColor[params.value] || '#9ca3af';
-        return <Chip label={params.value} size="small" sx={{ background: `${c}20`, color: c, fontWeight: 700, fontSize: '0.72rem' }} />;
+        return <Chip label={params.value} size="small" sx={{ background: `${c}22`, color: c, fontWeight: 700, fontSize: '0.68rem', height: 20, border: `1px solid ${c}44`, '& .MuiChip-label': { px: '6px' } }} />;
       },
     },
     {
       field: 'warnCount',
       headerName: 'Warns',
-      width: 90,
+      width: 72,
       renderCell: (params: any) => {
         const count = params.value ?? 0;
-        if (count >= 3) return <Chip label={count} size="small" sx={{ background: '#ef444422', color: '#ef4444', fontWeight: 700 }} />;
-        if (count === 2) return <Chip label={count} size="small" sx={{ background: '#fbbf2422', color: '#fbbf24', fontWeight: 700 }} />;
-        return <span style={{ color: '#9ca3af' }}>{count}</span>;
+        if (count >= 3) return <Chip label={count} size="small" sx={{ background: '#ef444422', color: '#ef4444', fontWeight: 700, height: 20, '& .MuiChip-label': { px: '6px' } }} />;
+        if (count === 2) return <Chip label={count} size="small" sx={{ background: '#fbbf2422', color: '#fbbf24', fontWeight: 700, height: 20, '& .MuiChip-label': { px: '6px' } }} />;
+        return <span style={{ color: count > 0 ? '#fbbf24' : '#4b5563', fontSize: 12 }}>{count}</span>;
       },
     },
     {
       field: 'createdAt',
       headerName: 'Joined',
-      width: 110,
-      valueFormatter: (value: any) => value ? new Date(value).toLocaleDateString() : '—',
+      width: 82,
+      renderCell: (params: any) => {
+        if (!params.value) return <span style={{ color: '#4b5563' }}>—</span>;
+        const d = new Date(params.value);
+        const isThisYear = d.getFullYear() === new Date().getFullYear();
+        return <span style={{ color: '#94a3b8', fontSize: 12 }}>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(isThisYear ? {} : { year: '2-digit' }) })}</span>;
+      },
     },
     {
       field: 'isBanned',
       headerName: 'Status',
-      width: 120,
+      width: 85,
       renderCell: (params: any) => {
         if (params.row.isBanned) {
           return (
             <Tooltip title={params.row.banReason || 'No reason given'} arrow>
-              <Chip label="Banned" color="error" size="small" />
+              <Chip label="Banned" color="error" size="small" sx={{ fontSize: '0.68rem', height: 20, '& .MuiChip-label': { px: '6px' } }} />
             </Tooltip>
           );
         }
-        return <Chip label="Active" color="success" size="small" />;
+        return <Chip label="Active" color="success" size="small" sx={{ fontSize: '0.68rem', height: 20, '& .MuiChip-label': { px: '6px' } }} />;
       },
     },
     {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
-      width: 160,
+      headerName: '',
+      width: 120,
       getActions: (params) => {
         const actions = [
           <GridActionsCellItem icon={<InfoIcon sx={{ color: '#38bdf8' }} />} label="View Activity" onClick={() => setActivityDialog({ open: true, userId: params.row.id })} />,
@@ -335,7 +342,7 @@ export default function ModerationUsersTable() {
   ), []);
 
   return (
-    <Box sx={{ height: 660, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+    <Box sx={{ height: 560, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           Failed to load users. Please try again.
@@ -372,6 +379,7 @@ export default function ModerationUsersTable() {
         rowCount={total}
         paginationMode="server"
         sortingMode="server"
+        density="compact"
         slots={{ noRowsOverlay: NoRows }}
         loading={isLoading}
         paginationModel={paginationModel}
@@ -383,42 +391,22 @@ export default function ModerationUsersTable() {
         onRowSelectionModelChange={(model) => setSelectedIds(model)}
         sx={{
           fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 16,
+          fontSize: 13,
           color: '#fff',
           background: '#101014',
           borderRadius: 2,
           boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': {
-            color: '#fff',
-            background: '#191927',
-            borderBottom: '1px solid #232336',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            background: '#232336',
-            color: '#fbbf24',
-            fontWeight: 700,
-            borderBottom: '2px solid #fbbf24',
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            color: '#fbbf24',
-            fontWeight: 700,
-          },
-          '& .MuiDataGrid-row': {
-            transition: 'background 0.2s',
-            '&:hover': {
-              backgroundColor: '#37376b',
-              color: '#fff',
-            },
-          },
+          '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
+          '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
+          '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
+          '& .MuiDataGrid-row': { transition: 'background 0.15s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
           '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
           '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
           '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-          '& .MuiSvgIcon-root, & .MuiButtonBase-root': {
-            color: '#fff !important',
-            opacity: 1,
-          },
+          '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
           '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
           '& .MuiDataGrid-actionsCell': { color: '#fff' },
+          '& .MuiDataGrid-sortIcon': { color: '#fbbf24 !important' },
         }}
       />
       <Snackbar

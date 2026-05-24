@@ -25,6 +25,42 @@ import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+const DATAGRID_SX = {
+  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+  fontSize: 13,
+  color: '#fff',
+  background: '#101014',
+  borderRadius: 2,
+  boxShadow: '0 2px 12px #0004',
+  '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
+  '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
+  '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
+  '& .MuiDataGrid-row': { transition: 'background 0.15s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
+  '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
+  '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
+  '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
+  '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
+  '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
+  '& .MuiDataGrid-actionsCell': { color: '#fff' },
+  '& .MuiDataGrid-sortIcon': { color: '#fbbf24 !important' },
+  '& .MuiDataGrid-checkboxInput': { color: '#a78bfa !important' },
+};
+
+function fmtDate(val: any): React.ReactNode {
+  if (!val) return <span style={{ color: '#4b5563' }}>—</span>;
+  const d = new Date(val);
+  const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (daysAgo === 0) return <span style={{ color: '#4ade80', fontSize: 12 }}>Today</span>;
+  if (daysAgo === 1) return <span style={{ color: '#86efac', fontSize: 12 }}>Yesterday</span>;
+  if (daysAgo < 7) return <span style={{ fontSize: 12, color: '#94a3b8' }}>{daysAgo}d ago</span>;
+  const isThisYear = d.getFullYear() === new Date().getFullYear();
+  return (
+    <span style={{ color: '#94a3b8', fontSize: 12 }}>
+      {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(isThisYear ? {} : { year: '2-digit' }) })}
+    </span>
+  );
+}
+
 export default function ModerationReviewsTable() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -176,7 +212,6 @@ export default function ModerationReviewsTable() {
         body: JSON.stringify({ id: reviewId }),
       });
       setSnackbar({ open: true, message: 'Review deleted' });
-      // Remove from selection if it was checked, so the bulk-delete count stays accurate
       setSelectedIds(prev => {
         if (!prev.ids.has(reviewId)) return prev;
         const next = new Set(prev.ids);
@@ -218,17 +253,19 @@ export default function ModerationReviewsTable() {
     setPaginationModel(p => ({ ...p, page: 0 }));
   }
 
+  const typeColor: Record<string, string> = { MOVIE: '#e879f9', TV_SHOW: '#38bdf8', KIDS: '#a78bfa' };
+
   const columns: GridColDef[] = [
     {
       field: 'user',
       headerName: 'User',
-      flex: 1,
-      minWidth: 160,
+      flex: 0.9,
+      minWidth: 110,
       valueGetter: (_value: any, row: any) => row?.user?.email || row?.guestName || '',
       renderCell: (params: any) => {
         const email = params.row?.user?.email || params.row?.guestName;
         return (
-          <span style={{ color: params.row?.user?.email ? '#a78bfa' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%' }}>
+          <span style={{ color: params.row?.user?.email ? '#a78bfa' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', fontSize: 12 }}>
             {email || 'Anonymous'}
           </span>
         );
@@ -237,52 +274,61 @@ export default function ModerationReviewsTable() {
     {
       field: 'contentTitle',
       headerName: 'Content',
-      flex: 1.5,
-      minWidth: 180,
+      flex: 1.0,
+      minWidth: 110,
       valueGetter: (_value: any, row: any) => row?.content?.title || '',
       renderCell: (params: any) => {
         const title = params.row?.content?.title;
         const type = params.row?.content?.contentType;
-        const typeColor: Record<string, string> = { MOVIE: '#e879f9', TV_SHOW: '#38bdf8', KIDS: '#a78bfa' };
+        const c = typeColor[type] || '#9ca3af';
         return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', overflow: 'hidden' }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0' }}>{title || '—'}</span>
-            {type && <span style={{ fontSize: 10, fontWeight: 700, color: typeColor[type] || '#9ca3af', background: `${typeColor[type] || '#9ca3af'}18`, borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{type}</span>}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', overflow: 'hidden' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0', fontSize: 12, minWidth: 0 }}>{title || '—'}</span>
+            {type && <span style={{ fontSize: 9, fontWeight: 700, color: c, background: `${c}22`, border: `1px solid ${c}44`, borderRadius: 3, padding: '1px 4px', flexShrink: 0, lineHeight: '14px' }}>{type.replace('_', ' ')}</span>}
           </span>
         );
       },
     },
     {
       field: 'text',
-      headerName: 'Review Text',
-      flex: 2,
-      minWidth: 160,
+      headerName: 'Review',
+      flex: 1.7,
+      minWidth: 110,
       renderCell: (params: any) => (
         <Tooltip title={params.value || 'No text review'} arrow placement="top">
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', color: params.value ? '#e2e8f0' : '#6b7280', fontStyle: params.value ? 'normal' : 'italic' }}>
-            {params.value || 'No text review'}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', width: '100%', color: params.value ? '#e2e8f0' : '#4b5563', fontStyle: params.value ? 'normal' : 'italic', fontSize: 12 }}>
+            {params.value || 'No text'}
           </span>
         </Tooltip>
       ),
     },
-    { field: 'rating', headerName: 'Rating', width: 80, sortable: true },
+    {
+      field: 'rating',
+      headerName: 'Rating',
+      width: 62,
+      sortable: true,
+      renderCell: (params: any) => {
+        const r = params.value;
+        const color = r >= 8 ? '#ef4444' : r >= 5 ? '#fbbf24' : '#4ade80';
+        return <span style={{ fontWeight: 700, color, fontSize: 13 }}>{r}</span>;
+      },
+    },
     {
       field: 'createdAt',
       headerName: 'Date',
-      width: 160,
-      type: 'dateTime',
-      valueGetter: (_value: any, row: any) => (row?.createdAt ? new Date(row.createdAt) : null),
+      width: 82,
       sortable: true,
+      renderCell: (params: any) => fmtDate(params.row?.createdAt),
     },
     {
       field: 'ipHashCount',
-      headerName: 'IP Reviews',
-      width: 110,
+      headerName: 'IP',
+      width: 78,
       sortable: false,
       renderCell: (params: any) => {
         const count = params.row?.ipHashCount;
         const ipHash = params.row?.ipHash;
-        if (!ipHash) return <span style={{ color: '#4b5563', fontSize: 12 }}>—</span>;
+        if (!ipHash) return <span style={{ color: '#374151', fontSize: 12 }}>—</span>;
         return (
           <Tooltip title={`${count} review(s) from this IP — click to filter`} arrow>
             <Chip
@@ -291,11 +337,13 @@ export default function ModerationReviewsTable() {
               onClick={() => handleFilterByIpHash(ipHash)}
               sx={{
                 cursor: 'pointer',
-                fontSize: 11,
+                fontSize: 10,
+                height: 20,
                 background: count > 2 ? '#7f1d1d' : '#1c1c2e',
                 color: count > 2 ? '#fca5a5' : '#9ca3af',
                 border: count > 2 ? '1px solid #ef4444' : '1px solid #374151',
                 '&:hover': { background: count > 2 ? '#991b1b' : '#2d2d44' },
+                '& .MuiChip-label': { px: '6px' },
               }}
             />
           </Tooltip>
@@ -305,33 +353,29 @@ export default function ModerationReviewsTable() {
     {
       field: 'isHidden',
       headerName: 'Status',
-      width: 110,
+      width: 80,
       renderCell: (params: any) => {
         if (params.row.isHidden) {
           const reason = params.row.hideReason;
           const chip = (
-            <Chip
-              label="Hidden"
-              size="small"
-              sx={{ background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', fontWeight: 700, cursor: reason ? 'help' : 'default' }}
-            />
+            <Chip label="Hidden" size="small" sx={{ fontSize: 10, height: 20, background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', fontWeight: 700, cursor: reason ? 'help' : 'default', '& .MuiChip-label': { px: '6px' } }} />
           );
           return reason ? <Tooltip title={`Reason: ${reason}`} arrow>{chip}</Tooltip> : chip;
         }
-        return <Chip label="Visible" color="success" size="small" />;
+        return <Chip label="Visible" color="success" size="small" sx={{ fontSize: 10, height: 20, '& .MuiChip-label': { px: '6px' } }} />;
       },
     },
     {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
-      width: 120,
+      headerName: '',
+      width: 106,
       getActions: (params: import('@mui/x-data-grid').GridRowParams) => [
-        <GridActionsCellItem key="edit" icon={<EditIcon sx={{ color: '#38bdf8' }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
+        <GridActionsCellItem key="edit" icon={<EditIcon sx={{ color: '#38bdf8', fontSize: 18 }} />} label="Edit" onClick={() => { setEditText(params.row.text || ''); setEditDialog({ open: true, row: params.row }); }} showInMenu={false} />,
         params.row.isHidden
-          ? <GridActionsCellItem key="unhide" icon={<VisibilityIcon color="success" />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
-          : <GridActionsCellItem key="hide" icon={<VisibilityOffIcon color="warning" />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
-        <GridActionsCellItem key="delete" icon={<DeleteIcon color="error" />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} showInMenu={false} />,
+          ? <GridActionsCellItem key="unhide" icon={<VisibilityIcon color="success" sx={{ fontSize: 18 }} />} label="Unhide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />
+          : <GridActionsCellItem key="hide" icon={<VisibilityOffIcon color="warning" sx={{ fontSize: 18 }} />} label="Hide" onClick={() => handleToggleHide(params.row)} showInMenu={false} />,
+        <GridActionsCellItem key="delete" icon={<DeleteIcon color="error" sx={{ fontSize: 18 }} />} label="Delete" onClick={() => setDeleteDialog({ open: true, reviewId: params.row.id })} showInMenu={false} />,
       ],
     },
   ];
@@ -339,55 +383,41 @@ export default function ModerationReviewsTable() {
   const hasActiveFilters = minRating || maxRating || dateFrom || dateTo || ipHashFilter || guestOnly;
 
   return (
-    <Box sx={{
-      width: '100%',
-      background: 'rgba(24,24,27,0.98)',
-      borderRadius: 2,
-      p: 2,
-      mb: 3,
-      color: '#f3f4f6',
-      fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-      fontSize: 16,
-      boxShadow: '0 2px 12px #0002',
-    }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load reviews. Please try again.
-        </Alert>
-      )}
+    <Box sx={{ width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3, color: '#f3f4f6' }}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>Failed to load reviews. Please try again.</Alert>}
 
       {/* Primary filter row */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           value={q}
           onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
           placeholder="Search text, user, title..."
-          InputProps={{ sx: { color: '#fff' } }}
-          sx={{ minWidth: 260 }}
+          InputProps={{ sx: { color: '#fff', fontSize: 13 } }}
+          sx={{ minWidth: 220 }}
         />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id="ctype-label" sx={{ color: '#fff' }}>Content Type</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel id="ctype-label" sx={{ color: '#fff', fontSize: 13 }}>Content Type</InputLabel>
           <Select
             labelId="ctype-label"
             label="Content Type"
             value={contentType}
             onChange={(e) => { setContentType(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
-            sx={{ color: '#fff' }}
+            sx={{ color: '#fff', fontSize: 13 }}
           >
             <MenuItem value="">All</MenuItem>
-            <MenuItem value="MOVIE">MOVIE</MenuItem>
-            <MenuItem value="TV_SHOW">TV_SHOW</MenuItem>
-            <MenuItem value="KIDS">KIDS</MenuItem>
+            <MenuItem value="MOVIE">Movie</MenuItem>
+            <MenuItem value="TV_SHOW">TV Show</MenuItem>
+            <MenuItem value="KIDS">Kids</MenuItem>
           </Select>
         </FormControl>
         <Badge badgeContent={hasActiveFilters ? '!' : 0} color="warning">
           <Button
             size="small"
-            startIcon={<FilterListIcon />}
+            startIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
             onClick={() => setShowFilters(f => !f)}
             variant={showFilters ? 'contained' : 'outlined'}
-            sx={{ color: showFilters ? '#000' : '#a78bfa', borderColor: '#a78bfa', background: showFilters ? '#a78bfa' : 'transparent', minWidth: 110 }}
+            sx={{ color: showFilters ? '#000' : '#a78bfa', borderColor: '#a78bfa', background: showFilters ? '#a78bfa' : 'transparent', fontSize: 12, textTransform: 'none' }}
           >
             Filters
           </Button>
@@ -396,11 +426,11 @@ export default function ModerationReviewsTable() {
           <Button
             size="small"
             variant="outlined"
-            startIcon={<VisibilityOffOutlinedIcon />}
+            startIcon={<VisibilityOffOutlinedIcon sx={{ fontSize: 16 }} />}
             onClick={() => setHideAllIpDialog(true)}
-            sx={{ borderColor: '#f97316', color: '#f97316', '&:hover': { background: '#f9731620' } }}
+            sx={{ borderColor: '#f97316', color: '#f97316', '&:hover': { background: '#f9731620' }, fontSize: 12, textTransform: 'none' }}
           >
-            Hide all from this IP
+            Hide all from IP
           </Button>
         )}
         {selectedIds.ids.size > 0 && (
@@ -408,9 +438,9 @@ export default function ModerationReviewsTable() {
             size="small"
             variant="contained"
             color="error"
-            startIcon={<DeleteIcon />}
+            startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
             onClick={() => setBulkDeleteDialog(true)}
-            sx={{ ml: 'auto' }}
+            sx={{ ml: 'auto', fontSize: 12, textTransform: 'none' }}
           >
             Delete {selectedIds.ids.size} selected
           </Button>
@@ -419,159 +449,60 @@ export default function ModerationReviewsTable() {
 
       {/* Advanced filters panel */}
       {showFilters && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center', background: '#1a1a2e', borderRadius: 1, p: 1.5 }}>
-          <FormControl size="small" sx={{ minWidth: 110 }}>
-            <InputLabel sx={{ color: '#9ca3af' }}>Min Rating</InputLabel>
-            <Select
-              label="Min Rating"
-              value={minRating}
-              onChange={(e) => { setMinRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }}
-              sx={{ color: '#fff' }}
-            >
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap', alignItems: 'center', background: '#1a1a2e', borderRadius: 1, p: 1.5 }}>
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel sx={{ color: '#9ca3af', fontSize: 12 }}>Min Rating</InputLabel>
+            <Select label="Min Rating" value={minRating} onChange={(e) => { setMinRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ color: '#fff', fontSize: 12 }}>
               <MenuItem value="">Any</MenuItem>
-              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>{n}</MenuItem>)}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 110 }}>
-            <InputLabel sx={{ color: '#9ca3af' }}>Max Rating</InputLabel>
-            <Select
-              label="Max Rating"
-              value={maxRating}
-              onChange={(e) => { setMaxRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }}
-              sx={{ color: '#fff' }}
-            >
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel sx={{ color: '#9ca3af', fontSize: 12 }}>Max Rating</InputLabel>
+            <Select label="Max Rating" value={maxRating} onChange={(e) => { setMaxRating(e.target.value as string); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ color: '#fff', fontSize: 12 }}>
               <MenuItem value="">Any</MenuItem>
-              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>{n}</MenuItem>)}
             </Select>
           </FormControl>
-          <TextField
-            size="small"
-            type="date"
-            label="From date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
-            InputLabelProps={{ shrink: true, sx: { color: '#9ca3af' } }}
-            InputProps={{ sx: { color: '#fff' } }}
-            sx={{ minWidth: 145 }}
-          />
-          <TextField
-            size="small"
-            type="date"
-            label="To date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
-            InputLabelProps={{ shrink: true, sx: { color: '#9ca3af' } }}
-            InputProps={{ sx: { color: '#fff' } }}
-            sx={{ minWidth: 145 }}
-          />
-          <TextField
-            size="small"
-            value={ipHashFilter}
-            onChange={(e) => { setIpHashFilter(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
-            placeholder="Filter by IP hash..."
-            InputProps={{ sx: { color: '#fff', fontSize: 12 } }}
-            sx={{ minWidth: 220 }}
-          />
+          <TextField size="small" type="date" label="From" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} InputLabelProps={{ shrink: true, sx: { color: '#9ca3af', fontSize: 12 } }} InputProps={{ sx: { color: '#fff', fontSize: 12 } }} sx={{ minWidth: 130 }} />
+          <TextField size="small" type="date" label="To" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} InputLabelProps={{ shrink: true, sx: { color: '#9ca3af', fontSize: 12 } }} InputProps={{ sx: { color: '#fff', fontSize: 12 } }} sx={{ minWidth: 130 }} />
+          <TextField size="small" value={ipHashFilter} onChange={(e) => { setIpHashFilter(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} placeholder="IP hash..." InputProps={{ sx: { color: '#fff', fontSize: 11 } }} sx={{ minWidth: 180 }} />
           <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={guestOnly}
-                onChange={(e) => { setGuestOnly(e.target.checked); setPaginationModel(p => ({ ...p, page: 0 })); }}
-                sx={{ '& .MuiSwitch-thumb': { background: guestOnly ? '#a78bfa' : '#6b7280' } }}
-              />
-            }
-            label={<span style={{ color: '#9ca3af', fontSize: 13 }}>Guest only</span>}
+            control={<Switch size="small" checked={guestOnly} onChange={(e) => { setGuestOnly(e.target.checked); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ '& .MuiSwitch-thumb': { background: guestOnly ? '#a78bfa' : '#6b7280' } }} />}
+            label={<span style={{ color: '#9ca3af', fontSize: 12 }}>Guest only</span>}
           />
           {hasActiveFilters && (
-            <Button
-              size="small"
-              onClick={() => {
-                setMinRating(''); setMaxRating(''); setDateFrom(''); setDateTo('');
-                setIpHashFilter(''); setGuestOnly(false);
-                setPaginationModel(p => ({ ...p, page: 0 }));
-              }}
-              sx={{ color: '#ef4444', fontSize: 12 }}
-            >
+            <Button size="small" onClick={() => { setMinRating(''); setMaxRating(''); setDateFrom(''); setDateTo(''); setIpHashFilter(''); setGuestOnly(false); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ color: '#ef4444', fontSize: 12, textTransform: 'none' }}>
               Clear filters
             </Button>
           )}
         </Box>
       )}
 
-      <Box sx={{ height: 520 }}>
+      <Box sx={{ height: 540 }}>
         <DataGrid
           rows={reviews}
           columns={columns}
           rowCount={total}
           paginationMode="server"
           sortingMode="server"
+          density="compact"
           loading={isLoading}
           checkboxSelection
           rowSelectionModel={selectedIds}
           onRowSelectionModelChange={(model) => setSelectedIds(model)}
-          slots={{ noRowsOverlay: () => (<Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box>) }}
+          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af', fontSize: 13 }}>No reviews found</Box> }}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           onSortModelChange={(model) => setSortModel(model)}
           pageSizeOptions={[10, 20, 50]}
           autoHeight={false}
           disableRowSelectionOnClick
-          sx={{
-            fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-            fontSize: 16,
-            color: '#fff',
-            background: '#101014',
-            borderRadius: 2,
-            boxShadow: '0 2px 12px #0004',
-            '& .MuiDataGrid-cell': {
-              color: '#fff',
-              background: '#191927',
-              borderBottom: '1px solid #232336',
-            },
-            '& .MuiDataGrid-columnHeaders': {
-              background: '#232336',
-              color: '#fbbf24',
-              fontWeight: 700,
-              borderBottom: '2px solid #fbbf24',
-            },
-            '& .MuiDataGrid-columnHeaderTitle': {
-              color: '#fbbf24',
-              fontWeight: 700,
-            },
-            '& .MuiDataGrid-row': {
-              transition: 'background 0.2s',
-              '&:hover': {
-                backgroundColor: '#37376b',
-                color: '#fff',
-              },
-            },
-            '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-            '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-            '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-            '& .MuiSvgIcon-root, & .MuiButtonBase-root': {
-              color: '#fff !important',
-              opacity: 1,
-            },
-            '& .MuiDataGrid-iconButtonContainer': {
-              color: '#fff',
-            },
-            '& .MuiDataGrid-actionsCell': {
-              color: '#fff',
-            },
-            '& .MuiDataGrid-checkboxInput': {
-              color: '#a78bfa !important',
-            },
-          }}
+          sx={DATAGRID_SX}
         />
       </Box>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ open: false, message: '' })}
-        message={snackbar.message}
-      />
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, message: '' })} message={snackbar.message} />
 
       {/* Single delete confirmation */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, reviewId: null })} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 360 } }}>
@@ -605,7 +536,7 @@ export default function ModerationReviewsTable() {
         <DialogTitle sx={{ fontWeight: 700, color: '#f97316' }}>Hide All Reviews from This IP</DialogTitle>
         <DialogContent>
           <p style={{ margin: 0 }}>
-            This will hide all <strong>visible</strong> reviews from IP hash <code style={{ background: '#1a1a2e', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{ipHashFilter}</code>.
+            This will hide all <strong>visible</strong> reviews from IP hash <code style={{ background: '#1a1a2e', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>{ipHashFilter}</code>.
             Hidden reviews are not deleted — they can be unhidden individually later.
           </p>
         </DialogContent>
@@ -622,18 +553,9 @@ export default function ModerationReviewsTable() {
         <DialogTitle sx={{ fontWeight: 700, color: '#38bdf8' }}>Edit Review Text</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
-            fullWidth
-            multiline
-            minRows={4}
-            maxRows={10}
-            size="small"
-            label="Review text"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            InputProps={{ sx: { color: '#fff' } }}
-            InputLabelProps={{ sx: { color: '#9ca3af' } }}
-            sx={{ mt: 1 }}
+            autoFocus fullWidth multiline minRows={4} maxRows={10} size="small"
+            label="Review text" value={editText} onChange={(e) => setEditText(e.target.value)}
+            InputProps={{ sx: { color: '#fff' } }} InputLabelProps={{ sx: { color: '#9ca3af' } }} sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
