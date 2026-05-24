@@ -6,8 +6,10 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ModerationReviewsTable from './ModerationReviewsTable';
 import ModerationUsersTable from './ModerationUsersTable';
 import FlaggedUsersTable from './FlaggedUsersTable';
+import ModerationCommentsTable from './ModerationCommentsTable';
 import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
 import { useRouter, useSearchParams } from 'next/navigation';
+import CommentIcon from '@mui/icons-material/ChatBubbleOutline';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -15,7 +17,7 @@ export default function ModerationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = parseInt(searchParams.get('tab') || '0', 10);
-  const [tab, setTab] = React.useState(isNaN(tabParam) ? 0 : Math.min(tabParam, 2));
+  const [tab, setTab] = React.useState(isNaN(tabParam) ? 0 : Math.min(tabParam, 3));
 
   const { data: flaggedData } = useSWR('/api/admin/users?flagged=true&pageSize=1', fetcher);
   const flaggedCount: number = flaggedData?.total ?? 0;
@@ -63,12 +65,21 @@ export default function ModerationPage() {
               </Box>
             }
           />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CommentIcon sx={{ fontSize: 18 }} />
+                <span>Comments</span>
+              </Box>
+            }
+          />
         </Tabs>
 
         <Box sx={{ p: 3 }}>
           {tab === 0 && <ModerationReviewsTable />}
           {tab === 1 && <ModerationUsersTable />}
           {tab === 2 && <FlaggedUsersTable />}
+          {tab === 3 && <ModerationCommentsTable />}
         </Box>
       </Paper>
     </Box>

@@ -18,6 +18,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import EditIcon from '@mui/icons-material/Edit';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -41,6 +42,7 @@ export default function ModerationReviewsTable() {
   const emptySelection = (): GridRowSelectionModel => ({ type: 'include', ids: new Set<GridRowId>() });
   const [selectedIds, setSelectedIds] = React.useState<GridRowSelectionModel>(emptySelection);
   const [bulkDeleteDialog, setBulkDeleteDialog] = React.useState(false);
+  const [hideAllIpDialog, setHideAllIpDialog] = React.useState(false);
   const dq = useDebouncedValue(q, 300);
   const dMinRating = useDebouncedValue(minRating, 400);
   const dMaxRating = useDebouncedValue(maxRating, 400);
@@ -122,16 +124,48 @@ export default function ModerationReviewsTable() {
   async function handleToggleHide(row: any) {
     const nextHidden = !row.isHidden;
     try {
+      const body: any = { id: row.id, isHidden: nextHidden };
+      if (!nextHidden) body.hideReason = null;
       await fetch('/api/admin/reviews', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, isHidden: nextHidden }),
+        body: JSON.stringify(body),
       });
       setSnackbar({ open: true, message: nextHidden ? 'Review hidden' : 'Review unhidden' });
       mutate();
     } catch {
       setSnackbar({ open: true, message: 'Error updating review visibility' });
     }
+  }
+
+  async function handleHideAllFromIp() {
+    if (!ipHashFilter) return;
+    try {
+      const allForIp = await fetch(`/api/admin/reviews?ipHash=${encodeURIComponent(ipHashFilter)}&pageSize=500`);
+      if (!allForIp.ok) throw new Error('Failed to load reviews for IP');
+      const data = await allForIp.json();
+      const ids: string[] = (data?.data ?? []).filter((r: any) => !r.isHidden).map((r: any) => r.id);
+      if (ids.length === 0) {
+        setSnackbar({ open: true, message: 'All reviews from this IP are already hidden' });
+        setHideAllIpDialog(false);
+        return;
+      }
+      const res = await fetch('/api/admin/reviews/batch-hide', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, isHidden: true }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setSnackbar({ open: true, message: `Hidden ${result.updated} review(s) from this IP` });
+        mutate();
+      } else {
+        setSnackbar({ open: true, message: result.error || 'Error hiding reviews' });
+      }
+    } catch {
+      setSnackbar({ open: true, message: 'Error hiding reviews from IP' });
+    }
+    setHideAllIpDialog(false);
   }
 
   async function handleDelete(reviewId: string) {
@@ -271,11 +305,21 @@ export default function ModerationReviewsTable() {
     {
       field: 'isHidden',
       headerName: 'Status',
-      width: 100,
-      renderCell: (params: any) =>
-        params.row.isHidden
-          ? <Chip label="Hidden" color="error" size="small" />
-          : <Chip label="Visible" color="success" size="small" />,
+      width: 110,
+      renderCell: (params: any) => {
+        if (params.row.isHidden) {
+          const reason = params.row.hideReason;
+          const chip = (
+            <Chip
+              label="Hidden"
+              size="small"
+              sx={{ background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', fontWeight: 700, cursor: reason ? 'help' : 'default' }}
+            />
+          );
+          return reason ? <Tooltip title={`Reason: ${reason}`} arrow>{chip}</Tooltip> : chip;
+        }
+        return <Chip label="Visible" color="success" size="small" />;
+      },
     },
     {
       field: 'actions',
@@ -348,6 +392,17 @@ export default function ModerationReviewsTable() {
             Filters
           </Button>
         </Badge>
+        {ipHashFilter && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<VisibilityOffOutlinedIcon />}
+            onClick={() => setHideAllIpDialog(true)}
+            sx={{ borderColor: '#f97316', color: '#f97316', '&:hover': { background: '#f9731620' } }}
+          >
+            Hide all from this IP
+          </Button>
+        )}
         {selectedIds.ids.size > 0 && (
           <Button
             size="small"
@@ -542,6 +597,23 @@ export default function ModerationReviewsTable() {
         <DialogActions>
           <Button onClick={() => setBulkDeleteDialog(false)} sx={{ color: '#a78bfa' }}>Cancel</Button>
           <Button onClick={handleBulkDelete} variant="contained" color="error">Delete {selectedIds.ids.size} reviews</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Hide all from IP confirmation */}
+      <Dialog open={hideAllIpDialog} onClose={() => setHideAllIpDialog(false)} PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 380 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#f97316' }}>Hide All Reviews from This IP</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: 0 }}>
+            This will hide all <strong>visible</strong> reviews from IP hash <code style={{ background: '#1a1a2e', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{ipHashFilter}</code>.
+            Hidden reviews are not deleted — they can be unhidden individually later.
+          </p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHideAllIpDialog(false)} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={handleHideAllFromIp} variant="contained" sx={{ background: '#f97316', '&:hover': { background: '#ea580c' }, color: '#fff' }} startIcon={<VisibilityOffOutlinedIcon />}>
+            Hide All
+          </Button>
         </DialogActions>
       </Dialog>
 
