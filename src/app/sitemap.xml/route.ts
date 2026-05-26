@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Never pre-render at build time — the response is 37+ MB which exceeds
-// Vercel's 19 MB ISR fallback limit. Instead, the CDN caches the response
-// for 24 hours via Cache-Control, achieving the same cost reduction.
+// Generated on demand (not at build time) and cached by the CDN for 24 hours
+// via Cache-Control. Only reviewed content is listed (reviewCount > 0), so the
+// response is small; the dynamic flag keeps it fresh as new reviews come in.
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = 'https://wokeornot.net';
