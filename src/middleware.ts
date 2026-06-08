@@ -67,11 +67,12 @@ export async function middleware(req: NextRequest) {
   //    Only applies to /movies/:id, /tv-shows/:id, /kids/:id — not browse or
   //    search pages, which real users legitimately paginate through quickly.
   if (CONTENT_PAGE_RE.test(req.nextUrl.pathname)) {
-    // Next.js prefetches linked pages automatically — skip the counter for
-    // those. Real scrapers never send this header, so the protection still
-    // holds against actual crawl traffic.
+    // Skip Next.js client-side navigations: both prefetches and RSC navigation
+    // fetches. Real scrapers issue plain HTTP requests and never send these
+    // headers, so the bot protection still holds.
     const isPrefetch = req.headers.get('Next-Router-Prefetch') === '1';
-    if (!isPrefetch) {
+    const isRscNavigation = req.headers.get('Next-Router-State-Tree') !== null;
+    if (!isPrefetch && !isRscNavigation) {
       // x-forwarded-for is set by Vercel's edge network; first entry is the
       // real client IP even behind multiple proxies.
       const ip =
