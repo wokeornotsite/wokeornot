@@ -14,6 +14,7 @@ import {
   Button, FormControlLabel, Switch, Badge, Typography,
 } from '@mui/material';
 import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -26,26 +27,7 @@ import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const DATAGRID_SX = {
-  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 14,
-  color: '#fff',
-  background: '#101014',
-  borderRadius: 2,
-  boxShadow: '0 2px 12px #0004',
-  '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
-  '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
-  '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
-  '& .MuiDataGrid-row': { transition: 'background 0.15s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
-  '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-  '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-  '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-  '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-  '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-  '& .MuiDataGrid-actionsCell': { color: '#fff' },
-  '& .MuiDataGrid-sortIcon': { color: '#fbbf24 !important' },
-  '& .MuiDataGrid-checkboxInput': { color: '#a78bfa !important' },
-};
+const DATAGRID_SX = ADMIN_GRID_SX;
 
 function fmtDate(val: any): React.ReactNode {
   if (!val) return <span style={{ color: '#4b5563' }}>—</span>;

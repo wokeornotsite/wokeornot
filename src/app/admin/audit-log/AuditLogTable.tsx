@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import ResponsiveDataView, { AdminCard } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 
 const ACTION_LABELS: Record<string, string> = {
   BAN_USER: 'Banned User',
@@ -295,23 +296,7 @@ export default function AuditLogTable() {
         autoHeight={false}
         disableRowSelectionOnClick
         slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No audit log entries found</Box> }}
-        sx={{
-          fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 15,
-          color: '#fff',
-          background: '#101014',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
-          '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
-          '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
-          '& .MuiDataGrid-row': { transition: 'background 0.2s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
-          '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-          '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-          '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-          '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-          '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-        }}
+        sx={{ ...ADMIN_GRID_SX, fontSize: 15 }}
       />
         </Box>
         }
