@@ -1,15 +1,17 @@
 "use client";
 
 import React from 'react';
-import { 
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-  Paper, Typography, Box, Chip, Tooltip, IconButton 
+import {
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Typography, Box, Chip, Tooltip, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+import { AdminCard } from '@/components/admin/ResponsiveDataView';
 
 interface Review {
   id: string;
@@ -49,6 +51,7 @@ interface RecentReviewsTableProps {
 export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps) {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   // Using a consistent date format to avoid hydration errors
   const formatDate = (date: Date) => {
@@ -98,16 +101,16 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const ok = typeof window !== 'undefined' ? window.confirm('Delete this review? This action cannot be undone.') : true;
-    if (!ok) return;
+  const confirmDelete = async () => {
+    const id = deleteDialog.id;
+    if (!id) return;
     try {
       const response = await fetch('/api/admin/reviews', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      
+
       if (response.ok) {
         enqueueSnackbar('Review deleted successfully', { variant: 'success' });
         router.refresh();
@@ -117,10 +120,55 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
     } catch (error) {
       enqueueSnackbar('An error occurred', { variant: 'error' });
     }
+    setDeleteDialog({ open: false, id: null });
   };
 
   return (
-    <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none' }}>
+    <>
+      {/* Mobile: stacked cards with inline view/delete actions */}
+      <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.25, p: 1.5 }}>
+        {reviews.length > 0 ? (
+          reviews.map((review) => {
+            const typeColor = getContentTypeColor(review.content?.contentType || '');
+            return (
+              <AdminCard key={review.id}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                  <Typography sx={{ fontSize: 13, color: review.text ? '#e2e8f0' : '#9ca3af', fontStyle: review.text ? 'normal' : 'italic', minWidth: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {review.text || 'No text review'}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                    <Tooltip title="View Details">
+                      <IconButton size="small" sx={{ color: '#38bdf8' }} onClick={() => router.push(`/admin/moderation?reviewId=${review.id}`)}>
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Review">
+                      <IconButton size="small" sx={{ color: '#ef4444' }} onClick={() => setDeleteDialog({ open: true, id: review.id })}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', mt: 0.75 }}>
+                  <Typography sx={{ fontSize: 12, color: '#a78bfa' }}>{review.user?.name || review.user?.email || review.guestName || 'Anonymous'}</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#6b7280' }}>·</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#e2e8f0' }}>{review.content?.title || 'Unknown content'}</Typography>
+                  <Chip label={getContentTypeLabel(review.content?.contentType || '')} size="small" sx={{ backgroundColor: `${typeColor}20`, color: typeColor, fontWeight: 500, fontSize: '0.62rem', height: 18, '& .MuiChip-label': { px: '6px' } }} />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>{review.rating}/10</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#6b7280' }}>{formatDate(review.createdAt)}</Typography>
+                </Box>
+              </AdminCard>
+            );
+          })
+        ) : (
+          <Typography sx={{ color: '#9ca3af', textAlign: 'center', py: 3, fontSize: 14 }}>No reviews found</Typography>
+        )}
+      </Box>
+
+      {/* Desktop: table */}
+      <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none', display: { xs: 'none', md: 'block' } }}>
       <Table sx={{ minWidth: 650 }}>
         <TableHead>
           <TableRow>
@@ -284,10 +332,10 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete Review">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         sx={{ color: '#ef4444' }}
-                        onClick={() => handleDelete(review.id)}
+                        onClick={() => setDeleteDialog({ open: true, id: review.id })}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -306,5 +354,21 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
         </TableBody>
       </Table>
     </TableContainer>
+
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
+        PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 340 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#ef4444' }}>Delete Review</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ m: 0 }}>Delete this review? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

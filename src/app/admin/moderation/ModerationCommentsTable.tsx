@@ -19,26 +19,10 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useComments } from './useComments';
+import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 
-const DATAGRID_SX = {
-  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 14,
-  color: '#fff',
-  background: '#101014',
-  borderRadius: 2,
-  boxShadow: '0 2px 12px #0004',
-  '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
-  '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
-  '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
-  '& .MuiDataGrid-row': { transition: 'background 0.2s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
-  '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-  '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-  '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-  '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-  '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-  '& .MuiDataGrid-actionsCell': { color: '#fff' },
-  '& .MuiDataGrid-checkboxInput': { color: '#a78bfa !important' },
-};
+const DATAGRID_SX = ADMIN_GRID_SX;
 
 const emptySelection = (): GridRowSelectionModel => ({ type: 'include', ids: new Set<GridRowId>() });
 
@@ -254,6 +238,38 @@ export default function ModerationCommentsTable() {
 
   const selectedCount = selectedIds.ids.size;
 
+  const renderCard = (row: any) => (
+    <AdminCard accent={row.isDeleted ? '#ef4444' : undefined}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+        <Typography sx={{ fontSize: 13, color: row.isDeleted ? '#6b7280' : '#e2e8f0', textDecoration: row.isDeleted ? 'line-through' : 'none', fontStyle: row.isDeleted ? 'italic' : 'normal', wordBreak: 'break-word', minWidth: 0 }}>
+          {row.text || '—'}
+        </Typography>
+        <CardActionsMenu
+          actions={[
+            row.isDeleted
+              ? { label: 'Restore', icon: <RestoreIcon fontSize="small" />, color: '#4ade80', onClick: () => handleSoftDelete(row.id, true) }
+              : { label: 'Soft-delete', icon: <DeleteIcon fontSize="small" />, color: '#fbbf24', onClick: () => handleSoftDelete(row.id, false) },
+            { label: 'Hard-delete', icon: <DeleteForeverIcon fontSize="small" />, color: '#ef4444', onClick: () => setHardDeleteDialog({ open: true, id: row.id }) },
+          ]}
+        />
+      </Box>
+      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', mt: 0.75 }}>
+        <Typography sx={{ fontSize: 12, color: '#a78bfa' }}>{row.user?.email || '—'}</Typography>
+        <Typography sx={{ fontSize: 12, color: '#6b7280' }}>·</Typography>
+        <Typography sx={{ fontSize: 12, color: '#e2e8f0' }}>{row.content?.title || '—'}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', mt: 0.5 }}>
+        <Chip label={row.parentId ? 'Reply' : 'Comment'} size="small" sx={{ fontSize: 10, height: 18, background: row.parentId ? '#1c1c2e' : '#1e2a1e', color: row.parentId ? '#9ca3af' : '#4ade80', '& .MuiChip-label': { px: '6px' } }} />
+        {row.isDeleted
+          ? <Chip label="Deleted" size="small" sx={{ fontSize: 10, height: 18, background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', '& .MuiChip-label': { px: '6px' } }} />
+          : <Chip label="Live" color="success" size="small" sx={{ fontSize: 10, height: 18, '& .MuiChip-label': { px: '6px' } }} />}
+        <Box component="span" sx={{ fontSize: 12, color: '#6b7280', ml: 'auto' }}>
+          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''}
+        </Box>
+      </Box>
+    </AdminCard>
+  );
+
   return (
     <Box sx={{ width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3, color: '#f3f4f6' }}>
       {error && <Alert severity="error" sx={{ mb: 2 }}>Failed to load comments. Please try again.</Alert>}
@@ -319,25 +335,36 @@ export default function ModerationCommentsTable() {
         )}
       </Box>
 
-      <Box sx={{ height: 540 }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          rowCount={total}
-          paginationMode="server"
-          loading={isLoading}
-          checkboxSelection
-          rowSelectionModel={selectedIds}
-          onRowSelectionModelChange={(model) => setSelectedIds(model)}
-          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af', fontSize: 13 }}>No comments found</Box> }}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[20, 50, 100]}
-          autoHeight={false}
-          disableRowSelectionOnClick
-          sx={DATAGRID_SX}
-        />
-      </Box>
+      <ResponsiveDataView
+        rows={rows}
+        loading={isLoading}
+        renderCard={renderCard}
+        emptyMessage="No comments found"
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        desktop={
+          <Box sx={{ height: 540 }}>
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              rowCount={total}
+              paginationMode="server"
+              loading={isLoading}
+              checkboxSelection
+              rowSelectionModel={selectedIds}
+              onRowSelectionModelChange={(model) => setSelectedIds(model)}
+              slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af', fontSize: 13 }}>No comments found</Box> }}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[20, 50, 100]}
+              autoHeight={false}
+              disableRowSelectionOnClick
+              sx={DATAGRID_SX}
+            />
+          </Box>
+        }
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, message: '' })} message={snackbar.message} />
 

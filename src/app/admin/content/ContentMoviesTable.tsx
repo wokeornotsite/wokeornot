@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid';
-import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, TextField, MenuItem, Select, InputLabel, FormControl, Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import EditIcon from '@mui/icons-material/Edit';
@@ -9,6 +9,7 @@ import { useMovies } from './useMovies';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
+import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
 
 export default function ContentMoviesTable() {
   const router = useRouter();
@@ -177,6 +178,33 @@ export default function ContentMoviesTable() {
     '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
   };
 
+  const renderCard = (row: any) => (
+    <AdminCard>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: 14, wordBreak: 'break-word' }}>{row.title}</Typography>
+          <Typography sx={{ color: '#9ca3af', fontSize: 12, mt: 0.25 }}>
+            {row.contentType}{row.year ? ` · ${row.year}` : ''}
+          </Typography>
+        </Box>
+        <CardActionsMenu
+          actions={[
+            { label: 'Edit', icon: <EditIcon fontSize="small" />, color: '#38bdf8', onClick: () => openEdit(row) },
+            { label: 'Delete', icon: <DeleteIcon fontSize="small" />, color: '#ef4444', onClick: () => setDeleteDialog({ open: true, row }) },
+          ]}
+        />
+      </Box>
+      <Box sx={{ display: 'flex', gap: 2, mt: 0.75 }}>
+        <Typography sx={{ fontSize: 12, color: '#cbd5e1' }}>
+          Woke: {row.wokeScore != null ? `${Number(row.wokeScore).toFixed(1)}/10` : '—'}
+        </Typography>
+        <Typography sx={{ fontSize: 12, color: '#cbd5e1' }}>
+          {row.reviewCount} review{row.reviewCount === 1 ? '' : 's'}
+        </Typography>
+      </Box>
+    </AdminCard>
+  );
+
   return (
     <Box sx={{ width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 2, p: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -216,7 +244,16 @@ export default function ContentMoviesTable() {
           </Button>
         )}
       </Box>
-      <DataGrid
+      <ResponsiveDataView
+        rows={movies}
+        loading={isLoading}
+        renderCard={renderCard}
+        emptyMessage="No content found"
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        desktop={
+        <DataGrid
         rows={movies}
         columns={columns}
         rowCount={total}
@@ -231,6 +268,8 @@ export default function ContentMoviesTable() {
         disableRowSelectionOnClick={false}
         autoHeight
         sx={gridSx}
+      />
+        }
       />
       <Snackbar
         open={snackbar.open}

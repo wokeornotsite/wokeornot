@@ -1,12 +1,14 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Box, TextField, Alert } from '@mui/material';
+import { Box, TextField, Alert, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useForumThreads } from './useForumThreads';
 import { useRouter, useSearchParams } from 'next/navigation';
+import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 
 export default function ForumThreadsTable() {
   const router = useRouter();
@@ -89,8 +91,31 @@ export default function ForumThreadsTable() {
     },
   ];
 
+  const renderCard = (row: any) => (
+    <AdminCard>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: 14, wordBreak: 'break-word' }}>
+            {row.title || '(untitled)'}
+          </Typography>
+          <Typography sx={{ color: '#9ca3af', fontSize: 12, mt: 0.25 }}>
+            {row.user?.email || row.userId || '—'}
+          </Typography>
+          <Typography sx={{ color: '#6b7280', fontSize: 12 }}>
+            {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''}
+          </Typography>
+        </Box>
+        <CardActionsMenu
+          actions={[
+            { label: 'Delete', icon: <DeleteIcon fontSize="small" />, color: '#ef4444', onClick: () => setDeleteDialog({ open: true, row }) },
+          ]}
+        />
+      </Box>
+    </AdminCard>
+  );
+
   return (
-    <Box sx={{ height: 540, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+    <Box sx={{ width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           Failed to load forum threads. Please try again.
@@ -103,10 +128,20 @@ export default function ForumThreadsTable() {
           onChange={(e) => { setQ(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }}
           placeholder="Search title or content..."
           InputProps={{ sx: { color: '#fff' } }}
-          sx={{ minWidth: 300 }}
+          sx={{ minWidth: 300, maxWidth: '100%' }}
         />
       </Box>
-      <DataGrid
+      <ResponsiveDataView
+        rows={rows}
+        loading={isLoading}
+        renderCard={renderCard}
+        emptyMessage="No forum threads found"
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        desktop={
+        <Box sx={{ height: 540 }}>
+        <DataGrid
         rows={rows}
         columns={columns}
         rowCount={total}
@@ -118,39 +153,10 @@ export default function ForumThreadsTable() {
         autoHeight={false}
         disableRowSelectionOnClick
         slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No forum threads found</Box> }}
-        sx={{
-          fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 16,
-          color: '#fff',
-          background: '#101014',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': {
-            color: '#fff',
-            background: '#191927',
-            borderBottom: '1px solid #232336',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            background: '#232336',
-            color: '#fbbf24',
-            fontWeight: 700,
-            borderBottom: '2px solid #fbbf24',
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            color: '#fbbf24',
-            fontWeight: 700,
-          },
-          '& .MuiDataGrid-row': {
-            transition: 'background 0.2s',
-            '&:hover': { backgroundColor: '#37376b', color: '#fff' },
-          },
-          '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-          '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-          '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-          '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-          '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-          '& .MuiDataGrid-actionsCell': { color: '#fff' },
-        }}
+        sx={{ ...ADMIN_GRID_SX, fontSize: 16 }}
+      />
+        </Box>
+        }
       />
       <Snackbar
         open={snackbar.open}

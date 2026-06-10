@@ -11,8 +11,10 @@ import {
 import {
   Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert,
   Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, FormControlLabel, Switch, Badge,
+  Button, FormControlLabel, Switch, Badge, Typography,
 } from '@mui/material';
+import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -25,26 +27,7 @@ import Snackbar from '@mui/material/Snackbar';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const DATAGRID_SX = {
-  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-  fontSize: 14,
-  color: '#fff',
-  background: '#101014',
-  borderRadius: 2,
-  boxShadow: '0 2px 12px #0004',
-  '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
-  '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
-  '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
-  '& .MuiDataGrid-row': { transition: 'background 0.15s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
-  '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-  '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-  '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-  '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-  '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-  '& .MuiDataGrid-actionsCell': { color: '#fff' },
-  '& .MuiDataGrid-sortIcon': { color: '#fbbf24 !important' },
-  '& .MuiDataGrid-checkboxInput': { color: '#a78bfa !important' },
-};
+const DATAGRID_SX = ADMIN_GRID_SX;
 
 function fmtDate(val: any): React.ReactNode {
   if (!val) return <span style={{ color: '#4b5563' }}>—</span>;
@@ -382,6 +365,57 @@ export default function ModerationReviewsTable() {
 
   const hasActiveFilters = minRating || maxRating || dateFrom || dateTo || ipHashFilter || guestOnly;
 
+  const renderCard = (row: any) => {
+    const email = row?.user?.email || row?.guestName || 'Anonymous';
+    const r = row.rating;
+    const ratingColor = r >= 8 ? '#ef4444' : r >= 5 ? '#fbbf24' : '#4ade80';
+    const type = row?.content?.contentType;
+    const tc = typeColor[type] || '#9ca3af';
+    return (
+      <AdminCard accent={row.isHidden ? '#ef4444' : undefined}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+          <Typography sx={{ fontSize: 13, color: row.text ? '#e2e8f0' : '#6b7280', fontStyle: row.text ? 'normal' : 'italic', wordBreak: 'break-word', minWidth: 0 }}>
+            {row.text || 'No text'}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+            <Box component="span" sx={{ fontWeight: 700, color: ratingColor, fontSize: 14 }}>{r}</Box>
+            <CardActionsMenu
+              actions={[
+                { label: 'Edit', icon: <EditIcon fontSize="small" />, color: '#38bdf8', onClick: () => { setEditText(row.text || ''); setEditDialog({ open: true, row }); } },
+                row.isHidden
+                  ? { label: 'Unhide', icon: <VisibilityIcon fontSize="small" />, color: '#22c55e', onClick: () => handleToggleHide(row) }
+                  : { label: 'Hide', icon: <VisibilityOffIcon fontSize="small" />, color: '#fbbf24', onClick: () => handleToggleHide(row) },
+                { label: 'Delete', icon: <DeleteIcon fontSize="small" />, color: '#ef4444', onClick: () => setDeleteDialog({ open: true, reviewId: row.id }) },
+              ]}
+            />
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', mt: 0.75 }}>
+          <Typography sx={{ fontSize: 12, color: row?.user?.email ? '#a78bfa' : '#9ca3af' }}>{email}</Typography>
+          <Typography sx={{ fontSize: 12, color: '#6b7280' }}>·</Typography>
+          <Typography sx={{ fontSize: 12, color: '#e2e8f0' }}>{row?.content?.title || '—'}</Typography>
+          {type && (
+            <Box component="span" sx={{ fontSize: 9, fontWeight: 700, color: tc, background: `${tc}22`, border: `1px solid ${tc}44`, borderRadius: '3px', px: '4px' }}>
+              {type.replace('_', ' ')}
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+          <Box component="span" sx={{ fontSize: 12, color: '#6b7280' }}>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''}</Box>
+          {row.isHidden && <Chip label="Hidden" size="small" sx={{ fontSize: 10, height: 18, background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', '& .MuiChip-label': { px: '6px' } }} />}
+          {row.ipHash && (row.ipHashCount ?? 0) > 1 && (
+            <Chip
+              label={`${row.ipHashCount} from IP`}
+              size="small"
+              onClick={() => handleFilterByIpHash(row.ipHash)}
+              sx={{ fontSize: 10, height: 18, cursor: 'pointer', background: row.ipHashCount > 2 ? '#7f1d1d' : '#1c1c2e', color: row.ipHashCount > 2 ? '#fca5a5' : '#9ca3af', border: row.ipHashCount > 2 ? '1px solid #ef4444' : '1px solid #374151', '& .MuiChip-label': { px: '6px' } }}
+            />
+          )}
+        </Box>
+      </AdminCard>
+    );
+  };
+
   return (
     <Box sx={{ width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3, color: '#f3f4f6' }}>
       {error && <Alert severity="error" sx={{ mb: 2 }}>Failed to load reviews. Please try again.</Alert>}
@@ -479,27 +513,38 @@ export default function ModerationReviewsTable() {
         </Box>
       )}
 
-      <Box sx={{ height: 540 }}>
-        <DataGrid
-          rows={reviews}
-          columns={columns}
-          rowCount={total}
-          paginationMode="server"
-          sortingMode="server"
-          loading={isLoading}
-          checkboxSelection
-          rowSelectionModel={selectedIds}
-          onRowSelectionModelChange={(model) => setSelectedIds(model)}
-          slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box> }}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          onSortModelChange={(model) => setSortModel(model)}
-          pageSizeOptions={[10, 20, 50]}
-          autoHeight={false}
-          disableRowSelectionOnClick
-          sx={DATAGRID_SX}
-        />
-      </Box>
+      <ResponsiveDataView
+        rows={reviews}
+        loading={isLoading}
+        renderCard={renderCard}
+        emptyMessage="No reviews found"
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        desktop={
+          <Box sx={{ height: 540 }}>
+            <DataGrid
+              rows={reviews}
+              columns={columns}
+              rowCount={total}
+              paginationMode="server"
+              sortingMode="server"
+              loading={isLoading}
+              checkboxSelection
+              rowSelectionModel={selectedIds}
+              onRowSelectionModelChange={(model) => setSelectedIds(model)}
+              slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No reviews found</Box> }}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              onSortModelChange={(model) => setSortModel(model)}
+              pageSizeOptions={[10, 20, 50]}
+              autoHeight={false}
+              disableRowSelectionOnClick
+              sx={DATAGRID_SX}
+            />
+          </Box>
+        }
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, message: '' })} message={snackbar.message} />
 

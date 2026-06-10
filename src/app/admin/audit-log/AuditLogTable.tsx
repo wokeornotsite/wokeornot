@@ -1,12 +1,14 @@
 "use client";
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Button, TextField } from '@mui/material';
+import { Box, MenuItem, Select, InputLabel, FormControl, Alert, Chip, Button, TextField, Typography } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { useAuditLog } from './useAuditLog';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import ResponsiveDataView, { AdminCard } from '@/components/admin/ResponsiveDataView';
+import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
 
 const ACTION_LABELS: Record<string, string> = {
   BAN_USER: 'Banned User',
@@ -186,8 +188,24 @@ export default function AuditLogTable() {
     },
   ];
 
+  const renderCard = (row: any) => {
+    const aColor = ACTION_COLORS[row.action] || '#9ca3af';
+    const tColor = TARGET_TYPE_COLORS[row.targetType] || '#9ca3af';
+    return (
+      <AdminCard accent={aColor}>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 0.75 }}>
+          <Chip label={ACTION_LABELS[row.action] || row.action || '—'} size="small" sx={{ background: `${aColor}22`, color: aColor, fontWeight: 700, fontSize: '0.7rem', border: `1px solid ${aColor}44` }} />
+          {row.targetType && <Chip label={row.targetType} size="small" sx={{ background: `${tColor}18`, color: tColor, fontWeight: 600, fontSize: '0.68rem' }} />}
+        </Box>
+        {row.details && <Typography sx={{ color: '#cbd5e1', fontSize: 13, wordBreak: 'break-word' }}>{row.details}</Typography>}
+        <Typography sx={{ color: '#9ca3af', fontSize: 12, mt: 0.5 }}>by {row.admin?.email || '—'}</Typography>
+        <Typography sx={{ color: '#6b7280', fontSize: 12 }}>{row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}</Typography>
+      </AdminCard>
+    );
+  };
+
   return (
-    <Box sx={{ height: 600, width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
+    <Box sx={{ width: '100%', background: 'rgba(24,24,27,0.98)', borderRadius: 2, p: 2, mb: 3 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           Failed to load audit log. Please try again.
@@ -256,7 +274,17 @@ export default function AuditLogTable() {
           Export CSV
         </Button>
       </Box>
-      <DataGrid
+      <ResponsiveDataView
+        rows={rows}
+        loading={isLoading}
+        renderCard={renderCard}
+        emptyMessage="No audit log entries found"
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        desktop={
+        <Box sx={{ height: 600 }}>
+        <DataGrid
         rows={rows}
         columns={columns}
         rowCount={total}
@@ -268,23 +296,10 @@ export default function AuditLogTable() {
         autoHeight={false}
         disableRowSelectionOnClick
         slots={{ noRowsOverlay: () => <Box sx={{ p: 2, color: '#9ca3af' }}>No audit log entries found</Box> }}
-        sx={{
-          fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-          fontSize: 15,
-          color: '#fff',
-          background: '#101014',
-          borderRadius: 2,
-          boxShadow: '0 2px 12px #0004',
-          '& .MuiDataGrid-cell': { color: '#fff', background: '#191927', borderBottom: '1px solid #232336' },
-          '& .MuiDataGrid-columnHeaders': { background: '#232336', color: '#fbbf24', fontWeight: 700, borderBottom: '2px solid #fbbf24' },
-          '& .MuiDataGrid-columnHeaderTitle': { color: '#fbbf24', fontWeight: 700 },
-          '& .MuiDataGrid-row': { transition: 'background 0.2s', '&:hover': { backgroundColor: '#37376b', color: '#fff' } },
-          '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#1a1a2e' },
-          '& .MuiDataGrid-row:nth-of-type(odd)': { backgroundColor: '#191927' },
-          '& .MuiDataGrid-footerContainer': { background: '#232336', color: '#fff' },
-          '& .MuiSvgIcon-root, & .MuiButtonBase-root': { color: '#fff !important', opacity: 1 },
-          '& .MuiDataGrid-iconButtonContainer': { color: '#fff' },
-        }}
+        sx={{ ...ADMIN_GRID_SX, fontSize: 15 }}
+      />
+        </Box>
+        }
       />
       <Snackbar
         open={snackbar.open}
