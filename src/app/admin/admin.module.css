@@ -56,6 +56,13 @@
   transform: translateX(4px) scale(1.03);
 }
 
+.adminContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .adminMain {
   flex: 1;
   padding: 2.7rem 3.5vw 2.7rem 2vw;
@@ -63,4 +70,29 @@
   background: none;
   display: flex;
   flex-direction: column;
+}
+
+/* Mobile-only top bar (hamburger + search). Hidden on desktop. */
+.adminTopBar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .adminSidebar {
+    display: none;
+  }
+  .adminTopBar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    background: rgba(36, 37, 54, 0.97);
+    border-bottom: 1px solid #38bdf833;
+    padding: 0.5rem 0.75rem;
+  }
+  .adminMain {
+    padding: 1.25rem 1rem 2rem 1rem;
+  }
 }

@@ -11,11 +11,10 @@ import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import BuildIcon from '@mui/icons-material/Build';
 import LogoutIcon from '@mui/icons-material/Logout';
-import MenuIcon from '@mui/icons-material/Menu';
 import HistoryIcon from '@mui/icons-material/History';
 import ForumIcon from '@mui/icons-material/Forum';
 import PeopleIcon from '@mui/icons-material/PeopleAlt';
-import { Button, Drawer, Divider, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Button, Drawer, Divider, Typography } from '@mui/material';
 
 type NavLink = { href: string; icon: React.ReactNode; label: string; exact: boolean; adminOnly?: boolean };
 
@@ -50,11 +49,16 @@ const navGroups: { groupLabel: string | null; links: NavLink[] }[] = [
   },
 ];
 
-export default function AdminSidebar({ isAdmin = true }: { isAdmin?: boolean }) {
+export default function AdminSidebar({
+  isAdmin = true,
+  mobileOpen = false,
+  onClose,
+}: {
+  isAdmin?: boolean;
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const isActive = (href: string, exact: boolean) => {
     if (exact) return pathname === href;
@@ -63,10 +67,6 @@ export default function AdminSidebar({ isAdmin = true }: { isAdmin?: boolean }) 
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' });
-  };
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
   };
 
   const sidebarContent = (
@@ -98,7 +98,7 @@ export default function AdminSidebar({ isAdmin = true }: { isAdmin?: boolean }) 
                     <Link
                       href={link.href}
                       className={`${styles.adminNavLink} ${active ? styles.adminNavLinkActive : ''}`}
-                      onClick={() => isMobile && setMobileOpen(false)}
+                      onClick={() => onClose?.()}
                     >
                       {link.icon}
                       <span>{link.label}</span>
@@ -132,52 +132,34 @@ export default function AdminSidebar({ isAdmin = true }: { isAdmin?: boolean }) 
     </>
   );
 
-  if (isMobile) {
-    return (
-      <>
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
-          onClick={handleDrawerToggle}
-          sx={{ 
-            position: 'fixed', 
-            top: 16, 
-            left: 16, 
-            zIndex: 1300,
-            background: 'rgba(36, 37, 54, 0.97)',
-            color: '#38bdf8',
-            '&:hover': { background: 'rgba(56, 189, 248, 0.1)' }
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            '& .MuiDrawer-paper': { 
-              width: 220,
-              boxSizing: 'border-box',
-              background: 'rgba(36, 37, 54, 0.97)',
-              borderRight: '1.5px solid #38bdf833',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '2.5rem 1.2rem 2rem 1.2rem',
-            },
-          }}
-        >
-          {sidebarContent}
-        </Drawer>
-      </>
-    );
-  }
-
   return (
-    <aside className={styles.adminSidebar}>
-      {sidebarContent}
-    </aside>
+    <>
+      {/* Desktop sidebar — hidden on mobile via CSS (no useMediaQuery, no hydration flash). */}
+      <aside className={styles.adminSidebar}>
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile drawer — opened from the top-bar hamburger in AdminShell. */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => onClose?.()}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 220,
+            boxSizing: 'border-box',
+            background: 'rgba(36, 37, 54, 0.97)',
+            borderRight: '1.5px solid #38bdf833',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '2.5rem 1.2rem 2rem 1.2rem',
+          },
+        }}
+      >
+        {sidebarContent}
+      </Drawer>
+    </>
   );
 }
