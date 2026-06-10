@@ -5,6 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Typography, Chip, Box,
 } from '@mui/material';
+import { AdminCard } from '@/components/admin/ResponsiveDataView';
 
 interface SignupUser {
   id: string;
@@ -31,7 +32,26 @@ export default function RecentSignupsTable({ users }: RecentSignupsTableProps) {
   };
 
   return (
-    <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none' }}>
+    <>
+      {/* Mobile: stacked cards */}
+      <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.25, p: 1.5 }}>
+        {users.length > 0 ? (
+          users.map((user) => (
+            <AdminCard key={user.id}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                <Typography sx={{ color: '#e2e8f0', fontSize: 13, wordBreak: 'break-all', minWidth: 0 }}>{user.email || '—'}</Typography>
+                <Chip label={user.role} size="small" sx={{ backgroundColor: `${roleColors[user.role] || '#9ca3af'}20`, color: roleColors[user.role] || '#9ca3af', fontWeight: 600, fontSize: '0.7rem', flexShrink: 0 }} />
+              </Box>
+              <Typography sx={{ color: '#9ca3af', fontSize: 12, mt: 0.5 }}>Joined {formatDate(user.createdAt)}</Typography>
+            </AdminCard>
+          ))
+        ) : (
+          <Typography sx={{ color: '#9ca3af', textAlign: 'center', py: 3, fontSize: 14 }}>No recent signups</Typography>
+        )}
+      </Box>
+
+      {/* Desktop: table */}
+      <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none', display: { xs: 'none', md: 'block' } }}>
       <Table sx={{ minWidth: 400 }}>
         <TableHead>
           <TableRow>
@@ -80,5 +100,6 @@ export default function RecentSignupsTable({ users }: RecentSignupsTableProps) {
         </TableBody>
       </Table>
     </TableContainer>
+    </>
   );
 }

@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+import { AdminCard } from '@/components/admin/ResponsiveDataView';
 
 interface Review {
   id: string;
@@ -120,7 +121,51 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
   };
 
   return (
-    <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none' }}>
+    <>
+      {/* Mobile: stacked cards with inline view/delete actions */}
+      <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.25, p: 1.5 }}>
+        {reviews.length > 0 ? (
+          reviews.map((review) => {
+            const typeColor = getContentTypeColor(review.content?.contentType || '');
+            return (
+              <AdminCard key={review.id}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                  <Typography sx={{ fontSize: 13, color: review.text ? '#e2e8f0' : '#9ca3af', fontStyle: review.text ? 'normal' : 'italic', minWidth: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {review.text || 'No text review'}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                    <Tooltip title="View Details">
+                      <IconButton size="small" sx={{ color: '#38bdf8' }} onClick={() => router.push(`/admin/moderation?reviewId=${review.id}`)}>
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Review">
+                      <IconButton size="small" sx={{ color: '#ef4444' }} onClick={() => handleDelete(review.id)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', mt: 0.75 }}>
+                  <Typography sx={{ fontSize: 12, color: '#a78bfa' }}>{review.user?.name || review.user?.email || review.guestName || 'Anonymous'}</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#6b7280' }}>·</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#e2e8f0' }}>{review.content?.title || 'Unknown content'}</Typography>
+                  <Chip label={getContentTypeLabel(review.content?.contentType || '')} size="small" sx={{ backgroundColor: `${typeColor}20`, color: typeColor, fontWeight: 500, fontSize: '0.62rem', height: 18, '& .MuiChip-label': { px: '6px' } }} />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>{review.rating}/10</Typography>
+                  <Typography sx={{ fontSize: 12, color: '#6b7280' }}>{formatDate(review.createdAt)}</Typography>
+                </Box>
+              </AdminCard>
+            );
+          })
+        ) : (
+          <Typography sx={{ color: '#9ca3af', textAlign: 'center', py: 3, fontSize: 14 }}>No reviews found</Typography>
+        )}
+      </Box>
+
+      {/* Desktop: table */}
+      <TableContainer component={Paper} sx={{ background: 'transparent', boxShadow: 'none', display: { xs: 'none', md: 'block' } }}>
       <Table sx={{ minWidth: 650 }}>
         <TableHead>
           <TableRow>
@@ -306,5 +351,6 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
         </TableBody>
       </Table>
     </TableContainer>
+    </>
   );
 }
