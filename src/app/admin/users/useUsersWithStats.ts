@@ -11,6 +11,8 @@ export function useUsersWithStats(params?: {
   sortBy?: SortField;
   sortOrder?: 'asc' | 'desc';
   q?: string;
+  role?: string;
+  flagged?: boolean;
 }) {
   const query = new URLSearchParams();
   query.set('includeStats', 'true');
@@ -19,6 +21,8 @@ export function useUsersWithStats(params?: {
   if (params?.sortBy) query.set('sortBy', params.sortBy);
   if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
   if (params?.q) query.set('q', params.q);
+  if (params?.role) query.set('role', params.role);
+  if (params?.flagged) query.set('flagged', 'true');
 
   const key = `/api/admin/users?${query.toString()}`;
   const { data, error, mutate, isLoading } = useSWR(key, fetcher, {

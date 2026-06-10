@@ -42,3 +42,4 @@ next-env.d.ts
 .env.local
 .claude/
 posthog-setup-report.md
+db-backup-*/

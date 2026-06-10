@@ -28,6 +28,7 @@ const navGroups: { groupLabel: string | null; links: NavLink[] }[] = [
   {
     groupLabel: 'Moderation',
     links: [
+      { href: '/admin/users', icon: <PeopleIcon />, label: 'Users', exact: false },
       { href: '/admin/moderation', icon: <ReviewsIcon />, label: 'Moderation', exact: false },
       { href: '/admin/content', icon: <ManageSearchIcon />, label: 'Content', exact: false },
       { href: '/admin/forum', icon: <ForumIcon />, label: 'Forum', exact: false, adminOnly: true },
@@ -37,7 +38,6 @@ const navGroups: { groupLabel: string | null; links: NavLink[] }[] = [
     groupLabel: 'Insights',
     links: [
       { href: '/admin/analytics', icon: <BarChartIcon />, label: 'Analytics', exact: false },
-      { href: '/admin/users', icon: <PeopleIcon />, label: 'Users', exact: false },
       { href: '/admin/audit-log', icon: <HistoryIcon />, label: 'Audit Log', exact: false },
     ],
   },

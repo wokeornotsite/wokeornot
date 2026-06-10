@@ -117,7 +117,7 @@ export default function AdminSearchBar() {
             {results.users.map((u) => (
               <ResultRow
                 key={`user-${u.id}`}
-                href={`/admin/moderation?tab=users&q=${encodeURIComponent(u.email)}`}
+                href={`/admin/users?q=${encodeURIComponent(u.email)}`}
                 primary={u.email}
                 secondary={`${u.name || '—'} · ${u.role}${u.isBanned ? ' · banned' : ''}`}
                 onClick={() => setOpen(false)}
