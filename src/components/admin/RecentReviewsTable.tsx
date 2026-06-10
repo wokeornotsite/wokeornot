@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { 
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-  Paper, Typography, Box, Chip, Tooltip, IconButton 
+import {
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Typography, Box, Chip, Tooltip, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -50,6 +51,7 @@ interface RecentReviewsTableProps {
 export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps) {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   // Using a consistent date format to avoid hydration errors
   const formatDate = (date: Date) => {
@@ -99,16 +101,16 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const ok = typeof window !== 'undefined' ? window.confirm('Delete this review? This action cannot be undone.') : true;
-    if (!ok) return;
+  const confirmDelete = async () => {
+    const id = deleteDialog.id;
+    if (!id) return;
     try {
       const response = await fetch('/api/admin/reviews', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      
+
       if (response.ok) {
         enqueueSnackbar('Review deleted successfully', { variant: 'success' });
         router.refresh();
@@ -118,6 +120,7 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
     } catch (error) {
       enqueueSnackbar('An error occurred', { variant: 'error' });
     }
+    setDeleteDialog({ open: false, id: null });
   };
 
   return (
@@ -140,7 +143,7 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete Review">
-                      <IconButton size="small" sx={{ color: '#ef4444' }} onClick={() => handleDelete(review.id)}>
+                      <IconButton size="small" sx={{ color: '#ef4444' }} onClick={() => setDeleteDialog({ open: true, id: review.id })}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -329,10 +332,10 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete Review">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         sx={{ color: '#ef4444' }}
-                        onClick={() => handleDelete(review.id)}
+                        onClick={() => setDeleteDialog({ open: true, id: review.id })}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -351,6 +354,21 @@ export default function RecentReviewsTable({ reviews }: RecentReviewsTableProps)
         </TableBody>
       </Table>
     </TableContainer>
+
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
+        PaperProps={{ sx: { background: '#232336', color: '#fff', minWidth: 340 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#ef4444' }}>Delete Review</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ m: 0 }}>Delete this review? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })} sx={{ color: '#a78bfa' }}>Cancel</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
