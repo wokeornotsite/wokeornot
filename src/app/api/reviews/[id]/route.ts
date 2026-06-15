@@ -168,11 +168,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const safeText = text ? sanitizePlainText(text) : '';
     const session = await getServerSession(authOptions);
 
-    // Compute guest IP hash early — used for both the daily rate limit check and storing on the review.
-    let ipHash: string | undefined;
-    if (!session?.user) {
-      ipHash = crypto.createHash('sha256').update(getClientIp(req)).digest('hex');
-    }
+    // Capture client IP + country for every review (admin moderation / spam detection).
+    // ipHash is used for the daily guest rate limit and for IP-grouping in the admin panel.
+    const clientIp = getClientIp(req);
+    const rawCountry = req.headers.get('cf-ipcountry') || '';
+    const ipCountry = rawCountry && rawCountry !== 'XX' ? rawCountry : undefined;
+    const ipAddress = clientIp && clientIp !== '0.0.0.0' ? clientIp : undefined;
+    const ipHash = crypto.createHash('sha256').update(clientIp).digest('hex');
 
     // Daily guest IP rate limit — DB-backed so it survives restarts and works across multiple instances.
     // In-memory limiters reset on deploy; a Prisma count against stored ipHash is the reliable alternative.
@@ -235,7 +237,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         text: safeText,
         userId,
         guestName: userId ? undefined : ((guestName && guestName.trim()) ? guestName.trim() : 'Anonymous'),
-        ipHash: userId ? undefined : ipHash,
+        ipHash,
+        ipAddress,
+        ipCountry,
         contentId,
         categories: {
           create: categoryIds?.map((catId: string) => ({

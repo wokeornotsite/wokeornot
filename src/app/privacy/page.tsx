@@ -18,6 +18,7 @@ export default function PrivacyPage() {
           
           <h2 className="text-2xl font-semibold text-white mt-8 mb-4">1. Information We Collect</h2>
           <p>We collect information you provide directly to us when you create an account, submit reviews, or contact us. This may include your name, email address, and any content you post.</p>
+          <p>When you submit a review, we also automatically collect your IP address and approximate country of origin. We use this information to prevent spam, detect abuse, and moderate fraudulent or automated activity.</p>
 
           <h2 className="text-2xl font-semibold text-white mt-8 mb-4">2. How We Use Your Information</h2>
           <p>We use the information we collect to:</p>

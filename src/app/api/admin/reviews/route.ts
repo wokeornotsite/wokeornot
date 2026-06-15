@@ -88,6 +88,8 @@ export async function GET(req: NextRequest) {
           createdAt: true,
           guestName: true,
           ipHash: true,
+          ipAddress: true,
+          ipCountry: true,
           user: { select: { email: true, name: true } },
           contentId: true,
         },
@@ -129,6 +131,8 @@ export async function GET(req: NextRequest) {
       guestName: r.guestName,
       ipHash: (r as any).ipHash ?? null,
       ipHashCount: (r as any).ipHash ? (ipHashCounts[(r as any).ipHash] ?? 1) : null,
+      ipAddress: (r as any).ipAddress ?? null,
+      ipCountry: (r as any).ipCountry ?? null,
       user: r.user,
       content: contentMap.get(r.contentId) ?? null,
     }));
