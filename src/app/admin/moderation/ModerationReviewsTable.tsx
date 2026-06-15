@@ -11,7 +11,7 @@ import {
 import {
   Box, TextField, MenuItem, Select, InputLabel, FormControl, Alert,
   Chip, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, FormControlLabel, Switch, Badge, Typography,
+  Button, Badge, Typography,
 } from '@mui/material';
 import ResponsiveDataView, { AdminCard, CardActionsMenu } from '@/components/admin/ResponsiveDataView';
 import { ADMIN_GRID_SX } from '@/components/admin/adminGridStyles';
@@ -21,6 +21,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import EditIcon from '@mui/icons-material/Edit';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined';
 
 import { useReviews } from './useReviews';
 import Snackbar from '@mui/material/Snackbar';
@@ -363,7 +364,7 @@ export default function ModerationReviewsTable() {
     },
   ];
 
-  const hasActiveFilters = minRating || maxRating || dateFrom || dateTo || ipHashFilter || guestOnly;
+  const hasActiveFilters = minRating || maxRating || dateFrom || dateTo || ipHashFilter;
 
   const renderCard = (row: any) => {
     const email = row?.user?.email || row?.guestName || 'Anonymous';
@@ -456,6 +457,16 @@ export default function ModerationReviewsTable() {
             Filters
           </Button>
         </Badge>
+        <Button
+          size="small"
+          startIcon={<PersonOffOutlinedIcon sx={{ fontSize: 16 }} />}
+          onClick={() => { setGuestOnly(g => !g); setPaginationModel(p => ({ ...p, page: 0 })); }}
+          variant={guestOnly ? 'contained' : 'outlined'}
+          title="Show only guest (anonymous) reviews — these carry IP data"
+          sx={{ color: guestOnly ? '#000' : '#38bdf8', borderColor: '#38bdf8', background: guestOnly ? '#38bdf8' : 'transparent', '&:hover': { borderColor: '#38bdf8', background: guestOnly ? '#38bdf8' : '#38bdf820' }, fontSize: 12, textTransform: 'none' }}
+        >
+          Guest only
+        </Button>
         {ipHashFilter && (
           <Button
             size="small"
@@ -501,12 +512,8 @@ export default function ModerationReviewsTable() {
           <TextField size="small" type="date" label="From" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} InputLabelProps={{ shrink: true, sx: { color: '#9ca3af', fontSize: 12 } }} InputProps={{ sx: { color: '#fff', fontSize: 12 } }} sx={{ minWidth: 130 }} />
           <TextField size="small" type="date" label="To" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} InputLabelProps={{ shrink: true, sx: { color: '#9ca3af', fontSize: 12 } }} InputProps={{ sx: { color: '#fff', fontSize: 12 } }} sx={{ minWidth: 130 }} />
           <TextField size="small" value={ipHashFilter} onChange={(e) => { setIpHashFilter(e.target.value); setPaginationModel(p => ({ ...p, page: 0 })); }} placeholder="IP hash..." InputProps={{ sx: { color: '#fff', fontSize: 11 } }} sx={{ minWidth: 180 }} />
-          <FormControlLabel
-            control={<Switch size="small" checked={guestOnly} onChange={(e) => { setGuestOnly(e.target.checked); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ '& .MuiSwitch-thumb': { background: guestOnly ? '#a78bfa' : '#6b7280' } }} />}
-            label={<span style={{ color: '#9ca3af', fontSize: 12 }}>Guest only</span>}
-          />
           {hasActiveFilters && (
-            <Button size="small" onClick={() => { setMinRating(''); setMaxRating(''); setDateFrom(''); setDateTo(''); setIpHashFilter(''); setGuestOnly(false); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ color: '#ef4444', fontSize: 12, textTransform: 'none' }}>
+            <Button size="small" onClick={() => { setMinRating(''); setMaxRating(''); setDateFrom(''); setDateTo(''); setIpHashFilter(''); setPaginationModel(p => ({ ...p, page: 0 })); }} sx={{ color: '#ef4444', fontSize: 12, textTransform: 'none' }}>
               Clear filters
             </Button>
           )}
