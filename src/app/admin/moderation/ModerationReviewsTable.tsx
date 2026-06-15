@@ -30,6 +30,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 const DATAGRID_SX = ADMIN_GRID_SX;
 
+// Convert an ISO 3166-1 alpha-2 country code (e.g. "US") to its flag emoji.
+function countryFlag(cc?: string | null): string {
+  if (!cc || cc.length !== 2 || !/^[A-Za-z]{2}$/.test(cc)) return '';
+  const base = 0x1f1e6;
+  const up = cc.toUpperCase();
+  return String.fromCodePoint(base + (up.charCodeAt(0) - 65)) + String.fromCodePoint(base + (up.charCodeAt(1) - 65));
+}
+
 function fmtDate(val: any): React.ReactNode {
   if (!val) return <span style={{ color: '#4b5563' }}>—</span>;
   const d = new Date(val);
@@ -306,31 +314,43 @@ export default function ModerationReviewsTable() {
     },
     {
       field: 'ipHashCount',
-      headerName: 'IP',
-      width: 85,
+      headerName: 'IP / Location',
+      width: 160,
       sortable: false,
       renderCell: (params: any) => {
         const count = params.row?.ipHashCount;
         const ipHash = params.row?.ipHash;
-        if (!ipHash) return <span style={{ color: '#374151', fontSize: 12 }}>—</span>;
+        const ip = params.row?.ipAddress;
+        const country = params.row?.ipCountry;
+        if (!ipHash && !ip && !country) return <span style={{ color: '#374151', fontSize: 12 }}>—</span>;
         return (
-          <Tooltip title={`${count} review(s) from this IP — click to filter`} arrow>
-            <Chip
-              label={`${count} from IP`}
-              size="small"
-              onClick={() => handleFilterByIpHash(ipHash)}
-              sx={{
-                cursor: 'pointer',
-                fontSize: 10,
-                height: 20,
-                background: count > 2 ? '#7f1d1d' : '#1c1c2e',
-                color: count > 2 ? '#fca5a5' : '#9ca3af',
-                border: count > 2 ? '1px solid #ef4444' : '1px solid #374151',
-                '&:hover': { background: count > 2 ? '#991b1b' : '#2d2d44' },
-                '& .MuiChip-label': { px: '6px' },
-              }}
-            />
-          </Tooltip>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, py: 0.5, minWidth: 0 }}>
+            <Tooltip title={ip ? `${country ? country + ' · ' : ''}${ip}` : ''} arrow>
+              <span style={{ fontSize: 11, color: '#cbd5e1', fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+                {country ? `${countryFlag(country)} ` : ''}{ip || '—'}
+              </span>
+            </Tooltip>
+            {ipHash && count > 1 && (
+              <Tooltip title={`${count} review(s) from this IP — click to filter`} arrow>
+                <Chip
+                  label={`${count} from IP`}
+                  size="small"
+                  onClick={() => handleFilterByIpHash(ipHash)}
+                  sx={{
+                    cursor: 'pointer',
+                    fontSize: 10,
+                    height: 18,
+                    alignSelf: 'flex-start',
+                    background: count > 2 ? '#7f1d1d' : '#1c1c2e',
+                    color: count > 2 ? '#fca5a5' : '#9ca3af',
+                    border: count > 2 ? '1px solid #ef4444' : '1px solid #374151',
+                    '&:hover': { background: count > 2 ? '#991b1b' : '#2d2d44' },
+                    '& .MuiChip-label': { px: '6px' },
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Box>
         );
       },
     },
@@ -404,6 +424,11 @@ export default function ModerationReviewsTable() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
           <Box component="span" sx={{ fontSize: 12, color: '#6b7280' }}>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : ''}</Box>
           {row.isHidden && <Chip label="Hidden" size="small" sx={{ fontSize: 10, height: 18, background: '#7f1d1d', color: '#fca5a5', border: '1px solid #ef4444', '& .MuiChip-label': { px: '6px' } }} />}
+          {(row.ipAddress || row.ipCountry) && (
+            <Box component="span" sx={{ fontSize: 11, color: '#cbd5e1', fontFamily: 'monospace' }}>
+              {row.ipCountry ? `${countryFlag(row.ipCountry)} ` : ''}{row.ipAddress || ''}
+            </Box>
+          )}
           {row.ipHash && (row.ipHashCount ?? 0) > 1 && (
             <Chip
               label={`${row.ipHashCount} from IP`}
