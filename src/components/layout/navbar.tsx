@@ -143,7 +143,7 @@ export const Navbar = () => {
         {/* Mobile Menu Overlay */}
         <div
           className={
-            `${styles.mobileMenu} ${mobileOpen ? styles.mobileMenuOpen : ''}`
+            `md:hidden ${styles.mobileMenu} ${mobileOpen ? styles.mobileMenuOpen : ''}`
           }
           tabIndex={-1}
           aria-hidden={!mobileOpen}
@@ -188,7 +188,7 @@ export const Navbar = () => {
         {/* Mobile Menu Overlay - click outside to close */}
         {mobileOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black bg-opacity-20"
+            className="md:hidden fixed inset-0 z-40 bg-black bg-opacity-20"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
