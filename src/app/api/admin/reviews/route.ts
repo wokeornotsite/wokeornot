@@ -187,6 +187,11 @@ export async function PATCH(req: NextRequest) {
     if (typeof hideReason !== 'undefined') data.hideReason = hideReason || null;
     const updated = await prisma.review.update({ where: { id }, data });
 
+    // Recalculate scores when visibility changes so the sidebar stays accurate.
+    if (typeof isHidden === 'boolean' && updated.contentId) {
+      await recalculateContentScores(updated.contentId);
+    }
+
     // Pick the most specific action for the audit log.
     let action: 'HIDE_REVIEW' | 'UNHIDE_REVIEW' | 'EDIT_REVIEW' = 'EDIT_REVIEW';
     let details: string | undefined;

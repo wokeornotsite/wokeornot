@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireStaffAPI } from '@/lib/admin-auth';
 import { writeAuditLog } from '@/lib/audit';
+import { recalculateContentScores } from '@/lib/recalculate-content-scores';
 
 export async function PATCH(req: NextRequest) {
   const auth = await requireStaffAPI();
@@ -24,7 +25,17 @@ export async function PATCH(req: NextRequest) {
     const updateData: any = { isHidden };
     if (typeof hideReason === 'string') updateData.hideReason = hideReason || null;
 
+    // Fetch affected content IDs before updating so we can recalculate scores after.
+    const affected = await prisma.review.findMany({
+      where: { id: { in: capped } },
+      select: { contentId: true },
+    });
+    const contentIds = [...new Set(affected.map(r => r.contentId).filter(Boolean))];
+
     await prisma.review.updateMany({ where: { id: { in: capped } }, data: updateData });
+
+    // Recalculate scores for all affected content (hidden reviews must not count).
+    await Promise.all(contentIds.map(cid => recalculateContentScores(cid)));
 
     await writeAuditLog({
       adminId: auth.session.user.id,

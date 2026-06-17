@@ -107,6 +107,29 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  const auth = await requireAdminAPI();
+  if ('error' in auth) return auth.error;
+  try {
+    // Recalculate scores for every content item that has at least one review.
+    const allContent = await prisma.content.findMany({
+      where: { reviewCount: { gt: 0 } },
+      select: { id: true },
+    });
+    await Promise.all(allContent.map(c => recalculateContentScores(c.id)));
+    await writeAuditLog({
+      adminId: auth.session.user.id,
+      action: 'MAINTENANCE_RECALCULATE_SCORES',
+      targetId: 'all',
+      targetType: 'Maintenance',
+      details: `Recalculated scores for ${allContent.length} content item(s)`,
+    });
+    return NextResponse.json({ recalculated: allContent.length });
+  } catch {
+    return NextResponse.json({ error: 'Failed to recalculate scores' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireAdminAPI();
   if ('error' in auth) return auth.error;

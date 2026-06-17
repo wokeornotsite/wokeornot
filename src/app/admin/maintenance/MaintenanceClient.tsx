@@ -40,6 +40,9 @@ export default function MaintenanceClient() {
   const [dupResult, setDupResult] = useState<DuplicateScanResult | null>(null);
   const [dupDeleting, setDupDeleting] = useState(false);
 
+  // Recalculate scores state
+  const [recalcLoading, setRecalcLoading] = useState(false);
+
   const scan = async () => {
     try {
       setLoading(true);
@@ -125,6 +128,20 @@ export default function MaintenanceClient() {
       enqueueSnackbar('Failed to delete duplicate reviews', { variant: 'error' });
     } finally {
       setDupDeleting(false);
+    }
+  };
+
+  const recalculateScores = async () => {
+    try {
+      setRecalcLoading(true);
+      const res = await fetch('/api/admin/reviews/maintenance', { method: 'PUT' });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      enqueueSnackbar(`Recalculated scores for ${data.recalculated} content items`, { variant: 'success' });
+    } catch {
+      enqueueSnackbar('Failed to recalculate scores', { variant: 'error' });
+    } finally {
+      setRecalcLoading(false);
     }
   };
 
@@ -284,6 +301,23 @@ export default function MaintenanceClient() {
           sx={{ background: '#fbbf24', color: '#000', '&:hover': { background: '#d97706' }, minWidth: 140 }}
         >
           {dupLoading ? 'Scanning…' : 'Run Scan'}
+        </Button>
+      </Paper>
+
+      {/* Recalculate Content Scores */}
+      <Paper sx={{ p: 3, mt: 4, background: 'rgba(24,25,36,0.97)', border: '1px solid #232336', borderRadius: 2 }}>
+        <Typography variant="h6" sx={{ color: '#34d399', fontWeight: 700, mb: 0.5 }}>Recalculate Content Scores</Typography>
+        <Typography variant="body2" sx={{ color: '#9ca3af', mb: 2 }}>
+          Recomputes woke scores, review counts, and category vote tallies for all rated content — excluding hidden reviews. Use this to fix stale scores after bulk-hiding reviews.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={recalculateScores}
+          disabled={recalcLoading}
+          startIcon={recalcLoading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <BuildIcon />}
+          sx={{ background: '#34d399', color: '#000', '&:hover': { background: '#059669' }, minWidth: 200 }}
+        >
+          {recalcLoading ? 'Recalculating…' : 'Recalculate All Scores'}
         </Button>
       </Paper>
 

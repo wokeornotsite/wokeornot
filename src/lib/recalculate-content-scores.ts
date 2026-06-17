@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function recalculateContentScores(contentId: string): Promise<void> {
   const allReviewsWithCategories = await prisma.review.findMany({
-    where: { contentId },
+    where: { contentId, isHidden: false },
     include: { categories: true },
   });
 
